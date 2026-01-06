@@ -30,17 +30,17 @@
 **Step 1: 複素電力の定義**
 
 母線 $i$ への複素電力注入は：
-$$S_i = P_i + jQ_i = V_i \cdot I_i^*$$
+$S_i = P_i + jQ_i = V_i \cdot I_i^*$
 
 ここで、$V_i$ は母線 $i$ の複素電圧、$I_i^*$ は注入電流の共役である。
 
 **Step 2: アドミタンス行列による電流表現**
 
 電流は電圧とアドミタンス行列の関係により：
-$$I_i = \sum_{j=1}^n Y_{ij} V_j$$
+$I_i = \sum_{j=1}^n Y_{ij} V_j$
 
 したがって、複素電力は：
-$$S_i = V_i \left(\sum_{j=1}^n Y_{ij} V_j\right)^* = V_i^* \sum_{j=1}^n Y_{ij}^* V_j^*$$
+$S_i = V_i \left(\sum_{j=1}^n Y_{ij} V_j\right)^* = V_i^* \sum_{j=1}^n Y_{ij}^* V_j^*$
 
 **Step 3: 実部・虚部分離**
 
@@ -86,7 +86,7 @@ $Y_{ij} = -y_{ij}$ （相互アドミタンス, $i \neq j$） ... (9)
 
 微小変動 $\Delta\mathbf{x}$ に対する電力変化は：
 
-$\begin{bmatrix} \Delta\mathbf{P} \\ \Delta\mathbf{Q} \end{bmatrix} = \begin{bmatrix} \frac{\partial \mathbf{P}}{\partial \boldsymbol{\theta}} & \frac{\partial \mathbf{P}}{\partial |\mathbf{V}|} \\ \frac{\partial \mathbf{Q}}{\partial \boldsymbol{\theta}} & \frac{\partial \mathbf{Q}}{\partial |\mathbf{V}|} \end{bmatrix} \begin{bmatrix} \Delta\boldsymbol{\theta} \\ \Delta|\mathbf{V}| \end{bmatrix} = \mathbf{J} \Delta\mathbf{x}$ ... (10)
+$[\Delta\mathbf{P}; \Delta\mathbf{Q}] = [\frac{\partial \mathbf{P}}{\partial \boldsymbol{\theta}}, \frac{\partial \mathbf{P}}{\partial |\mathbf{V}|}; \frac{\partial \mathbf{Q}}{\partial \boldsymbol{\theta}}, \frac{\partial \mathbf{Q}}{\partial |\mathbf{V}|}] [\Delta\boldsymbol{\theta}; \Delta|\mathbf{V}|] = \mathbf{J} \Delta\mathbf{x}$ ... (10)
 
 これが潮流計算の線形化方程式の基礎となる。
 
@@ -158,23 +158,23 @@ $\mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + \Delta\mathbf{x}^{(k)} = \mathbf{x}^{(k
 
 **変数ベクトル：**
 
-$\mathbf{x} = \begin{bmatrix} \boldsymbol{\theta}_{PV,PQ} \\ |\mathbf{V}|_{PQ} \end{bmatrix} = \begin{bmatrix} \theta_2, \ldots, \theta_n \\ |V|_1, \ldots, |V|_m \end{bmatrix}^T$ ... (16)
+$\mathbf{x} = [\boldsymbol{\theta}_{PV,PQ}; |\mathbf{V}|_{PQ}] = [\theta_2, \ldots, \theta_n; |V|_1, \ldots, |V|_m]^T$ ... (16)
 
 ここで、$n$ は総母線数、$m$ はPQ母線数である。
 
 **ミスマッチベクトル：**
 
-$\mathbf{f}(\mathbf{x}) = \begin{bmatrix} \Delta\mathbf{P} \\ \Delta\mathbf{Q} \end{bmatrix} = \begin{bmatrix} \mathbf{P}_{spec} - \mathbf{P}_{calc}(\mathbf{x}) \\ \mathbf{Q}_{spec} - \mathbf{Q}_{calc}(\mathbf{x}) \end{bmatrix}$ ... (17)
+$\mathbf{f}(\mathbf{x}) = [\Delta\mathbf{P}; \Delta\mathbf{Q}] = [\mathbf{P}_{spec} - \mathbf{P}_{calc}(\mathbf{x}); \mathbf{Q}_{spec} - \mathbf{Q}_{calc}(\mathbf{x})]$ ... (17)
 
 **Newton更新式：**
 
-$\begin{bmatrix} \Delta\boldsymbol{\theta}^{(k)} \\ \Delta|\mathbf{V}|^{(k)} \end{bmatrix} = -\begin{bmatrix} \mathbf{J}_{P\theta} & \mathbf{J}_{P|V|} \\ \mathbf{J}_{Q\theta} & \mathbf{J}_{Q|V|} \end{bmatrix}^{-1} \begin{bmatrix} \Delta\mathbf{P}^{(k)} \\ \Delta\mathbf{Q}^{(k)} \end{bmatrix}$ ... (18)
+$[\Delta\boldsymbol{\theta}^{(k)}; \Delta|\mathbf{V}|^{(k)}] = -[\mathbf{J}_{P\theta}, \mathbf{J}_{P|V|}; \mathbf{J}_{Q\theta}, \mathbf{J}_{Q|V|}]^{-1} [\Delta\mathbf{P}^{(k)}; \Delta\mathbf{Q}^{(k)}]$ ... (18)
 
 ### 2.2 Jacobian行列の厳密導出
 
 Jacobian行列は4つのブロックから構成される：
 
-$\mathbf{J} = \begin{bmatrix} \frac{\partial \mathbf{P}}{\partial \boldsymbol{\theta}} & \frac{\partial \mathbf{P}}{\partial |\mathbf{V}|} \\ \frac{\partial \mathbf{Q}}{\partial \boldsymbol{\theta}} & \frac{\partial \mathbf{Q}}{\partial |\mathbf{V}|} \end{bmatrix} = \begin{bmatrix} \mathbf{J}_{P\theta} & \mathbf{J}_{P|V|} \\ \mathbf{J}_{Q\theta} & \mathbf{J}_{Q|V|} \end{bmatrix}$ ... (19)
+$\mathbf{J} = [\frac{\partial \mathbf{P}}{\partial \boldsymbol{\theta}}, \frac{\partial \mathbf{P}}{\partial |\mathbf{V}|}; \frac{\partial \mathbf{Q}}{\partial \boldsymbol{\theta}}, \frac{\partial \mathbf{Q}}{\partial |\mathbf{V}|}] = [\mathbf{J}_{P\theta}, \mathbf{J}_{P|V|}; \mathbf{J}_{Q\theta}, \mathbf{J}_{Q|V|}]$ ... (19)
 
 #### $\mathbf{J}_{P\theta}$ ブロックの導出
 
@@ -337,9 +337,9 @@ function buildJacobian(V, Ybus) {
 
 仮定A1, A2により、式(22), (25)は次のように近似できる：
 
-$$G_{ij}\sin(\theta_i - \theta_j) \approx G_{ij}(\theta_i - \theta_j) \approx 0 \quad (\because G_{ij} \ll B_{ij})$$
+$G_{ij}\sin(\theta_i - \theta_j) \approx G_{ij}(\theta_i - \theta_j) \approx 0$ （$\because G_{ij} \ll B_{ij}$）
 
-$$B_{ij}\cos(\theta_i - \theta_j) \approx B_{ij}$$
+$B_{ij}\cos(\theta_i - \theta_j) \approx B_{ij}$
 
 したがって：
 
@@ -353,7 +353,7 @@ $\frac{\partial P_i}{\partial |V_j|} \approx B_{ij}(\theta_i - \theta_j) \approx
 
 近似により、Jacobian行列は以下のように分離される：
 
-$\mathbf{J} \approx \begin{bmatrix} -\mathbf{B}' & \mathbf{0} \\ \mathbf{0} & -\mathbf{B}'' \end{bmatrix}$ ... (32)
+$\mathbf{J} \approx [-\mathbf{B}', \mathbf{0}; \mathbf{0}, -\mathbf{B}'']$ ... (32)
 
 ここで：
 - $\mathbf{B}'$: P-θ カップリング行列
@@ -879,7 +879,7 @@ $\kappa(\mathbf{B}') = ||\mathbf{B}'|| \cdot ||(\mathbf{B}')^{-1}||$, $\kappa(\m
 
 真のJacobian $\mathbf{J}$ と近似Jacobian $\mathbf{J}_{FD}$ の差：
 
-$\Delta\mathbf{J} = \mathbf{J} - \mathbf{J}_{FD} = \begin{bmatrix} \mathbf{0} & \mathbf{J}_{P|V|} \\ \mathbf{J}_{Q\theta} & \mathbf{0} \end{bmatrix}$ ... (79)
+$\Delta\mathbf{J} = \mathbf{J} - \mathbf{J}_{FD} = [\mathbf{0}, \mathbf{J}_{P|V|}; \mathbf{J}_{Q\theta}, \mathbf{0}]$ ... (79)
 
 摂動理論により、収束次数は以下に低下：
 
