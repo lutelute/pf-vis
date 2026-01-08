@@ -25,9 +25,9 @@
 
 | ツール名 | 主要機能 | オンライン版 | 詳細文書 |
 |---|---|---|---|
-| **MATPOWER準拠分析スイート** | 8手法統合・学術標準完全対応 | [🚀 統合版起動](https://lutelute.github.io/power_flow_viz/power_flow_v5.html) | [📖 詳細](./docs/power_flow_v5.md) |
+| **MATPOWER準拠分析スイート** | 8手法統合・学術標準完全対応 | [🚀 統合版起動](https://lutelute.github.io/power_flow_viz/power_flow_v5.html) | [📖 詳細](./docs/power_flow_v5.html) |
 | **多手法可視化** | Newton-Raphson, Gauss-Seidel等 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_visualizer.html) | [📖 詳細](./docs/power_flow_visualizer.md) |
-| **計算過程ステップ表示** | 5手法の段階別解説 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_process_visualizer_v2.html) | [📖 詳細](./docs/power_flow_process_visualizer.md) |
+| **計算過程ステップ表示** | 5手法の段階別解説 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_process_visualizer_v2.html) | [📖 詳細](./docs/power_flow_process_visualizer.html) |
 | **MATPOWER準拠実装** | Newton-Raphson, 高速分離解法 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_matpower_v2.html) | [📖 詳細](./docs/power_flow_matpower_v2.md) |
 | **収束過程直感的理解** | 複素平面・誤差面可視化 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_intuitive.html) | [📖 詳細](./docs/power_flow_intuitive.md) |
 | **└ v6_fixed最新版** | 完全修正・安定動作版 | [🚀 Fixed起動](https://lutelute.github.io/power_flow_viz/power_flow_intuitive_v6_fixed.html) | ✅推奨版 |
@@ -133,12 +133,28 @@ F(x,λ) = 0,  λ ∈ [0, λ_{critical}]     (8)
 V(s) = ∑_{n=0}^∞ V_n s^n,  |s| < R     (9)
 ```
 
-## 📁 HTMLファイル構造
+## 📁 プロジェクト構造
 
-各HTMLファイルは以下の技術スタックで実装されています：
+```
+power_flow_viz/
+├── index.html                    # メインページ
+├── power_flow_v5.html            # MATPOWER準拠分析スイート
+├── power_flow_visualizer.html    # 多手法可視化
+├── power_flow_process_visualizer_v2.html  # 計算過程ステップ表示
+├── power_flow_matpower_v2.html   # MATPOWER準拠実装
+├── power_flow_intuitive_v6_fixed.html    # 収束過程直感的理解（推奨）
+├── dc_accuracy_analysis.html     # DC潮流精度検証
+├── styles/
+│   └── main.css                  # 共通スタイルシート
+├── scripts/
+│   └── main.js                   # 共通JavaScript
+└── docs/                         # 技術文書
+```
 
 ### 技術仕様
 - **フロントエンド**: HTML5 + CSS3 + Vanilla JavaScript
+- **セマンティックHTML**: article, main, section要素による構造化
+- **アクセシビリティ**: ARIA属性によるスクリーンリーダー対応
 - **数値計算**: 独自実装（外部ライブラリ依存なし）
 - **可視化**: Canvas API + Chart.js
 - **UI**: CSS Grid + Flexbox レスポンシブデザイン
@@ -226,7 +242,7 @@ class PowerFlowSolver {
 ## 📚 技術文書・学術資料
 
 ### 📖 技術文書
-- [**潮流計算手法技術ノート**](./docs/power_flow_methods.md) - 数学的基礎理論と実装詳細
+- [**潮流計算手法技術ノート**](./docs/power_flow_methods.html) - 数学的基礎理論と実装詳細
 - [**各可視化ツール詳細文書**](./docs/) - 個別機能・アルゴリズム解説
 
 ### 🔬 学術的背景
@@ -324,6 +340,7 @@ class PowerFlowSolver {
 - **v1.0** (2024-12-30): 初版リリース
 
 ### プロジェクト全体
+- **v1.8** (2025-01-08): **index.htmlリファクタリング・CSS/JS外部化**
 - **v1.7** (2024-12-31): **Process Visualizer v2リリース・UI/UX刷新**
 - **v1.6** (2024-12-31): **v6_fixed完全修正版リリース・全問題解決**
 - **v1.5** (2024-12-31): 安定版v7リリース・v6問題対応
@@ -339,6 +356,6 @@ class PowerFlowSolver {
 
 ---
 
-**開発者**: [プロジェクト作成者]  
-**更新日**: 2024年12月31日  
-**バージョン**: 1.7.0
+**開発者**: [プロジェクト作成者]
+**更新日**: 2025年1月8日
+**バージョン**: 1.8.0
