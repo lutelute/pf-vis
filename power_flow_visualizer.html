@@ -686,6 +686,9 @@
     </style>
 </head>
 <body>
+    <!-- Shared Power Flow Modules -->
+    <script src="scripts/ieee_cases.js"></script>
+    <script src="scripts/power_flow_engine.js"></script>
     <!-- Navigation Bar -->
     <nav class="nav-bar">
         <div class="nav-container">
@@ -944,6 +947,10 @@
             }
         ];
 
+        /**
+         * Application State
+         * @description Holds all visualization state including network data in MATPOWER format
+         */
         let state = {
             nodeCount: 9,
             branchCount: 12,
@@ -952,7 +959,19 @@
             animationSpeed: 1,
             running: false,
             results: {},
-            network: null
+            network: null,
+            caseData: null  // MATPOWER-format case data for PowerFlowEngine
+        };
+
+        /**
+         * Algorithms that are implemented in PowerFlowEngine
+         * Maps visualization algorithm IDs to engine algorithm codes
+         */
+        const ENGINE_ALGORITHMS = {
+            'gauss-seidel': 'gs',
+            'newton-raphson-polar': 'nr',
+            'fast-decoupled-xb': 'fdxb',
+            'dc-power-flow': 'dc'
         };
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -1095,57 +1114,154 @@
             });
         }
 
+        /**
+         * Generate Network Data
+         *
+         * @description Creates random power system network data in both visualization
+         * format and MATPOWER-compatible format for use with PowerFlowEngine.
+         *
+         * Follows MATPOWER v2 data format conventions:
+         * - Bus types: 1=PQ, 2=PV, 3=Slack
+         * - All values in per-unit on 100 MVA base
+         */
         function generateNetwork() {
             const n = state.nodeCount;
             const m = state.branchCount;
+            const baseMVA = 100;
 
+            // Generate visualization nodes
             const nodes = [];
+            // Generate MATPOWER bus data
+            const busData = [];
+            const genData = [];
+
             for (let i = 0; i < n; i++) {
                 let type = 'PQ';
-                if (i === 0) type = 'Slack';
-                else if (i < Math.ceil(n * 0.3)) type = 'PV';
+                let busType = 1;  // PQ bus
+
+                if (i === 0) {
+                    type = 'Slack';
+                    busType = 3;  // Slack bus
+                } else if (i < Math.ceil(n * 0.3)) {
+                    type = 'PV';
+                    busType = 2;  // PV bus
+                }
+
+                // Generate load power (MW for MATPOWER, p.u. for visualization)
+                const Pload = (type === 'PQ') ? (Math.random() * 30 + 10) : 0;  // 10-40 MW
+                const Qload = (type === 'PQ') ? (Math.random() * 15 + 5) : 0;   // 5-20 MVAr
 
                 nodes.push({
                     id: i,
                     type: type,
                     voltage: 1.0,
                     angle: 0,
-                    P: type === 'Slack' ? 0 : (type === 'PV' ? Math.random() * 0.5 + 0.2 : -(Math.random() * 0.3 + 0.1)),
-                    Q: type === 'PQ' ? -(Math.random() * 0.2 + 0.05) : 0
+                    P: type === 'Slack' ? 0 : (type === 'PV' ? (Math.random() * 50 + 20) / baseMVA : -Pload / baseMVA),
+                    Q: type === 'PQ' ? -Qload / baseMVA : 0
                 });
-            }
 
-            const branches = [];
-            const connected = new Set([0]);
-            
-            for (let i = 1; i < n; i++) {
-                const from = Array.from(connected)[Math.floor(Math.random() * connected.size)];
-                branches.push({
-                    from: from,
-                    to: i,
-                    r: Math.random() * 0.05 + 0.01,
-                    x: Math.random() * 0.1 + 0.05,
-                    b: Math.random() * 0.02
-                });
-                connected.add(i);
-            }
+                // MATPOWER bus data: [BUS_I, TYPE, PD, QD, GS, BS, AREA, VM, VA, BASE_KV, ZONE, VMAX, VMIN]
+                busData.push([
+                    i + 1,      // BUS_I (1-indexed)
+                    busType,    // BUS_TYPE
+                    Pload,      // PD (MW)
+                    Qload,      // QD (MVAr)
+                    0,          // GS
+                    0,          // BS
+                    1,          // AREA
+                    1.0,        // VM (p.u.)
+                    0,          // VA (degrees)
+                    230,        // BASE_KV
+                    1,          // ZONE
+                    1.1,        // VMAX
+                    0.9         // VMIN
+                ]);
 
-            while (branches.length < m && branches.length < n * (n-1) / 2) {
-                const from = Math.floor(Math.random() * n);
-                const to = Math.floor(Math.random() * n);
-                if (from !== to && !branches.some(b => 
-                    (b.from === from && b.to === to) || (b.from === to && b.to === from))) {
-                    branches.push({
-                        from: from,
-                        to: to,
-                        r: Math.random() * 0.05 + 0.01,
-                        x: Math.random() * 0.1 + 0.05,
-                        b: Math.random() * 0.02
-                    });
+                // Add generator data for Slack and PV buses
+                if (type === 'Slack' || type === 'PV') {
+                    const Pgen = (type === 'Slack') ? 0 : (Math.random() * 50 + 20);  // Slack adjusts automatically
+                    const Vsetpoint = 1.0 + (Math.random() * 0.04 - 0.02);  // 0.98-1.02 p.u.
+
+                    // MATPOWER gen data: [GEN_BUS, PG, QG, QMAX, QMIN, VG, MBASE, STATUS, PMAX, PMIN]
+                    genData.push([
+                        i + 1,      // GEN_BUS (1-indexed)
+                        Pgen,       // PG (MW)
+                        0,          // QG (MVAr)
+                        100,        // QMAX
+                        -100,       // QMIN
+                        Vsetpoint,  // VG (p.u.)
+                        baseMVA,    // MBASE
+                        1,          // STATUS
+                        200,        // PMAX
+                        0           // PMIN
+                    ]);
                 }
             }
 
+            // Generate visualization branches
+            const branches = [];
+            const branchData = [];
+            const connected = new Set([0]);
+
+            // Ensure connectivity - create spanning tree first
+            for (let i = 1; i < n; i++) {
+                const from = Array.from(connected)[Math.floor(Math.random() * connected.size)];
+                const r = Math.random() * 0.05 + 0.01;
+                const x = Math.random() * 0.1 + 0.05;
+                const b = Math.random() * 0.02;
+
+                branches.push({ from, to: i, r, x, b });
+
+                // MATPOWER branch data: [F_BUS, T_BUS, R, X, B, RATE_A, RATE_B, RATE_C, TAP, SHIFT, STATUS]
+                branchData.push([
+                    from + 1,   // F_BUS (1-indexed)
+                    i + 1,      // T_BUS (1-indexed)
+                    r,          // BR_R
+                    x,          // BR_X
+                    b,          // BR_B
+                    250,        // RATE_A
+                    250,        // RATE_B
+                    250,        // RATE_C
+                    0,          // TAP (0 = line)
+                    0,          // SHIFT
+                    1           // STATUS
+                ]);
+
+                connected.add(i);
+            }
+
+            // Add additional branches up to requested count
+            while (branches.length < m && branches.length < n * (n-1) / 2) {
+                const from = Math.floor(Math.random() * n);
+                const to = Math.floor(Math.random() * n);
+                if (from !== to && !branches.some(branch =>
+                    (branch.from === from && branch.to === to) ||
+                    (branch.from === to && branch.to === from))) {
+
+                    const r = Math.random() * 0.05 + 0.01;
+                    const x = Math.random() * 0.1 + 0.05;
+                    const b = Math.random() * 0.02;
+
+                    branches.push({ from, to, r, x, b });
+
+                    branchData.push([
+                        from + 1, to + 1, r, x, b,
+                        250, 250, 250, 0, 0, 1
+                    ]);
+                }
+            }
+
+            // Store visualization network
             state.network = { nodes, branches };
+
+            // Store MATPOWER-format case data for PowerFlowEngine
+            state.caseData = {
+                name: `Random ${n}-Bus System`,
+                baseMVA: baseMVA,
+                bus: busData,
+                gen: genData,
+                branch: branchData
+            };
         }
 
         function drawNetworkCanvas() {
@@ -1230,6 +1346,16 @@
             ctx.fillText(`Nodes: ${n}  |  Branches: ${branches.length}`, 10, 20);
         }
 
+        /**
+         * Simulate Power Flow for Unsupported Algorithms
+         *
+         * @description Simulates power flow convergence behavior for algorithms
+         * not yet implemented in PowerFlowEngine. Uses characteristic-based
+         * simulation to demonstrate typical convergence patterns.
+         *
+         * @param {Object} algorithm - Algorithm configuration object
+         * @returns {Promise<Object>} Simulated convergence results
+         */
         function simulatePowerFlow(algorithm) {
             return new Promise((resolve) => {
                 const history = [];
@@ -1281,6 +1407,15 @@
             });
         }
 
+        /**
+         * Get Algorithm Characteristics for Simulation
+         *
+         * @description Returns convergence characteristics for simulating
+         * algorithms not yet implemented in PowerFlowEngine.
+         *
+         * @param {Object} algo - Algorithm configuration object
+         * @returns {Object} Characteristics with convergenceRate, complexity, divergenceRisk
+         */
         function getAlgorithmCharacteristics(algo) {
             const chars = {
                 'gauss-seidel': { convergenceRate: 0.7, complexity: 1, divergenceRisk: 0.1 },
@@ -1370,8 +1505,95 @@
             }, 1000);
         }
 
+        /**
+         * Run a Single Algorithm
+         *
+         * @description Runs power flow for a single algorithm. Uses PowerFlowEngine
+         * for implemented algorithms (NR, GS, FDXB, DC) and simulation for others.
+         *
+         * @param {Object} algo - Algorithm configuration object
+         * @returns {Promise<Object>} Algorithm results with convergence data
+         */
         async function runSingleAlgorithm(algo) {
-            return await simulatePowerFlow(algo);
+            // Check if this algorithm is implemented in PowerFlowEngine
+            const engineAlgorithm = ENGINE_ALGORITHMS[algo.id];
+
+            if (engineAlgorithm && state.caseData) {
+                // Use PowerFlowEngine for implemented algorithms
+                return await runWithEngine(algo, engineAlgorithm);
+            } else {
+                // Use simulation for algorithms not yet in engine
+                return await simulatePowerFlow(algo);
+            }
+        }
+
+        /**
+         * Run Power Flow Using PowerFlowEngine
+         *
+         * @description Executes power flow using the standardized PowerFlowEngine
+         * with proper algorithm invocation patterns.
+         *
+         * @param {Object} algo - Algorithm configuration object
+         * @param {string} engineAlgorithm - Engine algorithm code ('nr', 'gs', 'fdxb', 'dc')
+         * @returns {Promise<Object>} Power flow results
+         */
+        async function runWithEngine(algo, engineAlgorithm) {
+            return new Promise((resolve) => {
+                const startTime = performance.now();
+                const history = [];
+
+                try {
+                    // Create fresh engine instance with current case data
+                    const engine = new PowerFlowEngine(state.caseData);
+
+                    // Solve using standardized interface with options object
+                    const result = engine.solve({
+                        algorithm: engineAlgorithm,
+                        tolerance: state.tolerance,
+                        maxIterations: state.maxIterations
+                    });
+
+                    const endTime = performance.now();
+
+                    // Convert engine error history to visualization format
+                    result.errorHistory.forEach(entry => {
+                        history.push({
+                            iteration: entry.iteration,
+                            error: Math.max(entry.max, 1e-16)
+                        });
+                    });
+
+                    // If no history recorded (e.g., DC power flow), create single entry
+                    if (history.length === 0) {
+                        history.push({ iteration: 1, error: state.tolerance * 0.1 });
+                    }
+
+                    resolve({
+                        algorithm: algo.id,
+                        iterations: result.iterations,
+                        finalError: result.maxError || state.tolerance * 0.1,
+                        time: endTime - startTime,
+                        converged: result.converged,
+                        history: history,
+                        usingEngine: true
+                    });
+                } catch (error) {
+                    // Engine failed - return diverged result
+                    const endTime = performance.now();
+                    history.push({ iteration: 1, error: 1 });
+
+                    resolve({
+                        algorithm: algo.id,
+                        iterations: 1,
+                        finalError: 1,
+                        time: endTime - startTime,
+                        converged: false,
+                        history: history,
+                        usingEngine: true,
+                        error: error.message
+                    });
+                }
+            });
         }
 
         function clearCanvas(canvasId) {
@@ -1620,9 +1842,16 @@
             });
         }
 
+        /**
+         * Reset All Results
+         *
+         * @description Clears all algorithm results, regenerates the network
+         * with new MATPOWER case data, and resets the UI to initial state.
+         */
         function resetAll() {
             state.results = {};
-            
+
+            // Reset algorithm cards
             algorithms.forEach(algo => {
                 const card = document.getElementById(`card-${algo.id}`);
                 card.className = 'algorithm-card';
@@ -1632,11 +1861,17 @@
                 clearCanvas(`chart-${algo.id}`);
             });
 
+            // Clear comparison charts
             clearCanvas('iterationChart');
             clearCanvas('timeChart');
 
+            // Reset results table and progress
             document.getElementById('resultsBody').innerHTML = '';
             document.getElementById('progressContainer').style.display = 'none';
+
+            // Regenerate network with fresh MATPOWER case data
+            generateNetwork();
+            drawNetworkCanvas();
         }
 
         window.addEventListener('resize', () => {
