@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Power Flow Visualization Project</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon" aria-hidden="true">&#9889;</div>
+                <div>
+                    <h1 class="title">Power Flow Visualization</h1>
+                    <p class="subtitle">電力潮流計算アルゴリズムの可視化・教育プラットフォーム</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="visualizers" aria-label="可視化ツール一覧">
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--blue" aria-hidden="true">&#128202;</div>
+                        <h2 class="card-title">MATPOWER準拠分析スイート</h2>
+                    </div>
+                    <p class="card-description">8アルゴリズム統合・MATPOWER 7.1完全準拠の学術標準潮流計算分析プラットフォーム（統合版）</p>
+                    <ul class="card-features">
+                        <li>Newton-Raphson, Gauss-Jacobi, Holomorphic Embedding等8手法</li>
+                        <li>MATPOWER準拠・学術標準比較表・ランキング表示</li>
+                        <li>IEEE標準系統・詳細メトリクス・研究グレード分析</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="power_flow_v5.html" class="btn btn-primary">統合版起動 &rarr;</a>
+                        <a href="docs/power_flow_v5.html" class="btn btn-secondary">&#128214; 詳細</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--green" aria-hidden="true">&#127919;</div>
+                        <h2 class="card-title">多手法可視化</h2>
+                    </div>
+                    <p class="card-description">主要な潮流計算アルゴリズムの動作を直感的に理解できる教育的可視化ツール</p>
+                    <ul class="card-features">
+                        <li>Newton-Raphson, 高速分離解法, Gauss-Seidel</li>
+                        <li>収束曲線・性能分析チャート</li>
+                        <li>インタラクティブパラメータ調整</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="power_flow_visualizer.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/power_flow_visualizer.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--purple" aria-hidden="true">&#128269;</div>
+                        <h2 class="card-title">計算過程ステップ表示</h2>
+                    </div>
+                    <p class="card-description">潮流計算アルゴリズムの各計算ステップを段階的に可視化する教育特化型ツール（v2完全リニューアル版）</p>
+                    <ul class="card-features">
+                        <li>モダンUI/UX・6段階計算過程表示</li>
+                        <li>Jacobian行列・ミスマッチ計算詳細表示</li>
+                        <li>Newton-Raphson法安定性向上</li>
+                        <li>ステップバイステップ学習強化版</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="power_flow_process_visualizer_v2.html" class="btn btn-primary">v2起動 &rarr;</a>
+                        <a href="docs/power_flow_process_visualizer.html" class="btn btn-secondary">&#128214; 詳細</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--cyan" aria-hidden="true">&#9881;</div>
+                        <h2 class="card-title">MATPOWER準拠実装</h2>
+                    </div>
+                    <p class="card-description">電力系統解析の標準ソフトウェアであるMATPOWERとの完全互換性を持つ潮流計算実装</p>
+                    <ul class="card-features">
+                        <li>mpc.bus, mpc.gen, mpc.branch完全対応</li>
+                        <li>IEEE標準系統データ準拠</li>
+                        <li>プロフェッショナル向けツール</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="power_flow_matpower_v2.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/power_flow_matpower_v2.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--red" aria-hidden="true">&#129504;</div>
+                        <h2 class="card-title">収束過程直感的理解</h2>
+                    </div>
+                    <p class="card-description">潮流計算の収束過程を視覚的・直感的に理解できる教育特化型可視化ツール（v6_fixed最新安定版）</p>
+                    <ul class="card-features">
+                        <li>複素電圧平面での収束軌跡表示</li>
+                        <li>誤差面3D可視化・ベクトル場表示</li>
+                        <li>v6_fixed: 全問題完全修正・安定動作</li>
+                        <li>段階的アニメーション学習・確実収束</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="power_flow_intuitive_v6_fixed.html" class="btn btn-primary">Fixed起動 (推奨) &rarr;</a>
+                        <a href="power_flow_intuitive_v7.html" class="btn btn-secondary">v7起動</a>
+                        <a href="docs/power_flow_intuitive.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--green" aria-hidden="true">&#128207;</div>
+                        <h2 class="card-title">DC潮流精度検証</h2>
+                    </div>
+                    <p class="card-description">DC潮流計算の精度特性を定量的に分析し、AC潮流解との比較検証を行う分析ツール</p>
+                    <ul class="card-features">
+                        <li>DC近似妥当性評価・適用限界把握</li>
+                        <li>無効電力影響の定量化</li>
+                        <li>系統条件別精度特性分析</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="dc_accuracy_analysis.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/dc_accuracy_analysis.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                    </div>
+                </article>
+            </section>
+
+            <section class="documentation" aria-label="技術文書">
+                <h2 class="doc-title">&#128218; 技術文書</h2>
+                <div class="doc-links">
+                    <a href="README.md" class="doc-link">
+                        <span aria-hidden="true">&#128203;</span>
+                        <div>
+                            <strong>README</strong>
+                            <br><small>プロジェクト概要</small>
+                        </div>
+                    </a>
+                    <a href="docs/power_flow_methods.html" class="doc-link">
+                        <span aria-hidden="true">&#128300;</span>
+                        <div>
+                            <strong>技術ノート</strong>
+                            <br><small>潮流計算手法詳解 (HTML版)</small>
+                        </div>
+                    </a>
+                    <a href="docs/power_flow_v5.html" class="doc-link">
+                        <span aria-hidden="true">&#128202;</span>
+                        <div>
+                            <strong>統合版文書</strong>
+                            <br><small>MATPOWER準拠分析 (HTML版)</small>
+                        </div>
+                    </a>
+                    <a href="docs/power_flow_process_visualizer.html" class="doc-link">
+                        <span aria-hidden="true">&#127919;</span>
+                        <div>
+                            <strong>プロセス可視化</strong>
+                            <br><small>計算過程ステップ表示 (HTML版)</small>
+                        </div>
+                    </a>
+                    <a href="docs/" class="doc-link">
+                        <span aria-hidden="true">&#128214;</span>
+                        <div>
+                            <strong>全文書一覧</strong>
+                            <br><small>詳細文書・ソース</small>
+                        </div>
+                    </a>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p>電力潮流計算アルゴリズムの可視化・教育プラットフォーム</p>
+            <p><small>教育目的で開発されました。MATPOWERプロジェクト、IEEE標準系統データに深く感謝いたします。</small></p>
+            <a href="https://github.com/lutelute/power_flow_viz" class="github-link">
+                <span aria-hidden="true">&#11088;</span>
+                GitHub で見る
+            </a>
+        </footer>
+    </div>
+
+    <script src="scripts/main.js"></script>
+</body>
+</html>
