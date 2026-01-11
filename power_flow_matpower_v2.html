@@ -453,6 +453,9 @@
             background: var(--accent-green);
         }
     </style>
+    <!-- Shared Modules -->
+    <script src="scripts/ieee_cases.js"></script>
+    <script src="scripts/power_flow_engine.js"></script>
 </head>
 <body>
     <!-- Navigation Bar -->
@@ -688,810 +691,154 @@ MATPOWER準拠の潮流計算を実行します：
     </div>
 
     <script>
+    /**
+     * Power Flow Visualization Application
+     *
+     * @fileoverview Interactive visualization tool for power flow algorithms.
+     * Uses the shared PowerFlowEngine and IEEE test case modules.
+     *
+     * @description This application provides a visual interface for running
+     * and analyzing power flow calculations using Newton-Raphson, Fast Decoupled,
+     * and Gauss-Seidel algorithms on standard IEEE test cases.
+     *
+     * @see scripts/power_flow_engine.js - Shared power flow engine
+     * @see scripts/ieee_cases.js - IEEE test case data
+     *
+     * @author Power Flow Visualization Project
+     * @license MIT
+     */
+
     // ============================================================
-    // MATPOWER Test Case Data (IEEE Standard)
+    // Test Case Mapping
     // ============================================================
-    const MATPOWER_CASES = {
-        case2: {
-            name: '2-bus Simple Example',
-            baseMVA: 100,
-            bus: [
-                [1, 3, 0, 0, 0, 0, 1, 1.0, 0, 230, 1, 1.1, 0.9],
-                [2, 1, 100, 35, 0, 0, 1, 1.0, 0, 230, 1, 1.1, 0.9]
-            ],
-            gen: [
-                [1, 0, 0, 150, -150, 1.0, 100, 1, 200, 0]
-            ],
-            branch: [
-                [1, 2, 0.01, 0.1, 0.02, 250, 250, 250, 0, 0, 1]
-            ]
-        },
 
-        case5: {
-            name: '5-bus Example System',
-            baseMVA: 100,
-            bus: [
-                [1, 3, 0, 0, 0, 0, 1, 1.06, 0, 230, 1, 1.1, 0.9],
-                [2, 2, 20, 10, 0, 0, 1, 1.0, 0, 230, 1, 1.1, 0.9],
-                [3, 1, 45, 15, 0, 0, 1, 1.0, 0, 230, 1, 1.1, 0.9],
-                [4, 1, 40, 5, 0, 0, 1, 1.0, 0, 230, 1, 1.1, 0.9],
-                [5, 1, 60, 10, 0, 0, 1, 1.0, 0, 230, 1, 1.1, 0.9]
-            ],
-            gen: [
-                [1, 0, 0, 200, -200, 1.06, 100, 1, 250, 10],
-                [2, 40, 0, 100, -100, 1.045, 100, 1, 150, 10]
-            ],
-            branch: [
-                [1, 2, 0.02, 0.06, 0.03, 130, 130, 130, 0, 0, 1],
-                [1, 3, 0.08, 0.24, 0.025, 130, 130, 130, 0, 0, 1],
-                [2, 3, 0.06, 0.18, 0.02, 65, 65, 65, 0, 0, 1],
-                [2, 4, 0.06, 0.18, 0.02, 90, 90, 90, 0, 0, 1],
-                [2, 5, 0.04, 0.12, 0.015, 70, 70, 70, 0, 0, 1],
-                [3, 4, 0.01, 0.03, 0.01, 130, 130, 130, 0, 0, 1],
-                [4, 5, 0.08, 0.24, 0.025, 90, 90, 90, 0, 0, 1]
-            ]
-        },
-
-        case9: {
-            name: 'IEEE 9-bus (WSCC)',
-            baseMVA: 100,
-            bus: [
-                [1, 3, 0, 0, 0, 0, 1, 1.04, 0, 16.5, 1, 1.1, 0.9],
-                [2, 2, 0, 0, 0, 0, 1, 1.025, 0, 18, 1, 1.1, 0.9],
-                [3, 2, 0, 0, 0, 0, 1, 1.025, 0, 13.8, 1, 1.1, 0.9],
-                [4, 1, 0, 0, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [5, 1, 125, 50, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [6, 1, 90, 30, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [7, 1, 0, 0, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [8, 1, 100, 35, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [9, 1, 0, 0, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9]
-            ],
-            gen: [
-                [1, 71.64, 27.05, 300, -300, 1.04, 100, 1, 250, 10],
-                [2, 163, 6.65, 300, -300, 1.025, 100, 1, 300, 10],
-                [3, 85, -10.86, 300, -300, 1.025, 100, 1, 270, 10]
-            ],
-            branch: [
-                [1, 4, 0.0001, 0.0576, 0, 250, 250, 250, 0, 0, 1],
-                [4, 5, 0.017, 0.092, 0.158, 250, 250, 250, 0, 0, 1],
-                [5, 6, 0.039, 0.17, 0.358, 150, 150, 150, 0, 0, 1],
-                [3, 6, 0.0001, 0.0586, 0, 300, 300, 300, 0, 0, 1],
-                [6, 7, 0.0119, 0.1008, 0.209, 150, 150, 150, 0, 0, 1],
-                [7, 8, 0.0085, 0.072, 0.149, 250, 250, 250, 0, 0, 1],
-                [8, 2, 0.0001, 0.0625, 0, 250, 250, 250, 0, 0, 1],
-                [8, 9, 0.032, 0.161, 0.306, 250, 250, 250, 0, 0, 1],
-                [9, 4, 0.01, 0.085, 0.176, 250, 250, 250, 0, 0, 1]
-            ]
-        },
-
-        case14: {
-            name: 'IEEE 14-bus',
-            baseMVA: 100,
-            bus: [
-                [1, 3, 0, 0, 0, 0, 1, 1.06, 0, 0, 1, 1.06, 0.94],
-                [2, 2, 21.7, 12.7, 0, 0, 1, 1.045, 0, 0, 1, 1.06, 0.94],
-                [3, 2, 94.2, 19, 0, 0, 1, 1.01, 0, 0, 1, 1.06, 0.94],
-                [4, 1, 47.8, -3.9, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [5, 1, 7.6, 1.6, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [6, 2, 11.2, 7.5, 0, 0, 1, 1.07, 0, 0, 1, 1.06, 0.94],
-                [7, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [8, 2, 0, 0, 0, 0, 1, 1.09, 0, 0, 1, 1.06, 0.94],
-                [9, 1, 29.5, 16.6, 0, 19, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [10, 1, 9, 5.8, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [11, 1, 3.5, 1.8, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [12, 1, 6.1, 1.6, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [13, 1, 13.5, 5.8, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94],
-                [14, 1, 14.9, 5, 0, 0, 1, 1, 0, 0, 1, 1.06, 0.94]
-            ],
-            gen: [
-                [1, 232.4, -16.9, 10, 0, 1.06, 100, 1, 332.4, 0],
-                [2, 40, 42.4, 50, -40, 1.045, 100, 1, 140, 0],
-                [3, 0, 23.4, 40, 0, 1.01, 100, 1, 100, 0],
-                [6, 0, 12.2, 24, -6, 1.07, 100, 1, 100, 0],
-                [8, 0, 17.4, 24, -6, 1.09, 100, 1, 100, 0]
-            ],
-            branch: [
-                [1, 2, 0.01938, 0.05917, 0.0528, 472, 472, 472, 0, 0, 1],
-                [1, 5, 0.05403, 0.22304, 0.0492, 128, 128, 128, 0, 0, 1],
-                [2, 3, 0.04699, 0.19797, 0.0438, 145, 145, 145, 0, 0, 1],
-                [2, 4, 0.05811, 0.17632, 0.034, 132, 132, 132, 0, 0, 1],
-                [2, 5, 0.05695, 0.17388, 0.0346, 136, 136, 136, 0, 0, 1],
-                [3, 4, 0.06701, 0.17103, 0.0128, 65, 65, 65, 0, 0, 1],
-                [4, 5, 0.01335, 0.04211, 0, 0, 0, 0, 0, 0, 1],
-                [4, 7, 0.0001, 0.20912, 0, 0, 0, 0, 0.978, 0, 1],
-                [4, 9, 0.0001, 0.55618, 0, 0, 0, 0, 0.969, 0, 1],
-                [5, 6, 0.0001, 0.25202, 0, 0, 0, 0, 0.932, 0, 1],
-                [6, 11, 0.09498, 0.1989, 0, 0, 0, 0, 0, 0, 1],
-                [6, 12, 0.12291, 0.25581, 0, 0, 0, 0, 0, 0, 1],
-                [6, 13, 0.06615, 0.13027, 0, 0, 0, 0, 0, 0, 1],
-                [7, 8, 0.0001, 0.17615, 0, 0, 0, 0, 0, 0, 1],
-                [7, 9, 0.11001, 0.2064, 0, 0, 0, 0, 0, 0, 1],
-                [9, 10, 0.03181, 0.0845, 0, 0, 0, 0, 0, 0, 1],
-                [9, 14, 0.12711, 0.27038, 0, 0, 0, 0, 0, 0, 1],
-                [10, 11, 0.08205, 0.19207, 0, 0, 0, 0, 0, 0, 1],
-                [12, 13, 0.22092, 0.19988, 0, 0, 0, 0, 0, 0, 1],
-                [13, 14, 0.17093, 0.34802, 0, 0, 0, 0, 0, 0, 1]
-            ]
-        },
-
-        case30: {
-            name: 'IEEE 30-bus',
-            baseMVA: 100,
-            bus: [
-                [1, 3, 0, 0, 0, 0, 1, 1.06, 0, 132, 1, 1.05, 0.95],
-                [2, 2, 21.7, 12.7, 0, 0, 1, 1.043, 0, 132, 1, 1.1, 0.95],
-                [3, 1, 2.4, 1.2, 0, 0, 1, 1, 0, 132, 1, 1.05, 0.95],
-                [4, 1, 7.6, 1.6, 0, 0, 1, 1, 0, 132, 1, 1.05, 0.95],
-                [5, 2, 94.2, 19, 0, 0, 1, 1.01, 0, 132, 1, 1.1, 0.95],
-                [6, 1, 0, 0, 0, 0, 1, 1, 0, 132, 1, 1.05, 0.95],
-                [7, 1, 22.8, 10.9, 0, 0, 1, 1, 0, 132, 1, 1.05, 0.95],
-                [8, 2, 30, 30, 0, 0, 1, 1.01, 0, 132, 1, 1.1, 0.95],
-                [9, 1, 0, 0, 0, 0, 1, 1, 0, 1, 1, 1.05, 0.95],
-                [10, 1, 5.8, 2, 0, 19, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [11, 2, 0, 0, 0, 0, 1, 1.082, 0, 11, 1, 1.1, 0.95],
-                [12, 1, 11.2, 7.5, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [13, 2, 0, 0, 0, 0, 1, 1.071, 0, 11, 1, 1.1, 0.95],
-                [14, 1, 6.2, 1.6, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [15, 1, 8.2, 2.5, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [16, 1, 3.5, 1.8, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [17, 1, 9, 5.8, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [18, 1, 3.2, 0.9, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [19, 1, 9.5, 3.4, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [20, 1, 2.2, 0.7, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [21, 1, 17.5, 11.2, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [22, 1, 0, 0, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [23, 1, 3.2, 1.6, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [24, 1, 8.7, 6.7, 0, 4.3, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [25, 1, 0, 0, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [26, 1, 3.5, 2.3, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [27, 1, 0, 0, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [28, 1, 0, 0, 0, 0, 1, 1, 0, 132, 1, 1.05, 0.95],
-                [29, 1, 2.4, 0.9, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95],
-                [30, 1, 10.6, 1.9, 0, 0, 1, 1, 0, 33, 1, 1.05, 0.95]
-            ],
-            gen: [
-                [1, 260.2, -16.1, 10, -20, 1.06, 100, 1, 360.2, 0],
-                [2, 40, 50, 50, -20, 1.043, 100, 1, 140, 0],
-                [5, 0, 37, 40, -15, 1.01, 100, 1, 100, 0],
-                [8, 0, 37.3, 40, -15, 1.01, 100, 1, 100, 0],
-                [11, 0, 16.2, 24, -10, 1.082, 100, 1, 100, 0],
-                [13, 0, 10.6, 24, -10, 1.071, 100, 1, 100, 0]
-            ],
-            branch: [
-                [1, 2, 0.0192, 0.0575, 0.0528, 130, 130, 130, 0, 0, 1],
-                [1, 3, 0.0452, 0.1852, 0.0408, 130, 130, 130, 0, 0, 1],
-                [2, 4, 0.057, 0.1737, 0.0368, 65, 65, 65, 0, 0, 1],
-                [3, 4, 0.0132, 0.0379, 0.0084, 130, 130, 130, 0, 0, 1],
-                [2, 5, 0.0472, 0.1983, 0.0418, 130, 130, 130, 0, 0, 1],
-                [2, 6, 0.0581, 0.1763, 0.0374, 65, 65, 65, 0, 0, 1],
-                [4, 6, 0.0119, 0.0414, 0.009, 90, 90, 90, 0, 0, 1],
-                [5, 7, 0.046, 0.116, 0.0204, 70, 70, 70, 0, 0, 1],
-                [6, 7, 0.0267, 0.082, 0.017, 130, 130, 130, 0, 0, 1],
-                [6, 8, 0.012, 0.042, 0.009, 32, 32, 32, 0, 0, 1],
-                [6, 9, 0.0001, 0.208, 0, 65, 65, 65, 0.978, 0, 1],
-                [6, 10, 0.0001, 0.556, 0, 32, 32, 32, 0.969, 0, 1],
-                [9, 11, 0.0001, 0.208, 0, 65, 65, 65, 0, 0, 1],
-                [9, 10, 0.0001, 0.11, 0, 65, 65, 65, 0, 0, 1],
-                [4, 12, 0.0001, 0.256, 0, 65, 65, 65, 0.932, 0, 1],
-                [12, 13, 0.0001, 0.14, 0, 65, 65, 65, 0, 0, 1],
-                [12, 14, 0.1231, 0.2559, 0, 32, 32, 32, 0, 0, 1],
-                [12, 15, 0.0662, 0.1304, 0, 32, 32, 32, 0, 0, 1],
-                [12, 16, 0.0945, 0.1987, 0, 32, 32, 32, 0, 0, 1],
-                [14, 15, 0.221, 0.1997, 0, 16, 16, 16, 0, 0, 1],
-                [16, 17, 0.0524, 0.1923, 0, 16, 16, 16, 0, 0, 1],
-                [15, 18, 0.1073, 0.2185, 0, 16, 16, 16, 0, 0, 1],
-                [18, 19, 0.0639, 0.1292, 0, 16, 16, 16, 0, 0, 1],
-                [19, 20, 0.034, 0.068, 0, 32, 32, 32, 0, 0, 1],
-                [10, 20, 0.0936, 0.209, 0, 32, 32, 32, 0, 0, 1],
-                [10, 17, 0.0324, 0.0845, 0, 32, 32, 32, 0, 0, 1],
-                [10, 21, 0.0348, 0.0749, 0, 32, 32, 32, 0, 0, 1],
-                [10, 22, 0.0727, 0.1499, 0, 32, 32, 32, 0, 0, 1],
-                [21, 22, 0.0116, 0.0236, 0, 32, 32, 32, 0, 0, 1],
-                [15, 23, 0.1, 0.202, 0, 16, 16, 16, 0, 0, 1],
-                [22, 24, 0.115, 0.179, 0, 16, 16, 16, 0, 0, 1],
-                [23, 24, 0.132, 0.27, 0, 16, 16, 16, 0, 0, 1],
-                [24, 25, 0.1885, 0.3292, 0, 16, 16, 16, 0, 0, 1],
-                [25, 26, 0.2544, 0.38, 0, 16, 16, 16, 0, 0, 1],
-                [25, 27, 0.1093, 0.2087, 0, 16, 16, 16, 0, 0, 1],
-                [28, 27, 0.0001, 0.396, 0, 65, 65, 65, 0.968, 0, 1],
-                [27, 29, 0.2198, 0.4153, 0, 16, 16, 16, 0, 0, 1],
-                [27, 30, 0.3202, 0.6027, 0, 16, 16, 16, 0, 0, 1],
-                [29, 30, 0.2399, 0.4533, 0, 16, 16, 16, 0, 0, 1],
-                [8, 28, 0.0636, 0.2, 0.0428, 32, 32, 32, 0, 0, 1],
-                [6, 28, 0.0169, 0.0599, 0.013, 32, 32, 32, 0, 0, 1]
-            ]
-        }
+    /**
+     * Mapping from dropdown values to IEEE test case constants
+     * Uses shared IEEE case data from ieee_cases.js
+     *
+     * @type {Object.<string, Object>}
+     */
+    const CASE_MAP = {
+        case2: IEEE_2_BUS,
+        case5: IEEE_5_BUS,
+        case9: IEEE_9_BUS,
+        case14: IEEE_14_BUS,
+        case30: IEEE_30_BUS
     };
 
     // ============================================================
-    // Power Flow Engine
+    // Application State
     // ============================================================
-    class PowerFlowEngine {
-        constructor(caseData) {
-            this.baseMVA = caseData.baseMVA;
-            this.busData = JSON.parse(JSON.stringify(caseData.bus));
-            this.genData = JSON.parse(JSON.stringify(caseData.gen));
-            this.branchData = JSON.parse(JSON.stringify(caseData.branch));
-            
-            this.nBus = this.busData.length;
-            this.nBranch = this.branchData.length;
-            
-            this.V = [];
-            this.delta = [];
-            this.Pgen = [];
-            this.Qgen = [];
-            
-            this.slackBus = -1;
-            this.pvBuses = [];
-            this.pqBuses = [];
-            
-            this.Ybus = { re: [], im: [] };
-            
-            this.iteration = 0;
-            this.converged = false;
-            this.errorHistory = [];
-            this.maxPError = 0;
-            this.maxQError = 0;
-            
-            this.initialize();
-        }
 
-        initialize() {
-            for (let i = 0; i < this.nBus; i++) {
-                const bus = this.busData[i];
-                this.V[i] = bus[7];
-                this.delta[i] = bus[8] * Math.PI / 180;
-                
-                if (bus[1] === 3) {
-                    this.slackBus = i;
-                } else if (bus[1] === 2) {
-                    this.pvBuses.push(i);
-                } else {
-                    this.pqBuses.push(i);
-                }
-            }
-
-            this.Pgen = new Array(this.nBus).fill(0);
-            this.Qgen = new Array(this.nBus).fill(0);
-            
-            for (const gen of this.genData) {
-                const busIdx = gen[0] - 1;
-                this.Pgen[busIdx] += gen[1] / this.baseMVA;
-                this.Qgen[busIdx] += gen[2] / this.baseMVA;
-                
-                if (this.pvBuses.includes(busIdx) || busIdx === this.slackBus) {
-                    this.V[busIdx] = gen[5];
-                }
-            }
-
-            this.buildYbus();
-            
-            this.iteration = 0;
-            this.converged = false;
-            this.errorHistory = [];
-        }
-
-        buildYbus() {
-            for (let i = 0; i < this.nBus; i++) {
-                this.Ybus.re[i] = new Array(this.nBus).fill(0);
-                this.Ybus.im[i] = new Array(this.nBus).fill(0);
-            }
-
-            for (const branch of this.branchData) {
-                const from = branch[0] - 1;
-                const to = branch[1] - 1;
-                let r = branch[2];
-                let x = branch[3];
-                const b = branch[4];
-                const tap = branch[8] || 1;
-                
-                // Handle zero impedance (transformers)
-                if (Math.abs(r) < 1e-8 && Math.abs(x) < 1e-8) continue;
-                if (Math.abs(r) < 1e-8) r = 1e-6;
-                if (Math.abs(x) < 1e-8) x = 1e-6;
-                
-                const z2 = r * r + x * x;
-                const g = r / z2;
-                const bSeries = -x / z2;
-                
-                const tapRatio = tap === 0 ? 1 : tap;
-                
-                this.Ybus.re[from][to] -= g / tapRatio;
-                this.Ybus.im[from][to] -= bSeries / tapRatio;
-                this.Ybus.re[to][from] -= g / tapRatio;
-                this.Ybus.im[to][from] -= bSeries / tapRatio;
-                
-                this.Ybus.re[from][from] += g / (tapRatio * tapRatio);
-                this.Ybus.im[from][from] += bSeries / (tapRatio * tapRatio) + b / 2;
-                this.Ybus.re[to][to] += g;
-                this.Ybus.im[to][to] += bSeries + b / 2;
-            }
-
-            for (let i = 0; i < this.nBus; i++) {
-                const Gs = this.busData[i][4] / this.baseMVA;
-                const Bs = this.busData[i][5] / this.baseMVA;
-                this.Ybus.re[i][i] += Gs;
-                this.Ybus.im[i][i] += Bs;
-            }
-        }
-
-        calcPowerInjection() {
-            const P = new Array(this.nBus).fill(0);
-            const Q = new Array(this.nBus).fill(0);
-
-            for (let i = 0; i < this.nBus; i++) {
-                for (let j = 0; j < this.nBus; j++) {
-                    const Gij = this.Ybus.re[i][j];
-                    const Bij = this.Ybus.im[i][j];
-                    const thetaij = this.delta[i] - this.delta[j];
-                    
-                    P[i] += this.V[i] * this.V[j] * (Gij * Math.cos(thetaij) + Bij * Math.sin(thetaij));
-                    Q[i] += this.V[i] * this.V[j] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
-                }
-            }
-
-            return { P, Q };
-        }
-
-        calcMismatch() {
-            const { P, Q } = this.calcPowerInjection();
-            const deltaP = [];
-            const deltaQ = [];
-
-            for (let i = 0; i < this.nBus; i++) {
-                if (i === this.slackBus) continue;
-                
-                const Pload = this.busData[i][2] / this.baseMVA;
-                const Qload = this.busData[i][3] / this.baseMVA;
-                const Pspec = this.Pgen[i] - Pload;
-                const Qspec = this.Qgen[i] - Qload;
-                
-                deltaP.push({ bus: i, value: Pspec - P[i] });
-                
-                if (this.pqBuses.includes(i)) {
-                    deltaQ.push({ bus: i, value: Qspec - Q[i] });
-                }
-            }
-
-            return { deltaP, deltaQ, Pcalc: P, Qcalc: Q };
-        }
-
-        newtonRaphsonStep() {
-            const { deltaP, deltaQ } = this.calcMismatch();
-            
-            const f = [...deltaP.map(d => d.value), ...deltaQ.map(d => d.value)];
-            const n = f.length;
-            
-            if (n === 0) return { maxError: 0 };
-            
-            const J = this.buildJacobian(deltaP, deltaQ);
-            const dx = this.solveLU(J, f);
-            
-            if (!dx || dx.some(v => !isFinite(v))) {
-                return { maxError: Infinity };
-            }
-            
-            let idx = 0;
-            for (const dp of deltaP) {
-                this.delta[dp.bus] += dx[idx++];
-            }
-            for (const dq of deltaQ) {
-                this.V[dq.bus] += dx[idx++];
-                this.V[dq.bus] = Math.max(0.5, Math.min(1.5, this.V[dq.bus]));
-            }
-            
-            this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
-            this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
-            
-            return { 
-                maxError: Math.max(this.maxPError, this.maxQError),
-                deltaP,
-                deltaQ
-            };
-        }
-
-        buildJacobian(deltaP, deltaQ) {
-            const nP = deltaP.length;
-            const nQ = deltaQ.length;
-            const n = nP + nQ;
-            
-            const J = Array(n).fill(null).map(() => Array(n).fill(0));
-            
-            for (let i = 0; i < nP; i++) {
-                const bi = deltaP[i].bus;
-                for (let j = 0; j < nP; j++) {
-                    const bj = deltaP[j].bus;
-                    J[i][j] = this.dPdDelta(bi, bj);
-                }
-            }
-            
-            for (let i = 0; i < nP; i++) {
-                const bi = deltaP[i].bus;
-                for (let j = 0; j < nQ; j++) {
-                    const bj = deltaQ[j].bus;
-                    J[i][nP + j] = this.dPdV(bi, bj);
-                }
-            }
-            
-            for (let i = 0; i < nQ; i++) {
-                const bi = deltaQ[i].bus;
-                for (let j = 0; j < nP; j++) {
-                    const bj = deltaP[j].bus;
-                    J[nP + i][j] = this.dQdDelta(bi, bj);
-                }
-            }
-            
-            for (let i = 0; i < nQ; i++) {
-                const bi = deltaQ[i].bus;
-                for (let j = 0; j < nQ; j++) {
-                    const bj = deltaQ[j].bus;
-                    J[nP + i][nP + j] = this.dQdV(bi, bj);
-                }
-            }
-            
-            return J;
-        }
-
-        dPdDelta(i, j) {
-            if (i === j) {
-                let sum = 0;
-                for (let k = 0; k < this.nBus; k++) {
-                    if (k === i) continue;
-                    const Gik = this.Ybus.re[i][k];
-                    const Bik = this.Ybus.im[i][k];
-                    const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[i] * this.V[k] * (-Gik * Math.sin(thetaik) + Bik * Math.cos(thetaik));
-                }
-                return sum;
-            } else {
-                const Gij = this.Ybus.re[i][j];
-                const Bij = this.Ybus.im[i][j];
-                const thetaij = this.delta[i] - this.delta[j];
-                return this.V[i] * this.V[j] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
-            }
-        }
-
-        dPdV(i, j) {
-            if (i === j) {
-                let sum = 2 * this.V[i] * this.Ybus.re[i][i];
-                for (let k = 0; k < this.nBus; k++) {
-                    if (k === i) continue;
-                    const Gik = this.Ybus.re[i][k];
-                    const Bik = this.Ybus.im[i][k];
-                    const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[k] * (Gik * Math.cos(thetaik) + Bik * Math.sin(thetaik));
-                }
-                return sum;
-            } else {
-                const Gij = this.Ybus.re[i][j];
-                const Bij = this.Ybus.im[i][j];
-                const thetaij = this.delta[i] - this.delta[j];
-                return this.V[i] * (Gij * Math.cos(thetaij) + Bij * Math.sin(thetaij));
-            }
-        }
-
-        dQdDelta(i, j) {
-            if (i === j) {
-                let sum = 0;
-                for (let k = 0; k < this.nBus; k++) {
-                    if (k === i) continue;
-                    const Gik = this.Ybus.re[i][k];
-                    const Bik = this.Ybus.im[i][k];
-                    const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[i] * this.V[k] * (Gik * Math.cos(thetaik) + Bik * Math.sin(thetaik));
-                }
-                return sum;
-            } else {
-                const Gij = this.Ybus.re[i][j];
-                const Bij = this.Ybus.im[i][j];
-                const thetaij = this.delta[i] - this.delta[j];
-                return -this.V[i] * this.V[j] * (Gij * Math.cos(thetaij) + Bij * Math.sin(thetaij));
-            }
-        }
-
-        dQdV(i, j) {
-            if (i === j) {
-                let sum = -2 * this.V[i] * this.Ybus.im[i][i];
-                for (let k = 0; k < this.nBus; k++) {
-                    if (k === i) continue;
-                    const Gik = this.Ybus.re[i][k];
-                    const Bik = this.Ybus.im[i][k];
-                    const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[k] * (Gik * Math.sin(thetaik) - Bik * Math.cos(thetaik));
-                }
-                return sum;
-            } else {
-                const Gij = this.Ybus.re[i][j];
-                const Bij = this.Ybus.im[i][j];
-                const thetaij = this.delta[i] - this.delta[j];
-                return this.V[i] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
-            }
-        }
-
-        gaussSeidelStep() {
-            for (let i = 0; i < this.nBus; i++) {
-                if (i === this.slackBus) continue;
-                
-                const Pload = this.busData[i][2] / this.baseMVA;
-                const Qload = this.busData[i][3] / this.baseMVA;
-                const Pspec = this.Pgen[i] - Pload;
-                const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - Qload) : 0;
-                
-                let sumYV_re = 0, sumYV_im = 0;
-                for (let j = 0; j < this.nBus; j++) {
-                    if (j === i) continue;
-                    const Vj_re = this.V[j] * Math.cos(this.delta[j]);
-                    const Vj_im = this.V[j] * Math.sin(this.delta[j]);
-                    sumYV_re += this.Ybus.re[i][j] * Vj_re - this.Ybus.im[i][j] * Vj_im;
-                    sumYV_im += this.Ybus.re[i][j] * Vj_im + this.Ybus.im[i][j] * Vj_re;
-                }
-                
-                const Vi_re = this.V[i] * Math.cos(this.delta[i]);
-                const Vi_im = this.V[i] * Math.sin(this.delta[i]);
-                const Vmag2 = this.V[i] * this.V[i];
-                const SoverVconj_re = (Pspec * Vi_re + Qspec * Vi_im) / Vmag2;
-                const SoverVconj_im = (Pspec * Vi_im - Qspec * Vi_re) / Vmag2;
-                
-                const Yii_mag2 = this.Ybus.re[i][i] ** 2 + this.Ybus.im[i][i] ** 2;
-                if (Yii_mag2 < 1e-12) continue;
-                
-                const rhs_re = SoverVconj_re - sumYV_re;
-                const rhs_im = SoverVconj_im - sumYV_im;
-                
-                const newV_re = (rhs_re * this.Ybus.re[i][i] + rhs_im * this.Ybus.im[i][i]) / Yii_mag2;
-                const newV_im = (rhs_im * this.Ybus.re[i][i] - rhs_re * this.Ybus.im[i][i]) / Yii_mag2;
-                
-                const newVmag = Math.sqrt(newV_re * newV_re + newV_im * newV_im);
-                const newVang = Math.atan2(newV_im, newV_re);
-                
-                const alpha = 1.0;
-                this.delta[i] = this.delta[i] + alpha * (newVang - this.delta[i]);
-                if (this.pqBuses.includes(i)) {
-                    this.V[i] = this.V[i] + alpha * (newVmag - this.V[i]);
-                    this.V[i] = Math.max(0.5, Math.min(1.5, this.V[i]));
-                }
-            }
-            
-            const { deltaP, deltaQ } = this.calcMismatch();
-            this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
-            this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
-            
-            return { 
-                maxError: Math.max(this.maxPError, this.maxQError),
-                deltaP,
-                deltaQ
-            };
-        }
-
-        fastDecoupledStep() {
-            const { deltaP, deltaQ } = this.calcMismatch();
-            
-            if (deltaP.length > 0) {
-                const Bp = this.buildBMatrix(deltaP.map(d => d.bus));
-                const fp = deltaP.map(d => d.value / this.V[d.bus]);
-                const dDelta = this.solveLU(Bp, fp);
-                
-                if (dDelta && dDelta.every(v => isFinite(v))) {
-                    for (let i = 0; i < deltaP.length; i++) {
-                        this.delta[deltaP[i].bus] += dDelta[i];
-                    }
-                }
-            }
-            
-            if (deltaQ.length > 0) {
-                const Bpp = this.buildBMatrix(deltaQ.map(d => d.bus));
-                const fq = deltaQ.map(d => d.value / this.V[d.bus]);
-                const dV = this.solveLU(Bpp, fq);
-                
-                if (dV && dV.every(v => isFinite(v))) {
-                    for (let i = 0; i < deltaQ.length; i++) {
-                        this.V[deltaQ[i].bus] += dV[i];
-                        this.V[deltaQ[i].bus] = Math.max(0.5, Math.min(1.5, this.V[deltaQ[i].bus]));
-                    }
-                }
-            }
-            
-            const newMismatch = this.calcMismatch();
-            this.maxPError = newMismatch.deltaP.length > 0 ? Math.max(...newMismatch.deltaP.map(d => Math.abs(d.value))) : 0;
-            this.maxQError = newMismatch.deltaQ.length > 0 ? Math.max(...newMismatch.deltaQ.map(d => Math.abs(d.value))) : 0;
-            
-            return { 
-                maxError: Math.max(this.maxPError, this.maxQError),
-                deltaP: newMismatch.deltaP,
-                deltaQ: newMismatch.deltaQ
-            };
-        }
-
-        buildBMatrix(buses) {
-            const n = buses.length;
-            const B = Array(n).fill(null).map(() => Array(n).fill(0));
-            
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) {
-                    B[i][j] = -this.Ybus.im[buses[i]][buses[j]];
-                }
-            }
-            
-            return B;
-        }
-
-        solveLU(A, b) {
-            const n = A.length;
-            if (n === 0) return [];
-            
-            try {
-                const LU = A.map(row => [...row]);
-                const P = Array.from({ length: n }, (_, i) => i);
-                
-                for (let k = 0; k < n; k++) {
-                    let maxVal = Math.abs(LU[k][k]);
-                    let maxIdx = k;
-                    for (let i = k + 1; i < n; i++) {
-                        if (Math.abs(LU[i][k]) > maxVal) {
-                            maxVal = Math.abs(LU[i][k]);
-                            maxIdx = i;
-                        }
-                    }
-                    
-                    if (maxIdx !== k) {
-                        [LU[k], LU[maxIdx]] = [LU[maxIdx], LU[k]];
-                        [P[k], P[maxIdx]] = [P[maxIdx], P[k]];
-                    }
-                    
-                    if (Math.abs(LU[k][k]) < 1e-12) {
-                        LU[k][k] = 1e-10;
-                    }
-                    
-                    for (let i = k + 1; i < n; i++) {
-                        LU[i][k] /= LU[k][k];
-                        for (let j = k + 1; j < n; j++) {
-                            LU[i][j] -= LU[i][k] * LU[k][j];
-                        }
-                    }
-                }
-                
-                const y = new Array(n).fill(0);
-                for (let i = 0; i < n; i++) {
-                    y[i] = b[P[i]];
-                    for (let j = 0; j < i; j++) {
-                        y[i] -= LU[i][j] * y[j];
-                    }
-                }
-                
-                const x = new Array(n).fill(0);
-                for (let i = n - 1; i >= 0; i--) {
-                    x[i] = y[i];
-                    for (let j = i + 1; j < n; j++) {
-                        x[i] -= LU[i][j] * x[j];
-                    }
-                    x[i] /= LU[i][i];
-                }
-                
-                return x;
-            } catch (e) {
-                console.error('LU solve error:', e);
-                return new Array(n).fill(0);
-            }
-        }
-
-        runIteration(algorithm) {
-            this.iteration++;
-            
-            let result;
-            switch (algorithm) {
-                case 'nr':
-                    result = this.newtonRaphsonStep();
-                    break;
-                case 'fdxb':
-                    result = this.fastDecoupledStep();
-                    break;
-                case 'gs':
-                    result = this.gaussSeidelStep();
-                    break;
-                default:
-                    result = this.newtonRaphsonStep();
-            }
-            
-            this.errorHistory.push({
-                iteration: this.iteration,
-                maxP: this.maxPError,
-                maxQ: this.maxQError,
-                max: result.maxError
-            });
-            
-            return result;
-        }
-
-        getBusResults() {
-            const { P, Q } = this.calcPowerInjection();
-            
-            return this.busData.map((bus, i) => {
-                const Pload = bus[2] / this.baseMVA;
-                const Qload = bus[3] / this.baseMVA;
-                const Pspec = this.Pgen[i] - Pload;
-                const Qspec = this.Qgen[i] - Qload;
-                
-                return {
-                    bus: bus[0],
-                    type: bus[1] === 3 ? 'Slack' : (bus[1] === 2 ? 'PV' : 'PQ'),
-                    V: this.V[i],
-                    delta: this.delta[i] * 180 / Math.PI,
-                    Pgen: this.Pgen[i] * this.baseMVA,
-                    Qgen: this.Qgen[i] * this.baseMVA,
-                    Pload: bus[2],
-                    Qload: bus[3],
-                    deltaP: i === this.slackBus ? 0 : Pspec - P[i],
-                    deltaQ: i === this.slackBus || this.pvBuses.includes(i) ? 0 : Qspec - Q[i]
-                };
-            });
-        }
-    }
-
-    // ============================================================
-    // Application
-    // ============================================================
+    /**
+     * Current power flow engine instance
+     * @type {PowerFlowEngine|null}
+     */
     let engine = null;
+
+    /**
+     * Flag indicating if simulation is currently running
+     * @type {boolean}
+     */
     let running = false;
 
+    // ============================================================
+    // Initialization
+    // ============================================================
+
+    /**
+     * Initialize the application
+     *
+     * @description Sets up event listeners and loads the default test case.
+     * Called when the DOM content is loaded.
+     */
     function init() {
         document.getElementById('caseSelect').addEventListener('change', loadCase);
         document.getElementById('runBtn').addEventListener('click', run);
         document.getElementById('stepBtn').addEventListener('click', step);
         document.getElementById('resetBtn').addEventListener('click', reset);
-        
+
         loadCase();
     }
 
+    // ============================================================
+    // Case Loading and Control
+    // ============================================================
+
+    /**
+     * Load the selected test case
+     *
+     * @description Retrieves the selected case from the dropdown, creates
+     * a new PowerFlowEngine instance, and updates the display.
+     */
     function loadCase() {
         const caseName = document.getElementById('caseSelect').value;
-        const caseData = MATPOWER_CASES[caseName];
-        
+        const caseData = CASE_MAP[caseName];
+
         if (!caseData) {
-            console.error('Case not found:', caseName);
             return;
         }
-        
+
         try {
             engine = new PowerFlowEngine(caseData);
-            
+
             document.getElementById('busCount').textContent = engine.nBus;
             document.getElementById('branchCount').textContent = engine.nBranch;
             document.getElementById('genCount').textContent = engine.genData.length;
             document.getElementById('statusValue').textContent = '待機中';
             document.getElementById('statusCard').className = 'stat-card';
-            
+
             updateDisplay();
             drawAll();
         } catch (e) {
-            console.error('Error loading case:', e);
+            document.getElementById('statusValue').textContent = 'エラー';
+            document.getElementById('statusCard').className = 'stat-card error';
         }
     }
 
+    /**
+     * Reset the simulation to initial state
+     *
+     * @description Stops any running simulation and reloads the current case.
+     */
     function reset() {
         running = false;
         loadCase();
     }
 
+    // ============================================================
+    // Power Flow Execution
+    // ============================================================
+
+    /**
+     * Run the power flow simulation
+     *
+     * @description Executes the power flow algorithm iteratively until
+     * convergence or maximum iterations reached. Updates the display
+     * after each iteration.
+     *
+     * @async
+     */
     async function run() {
         if (running) return;
         running = true;
-        
+
         const tolerance = parseFloat(document.getElementById('tolSelect').value);
         const maxIter = parseInt(document.getElementById('maxIterInput').value);
         const speed = parseFloat(document.getElementById('speedSelect').value);
         const algorithm = document.getElementById('algoSelect').value;
-        
+
         document.getElementById('runBtn').disabled = true;
         document.getElementById('statusValue').textContent = '実行中...';
         document.getElementById('statusCard').className = 'stat-card warning';
-        
+
         while (running && engine.iteration < maxIter) {
             const result = engine.runIteration(algorithm);
-            
+
             updateDisplay();
             drawAll();
             updateEquation(algorithm, result);
-            
+
             if (result.maxError < tolerance) {
                 engine.converged = true;
                 document.getElementById('statusValue').textContent = '収束!';
@@ -1519,16 +866,24 @@ MATPOWER準拠の潮流計算を実行します：
         document.getElementById('runBtn').disabled = false;
     }
 
+    /**
+     * Execute a single iteration step
+     *
+     * @description Runs one iteration of the selected algorithm and updates
+     * the display. Useful for step-by-step analysis.
+     *
+     * @async
+     */
     async function step() {
         if (running) return;
-        
+
         const algorithm = document.getElementById('algoSelect').value;
         const result = engine.runIteration(algorithm);
-        
+
         updateDisplay();
         drawAll();
         updateEquation(algorithm, result);
-        
+
         const tolerance = parseFloat(document.getElementById('tolSelect').value);
         if (result.maxError < tolerance) {
             engine.converged = true;
@@ -1537,21 +892,36 @@ MATPOWER準拠の潮流計算を実行します：
         }
     }
 
+    // ============================================================
+    // Display Updates
+    // ============================================================
+
+    /**
+     * Update the display with current engine state
+     *
+     * @description Updates iteration count, error values, and bus table.
+     */
     function updateDisplay() {
         document.getElementById('iterValue').textContent = engine.iteration;
-        
+
         const maxError = Math.max(engine.maxPError, engine.maxQError);
         document.getElementById('errorValue').textContent = maxError > 0 ? maxError.toExponential(2) : '-';
-        
+
         updateBusTable();
     }
 
+    /**
+     * Update the bus data table
+     *
+     * @description Populates the bus table with current voltage, power, and
+     * mismatch values for each bus.
+     */
     function updateBusTable() {
         const tbody = document.getElementById('busTableBody');
         tbody.innerHTML = '';
-        
+
         const results = engine.getBusResults();
-        
+
         results.forEach(bus => {
             const row = document.createElement('tr');
             row.innerHTML = `
@@ -1570,20 +940,41 @@ MATPOWER準拠の潮流計算を実行します：
         });
     }
 
+    /**
+     * Update the equation display box
+     *
+     * @description Shows the current algorithm name, iteration count,
+     * and power mismatch values.
+     *
+     * @param {string} algorithm - Algorithm identifier ('nr', 'fdxb', 'gs')
+     * @param {Object} result - Iteration result containing error values
+     */
     function updateEquation(algorithm, result) {
+        /** @type {Object.<string, string>} Algorithm display names */
         const algoNames = {
             'nr': 'Newton-Raphson法',
             'fdxb': 'Fast Decoupled XB法',
             'gs': 'Gauss-Seidel法'
         };
-        
+
         let text = `<span class="eq-comment">// ${algoNames[algorithm]} - 反復 ${engine.iteration}</span>\n\n`;
         text += `<span class="eq-var">ΔP_max</span> = ${engine.maxPError.toExponential(4)} p.u.\n`;
         text += `<span class="eq-var">ΔQ_max</span> = ${engine.maxQError.toExponential(4)} p.u.\n`;
-        
+
         document.getElementById('equationBox').innerHTML = text;
     }
 
+    // ============================================================
+    // Visualization Functions
+    // ============================================================
+
+    /**
+     * Redraw all visualizations
+     *
+     * @description Calls all individual drawing functions to update
+     * the network diagram, convergence plot, voltage profile, and
+     * Jacobian matrix visualization.
+     */
     function drawAll() {
         drawNetwork();
         drawConvergence();
@@ -1591,14 +982,21 @@ MATPOWER準拠の潮流計算を実行します：
         drawJacobian();
     }
 
+    /**
+     * Draw the network topology diagram
+     *
+     * @description Renders buses as nodes arranged in a circle and branches
+     * as connecting lines. Bus colors indicate type (Slack=green, PV=orange,
+     * PQ=blue). Nodes with high mismatch values show a red glow effect.
+     */
     function drawNetwork() {
         const canvas = document.getElementById('networkCanvas');
         const ctx = canvas.getContext('2d');
         const rect = canvas.parentElement.getBoundingClientRect();
-        
+
         canvas.width = rect.width - 30;
         canvas.height = rect.height - 30;
-        
+
         const w = canvas.width;
         const h = canvas.height;
 
@@ -1611,7 +1009,8 @@ MATPOWER準拠の潮流計算を実行します：
         const cx = w / 2;
         const cy = h / 2;
         const radius = Math.min(w, h) * 0.4;
-        
+
+        // Calculate circular bus positions
         const positions = engine.busData.map((_, i) => ({
             x: cx + radius * Math.cos(2 * Math.PI * i / n - Math.PI / 2),
             y: cy + radius * Math.sin(2 * Math.PI * i / n - Math.PI / 2)
@@ -1620,7 +1019,7 @@ MATPOWER準拠の潮流計算を実行します：
         // Draw branches
         ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
         ctx.lineWidth = 2;
-        
+
         engine.branchData.forEach(branch => {
             const from = positions[branch[0] - 1];
             const to = positions[branch[1] - 1];
@@ -1635,13 +1034,14 @@ MATPOWER準拠の潮流計算を実行します：
         // Draw buses
         const results = engine.getBusResults();
         const nodeRadius = n > 20 ? 12 : 18;
-        
+
         results.forEach((bus, i) => {
             const pos = positions[i];
             if (!pos) return;
-            
+
             const maxError = Math.max(Math.abs(bus.deltaP), Math.abs(bus.deltaQ));
-            
+
+            // Draw error glow for buses with high mismatch
             if (maxError > 0.01) {
                 const glow = ctx.createRadialGradient(pos.x, pos.y, nodeRadius, pos.x, pos.y, nodeRadius * 2);
                 glow.addColorStop(0, 'rgba(239, 68, 68, 0.5)');
@@ -1652,18 +1052,20 @@ MATPOWER準拠の潮流計算を実行します：
                 ctx.fill();
             }
 
+            // Draw bus node
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, nodeRadius, 0, 2 * Math.PI);
-            
+
             if (bus.type === 'Slack') ctx.fillStyle = '#10b981';
             else if (bus.type === 'PV') ctx.fillStyle = '#f59e0b';
             else ctx.fillStyle = '#3b82f6';
-            
+
             ctx.fill();
             ctx.strokeStyle = '#f1f5f9';
             ctx.lineWidth = 1;
             ctx.stroke();
 
+            // Draw bus number label
             ctx.fillStyle = '#0a0a0f';
             ctx.font = `bold ${nodeRadius * 0.7}px JetBrains Mono`;
             ctx.textAlign = 'center';
@@ -1672,6 +1074,13 @@ MATPOWER準拠の潮流計算を実行します：
         });
     }
 
+    /**
+     * Draw the convergence history plot
+     *
+     * @description Renders a semi-logarithmic plot of P and Q mismatch
+     * values over iterations. Shows the tolerance threshold as a dashed
+     * horizontal line.
+     */
     function drawConvergence() {
         const canvas = document.getElementById('convergenceCanvas');
         const ctx = canvas.getContext('2d');
@@ -1750,14 +1159,21 @@ MATPOWER準拠の潮流計算を実行します：
         ctx.fillText('反復回数', w / 2, h - 5);
     }
 
+    /**
+     * Draw the voltage profile bar chart
+     *
+     * @description Renders a bar chart showing voltage magnitude at each bus.
+     * The safe operating zone (0.95-1.05 p.u.) is highlighted in green.
+     * Bar colors indicate bus type.
+     */
     function drawVoltageProfile() {
         const canvas = document.getElementById('voltageCanvas');
         const ctx = canvas.getContext('2d');
         const rect = canvas.parentElement.getBoundingClientRect();
-        
+
         canvas.width = rect.width - 30;
         canvas.height = rect.height - 30;
-        
+
         const w = canvas.width;
         const h = canvas.height;
         const padding = { top: 20, right: 20, bottom: 35, left: 55 };
@@ -1769,31 +1185,31 @@ MATPOWER準拠の潮流計算を実行します：
 
         const results = engine.getBusResults();
         const voltages = results.map(r => r.V);
-        
+
         const minV = Math.min(...voltages, 0.9);
         const maxV = Math.max(...voltages, 1.1);
-        
+
         const plotW = w - padding.left - padding.right;
         const plotH = h - padding.top - padding.bottom;
         const barWidth = Math.max(plotW / results.length - 2, 5);
 
-        // Safe zone
+        // Draw safe operating zone (0.95-1.05 p.u.)
         const v095Y = padding.top + (maxV - 0.95) / (maxV - minV) * plotH;
         const v105Y = padding.top + (maxV - 1.05) / (maxV - minV) * plotH;
-        
+
         ctx.fillStyle = 'rgba(34, 197, 94, 0.1)';
         ctx.fillRect(padding.left, v105Y, plotW, v095Y - v105Y);
 
-        // Bars
+        // Draw voltage bars
         results.forEach((bus, i) => {
             const x = padding.left + i * (barWidth + 2);
             const barH = (bus.V - minV) / (maxV - minV) * plotH;
             const y = padding.top + plotH - barH;
-            
+
             if (bus.type === 'Slack') ctx.fillStyle = '#10b981';
             else if (bus.type === 'PV') ctx.fillStyle = '#f59e0b';
             else ctx.fillStyle = '#3b82f6';
-            
+
             ctx.fillRect(x, y, barWidth, barH);
         });
 
@@ -1803,6 +1219,13 @@ MATPOWER準拠の潮流計算を実行します：
         ctx.fillText('ノード番号', w / 2, h - 5);
     }
 
+    /**
+     * Draw the Jacobian matrix sparsity pattern
+     *
+     * @description Visualizes the structure of the Jacobian matrix based on
+     * the Ybus admittance matrix. Shows the 2x2 block structure with different
+     * colors for each quadrant (∂P/∂δ, ∂P/∂V, ∂Q/∂δ, ∂Q/∂V).
+     */
     function drawJacobian() {
         const canvas = document.getElementById('jacobianCanvas');
         const ctx = canvas.getContext('2d');
