@@ -1,0 +1,62 @@
+{
+  "task_description": "Improve code quality for power_flow_viz: make algorithms consistent and easier to understand",
+  "scoped_services": ["frontend"],
+  "files_to_modify": {
+    "primary_algorithm_files": [
+      "power_flow_matpower_v2.html",
+      "power_flow_v5.html",
+      "power_flow_visualizer.html",
+      "power_flow_compare.html",
+      "dc_accuracy_analysis.html"
+    ],
+    "intuitive_visualizers": [
+      "power_flow_intuitive_v6_fixed.html",
+      "power_flow_intuitive_v4.html",
+      "power_flow_intuitive_v5.html",
+      "power_flow_intuitive_v6.html",
+      "power_flow_intuitive_v7.html"
+    ],
+    "process_visualizers": [
+      "power_flow_process_visualizer.html",
+      "power_flow_process_visualizer_v2.html"
+    ],
+    "deprecated_candidates": [
+      "power_flow_intuitive.html",
+      "power_flow_intuitive_v3.html"
+    ]
+  },
+  "files_to_reference": [
+    "power_flow_intuitive_v6_fixed.html",
+    "docs/power_flow_methods.md",
+    "docs/power_flow_intuitive.md"
+  ],
+  "patterns": {
+    "class_pattern": "class PowerFlowEngine { constructor(caseData) {...} } - used in matpower_v2, v5, dc_accuracy, compare",
+    "step_function_pattern": "function newtonStep(), gaussSeidelStep(), dcStep() - used in intuitive visualizers",
+    "case_data_pattern": "MATPOWER_CASES object with case2, case5, case9, case14, case30",
+    "algorithm_documentation_pattern": "Japanese technical documentation in docs/power_flow_methods.md"
+  },
+  "existing_implementations": {
+    "algorithms_found": [
+      "Newton-Raphson (newtonStep, calcMismatch, solveLinearSystem)",
+      "Gauss-Seidel (gaussSeidelStep)",
+      "DC Power Flow (dcStep)",
+      "Fast Decoupled (in documentation, partial implementations)"
+    ],
+    "test_cases_found": ["case2", "case5", "case9", "case14", "case30"],
+    "PowerFlowEngine_locations": [
+      "power_flow_matpower_v2.html:909",
+      "power_flow_v5.html:818",
+      "dc_accuracy_analysis.html:502",
+      "power_flow_compare.html:1086"
+    ]
+  },
+  "inconsistencies_identified": {
+    "naming": "Mix of newtonStep (step-based) vs newtonRaphsonPowerFlow (full-solve naming)",
+    "structure": "Some files use classes, others use standalone functions",
+    "documentation": "JSDoc comments missing in most algorithm functions",
+    "case_naming": "Currently case2/case5 (lowercase), spec recommends IEEE_N_BUS (SCREAMING_SNAKE_CASE)",
+    "code_duplication": "PowerFlowEngine class duplicated in 4+ files"
+  },
+  "created_at": "2026-01-11T22:24:00.000Z"
+}

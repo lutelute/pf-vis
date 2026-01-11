@@ -1,0 +1,658 @@
+{
+  "feature": "Power Flow Visualization Code Quality Improvement",
+  "workflow_type": "feature",
+  "workflow_rationale": "Systematic quality improvement requiring multi-file changes with consistent patterns. While refactoring existing code, the focus on adding consistency, documentation, and clarity represents feature-like enhancement work.",
+  "phases": [
+    {
+      "id": "phase-1-audit",
+      "name": "Setup & Audit",
+      "type": "setup",
+      "description": "Inventory all algorithm implementations and document current patterns and inconsistencies",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create algorithm inventory document listing all algorithm functions, their locations, and current naming patterns",
+          "service": "frontend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "docs/algorithm_inventory.md"
+          ],
+          "patterns_from": [
+            "docs/power_flow_methods.md"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "test -f docs/algorithm_inventory.md && grep -q 'Newton-Raphson' docs/algorithm_inventory.md && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Create consistency checklist documenting all inconsistencies to fix",
+          "service": "frontend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "docs/consistency_checklist.md"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test -f docs/consistency_checklist.md && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-shared-module",
+      "name": "Create Shared Modules",
+      "type": "implementation",
+      "description": "Create reusable JavaScript modules for PowerFlowEngine and IEEE test case data to eliminate duplication",
+      "depends_on": [
+        "phase-1-audit"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Create shared IEEE test case data module (scripts/ieee_cases.js) with consistent SCREAMING_SNAKE_CASE naming and JSDoc comments",
+          "service": "frontend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "scripts/ieee_cases.js"
+          ],
+          "patterns_from": [
+            "power_flow_matpower_v2.html"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "test -f scripts/ieee_cases.js && grep -q 'IEEE_14_BUS' scripts/ieee_cases.js && grep -q '@description' scripts/ieee_cases.js && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending",
+          "notes": "Contains IEEE_2_BUS, IEEE_5_BUS, IEEE_9_BUS, IEEE_14_BUS, IEEE_30_BUS with MATPOWER v2 format"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Create shared PowerFlowEngine class module (scripts/power_flow_engine.js) with consistent method naming and JSDoc",
+          "service": "frontend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "scripts/power_flow_engine.js"
+          ],
+          "patterns_from": [
+            "power_flow_matpower_v2.html"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "test -f scripts/power_flow_engine.js && grep -q 'class PowerFlowEngine' scripts/power_flow_engine.js && grep -q '@param' scripts/power_flow_engine.js && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending",
+          "notes": "Unified PowerFlowEngine with solveNewtonRaphson, solveGaussSeidel, solveDC methods"
+        },
+        {
+          "id": "subtask-2-3",
+          "description": "Create algorithm utility functions module (scripts/power_flow_utils.js) with matrix operations and convergence helpers",
+          "service": "frontend",
+          "files_to_modify": [],
+          "files_to_create": [
+            "scripts/power_flow_utils.js"
+          ],
+          "patterns_from": [
+            "power_flow_process_visualizer_v2.html"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "test -f scripts/power_flow_utils.js && grep -q 'solveLinearSystem' scripts/power_flow_utils.js && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending",
+          "notes": "buildYbus, calcPowerInjection, calcMismatch, solveLinearSystem with JSDoc"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-algorithm-standardization",
+      "name": "Algorithm Standardization",
+      "type": "implementation",
+      "description": "Standardize algorithm function naming to solve[AlgorithmName] pattern with JSDoc comments",
+      "depends_on": [
+        "phase-2-shared-module"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Standardize power_flow_matpower_v2.html - update to use shared modules and add JSDoc",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_matpower_v2.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "scripts/power_flow_engine.js",
+            "scripts/ieee_cases.js"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/power_flow_matpower_v2.html",
+            "checks": [
+              "Page loads without console errors",
+              "Algorithm dropdown works",
+              "Solve button produces results"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Standardize power_flow_v5.html - update to use shared modules and add JSDoc",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_v5.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "scripts/power_flow_engine.js",
+            "scripts/ieee_cases.js"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/power_flow_v5.html",
+            "checks": [
+              "Page loads without console errors",
+              "All algorithms selectable",
+              "Comparison works"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Standardize power_flow_visualizer.html - update algorithm invocation patterns",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_visualizer.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "scripts/power_flow_engine.js"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/power_flow_visualizer.html",
+            "checks": [
+              "Page loads without console errors",
+              "Visualization renders"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-4",
+          "description": "Standardize dc_accuracy_analysis.html - update to consistent patterns",
+          "service": "frontend",
+          "files_to_modify": [
+            "dc_accuracy_analysis.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "scripts/power_flow_engine.js"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/dc_accuracy_analysis.html",
+            "checks": [
+              "Page loads without console errors",
+              "DC accuracy comparison displays"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-5",
+          "description": "Standardize power_flow_compare.html - update to consistent patterns",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_compare.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "scripts/power_flow_engine.js"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/power_flow_compare.html",
+            "checks": [
+              "Page loads without console errors",
+              "Algorithm comparison works"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-intuitive-visualizers",
+      "name": "Intuitive Visualizer Standardization",
+      "type": "implementation",
+      "description": "Standardize step-based algorithm functions in intuitive visualizers (newtonStep -> consistent pattern)",
+      "depends_on": [
+        "phase-2-shared-module"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Update power_flow_intuitive_v6_fixed.html (reference pattern) - add JSDoc to step functions",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_intuitive_v6_fixed.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/power_flow_intuitive_v6_fixed.html",
+            "checks": [
+              "Page loads without console errors",
+              "Step-through animation works",
+              "Convergence visualization displays"
+            ]
+          },
+          "status": "pending",
+          "notes": "This is the gold standard reference - enhance but preserve existing behavior"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Update power_flow_intuitive_v7.html - align with v6_fixed patterns",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_intuitive_v7.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "power_flow_intuitive_v6_fixed.html"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/power_flow_intuitive_v7.html",
+            "checks": [
+              "Page loads without console errors",
+              "Algorithm stepping works"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Update power_flow_process_visualizer_v2.html - add JSDoc and align patterns",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_process_visualizer_v2.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "power_flow_intuitive_v6_fixed.html"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/power_flow_process_visualizer_v2.html",
+            "checks": [
+              "Page loads without console errors",
+              "Process visualization works"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-documentation",
+      "name": "Documentation Enhancement",
+      "type": "implementation",
+      "description": "Add inline comments explaining algorithm mathematical steps and update markdown docs",
+      "depends_on": [
+        "phase-3-algorithm-standardization",
+        "phase-4-intuitive-visualizers"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Add inline mathematical comments to shared modules (power_flow_engine.js, power_flow_utils.js)",
+          "service": "frontend",
+          "files_to_modify": [
+            "scripts/power_flow_engine.js",
+            "scripts/power_flow_utils.js"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "docs/power_flow_methods.md"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -c '//' scripts/power_flow_engine.js | awk '{if ($1 > 20) print \"OK\"; else print \"FAIL\"}'",
+            "expected": "OK"
+          },
+          "status": "pending",
+          "notes": "Add comments explaining Jacobian construction, power injection calculation, convergence checks"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Update docs/power_flow_visualizer.md with new module structure",
+          "service": "frontend",
+          "files_to_modify": [
+            "docs/power_flow_visualizer.md"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "docs/power_flow_methods.md"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -q 'ieee_cases.js' docs/power_flow_visualizer.md && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-6-consolidation",
+      "name": "File Consolidation",
+      "type": "cleanup",
+      "description": "Deprecate redundant versioned files and clean up codebase",
+      "depends_on": [
+        "phase-5-documentation"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Create deprecation notice and archive old intuitive visualizers (v3, v4, v5, v6, original)",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_intuitive.html",
+            "power_flow_intuitive_v3.html",
+            "power_flow_intuitive_v4.html",
+            "power_flow_intuitive_v5.html",
+            "power_flow_intuitive_v6.html"
+          ],
+          "files_to_create": [
+            "archive/README.md"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test -d archive && test -f archive/README.md && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending",
+          "notes": "Move deprecated files to archive/ directory with explanation of which version to use"
+        },
+        {
+          "id": "subtask-6-2",
+          "description": "Update index.html to link only to current versions and explain file organization",
+          "service": "frontend",
+          "files_to_modify": [
+            "index.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000/index.html",
+            "checks": [
+              "Page loads without console errors",
+              "Links work correctly",
+              "No broken links"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-6-3",
+          "description": "Archive power_flow_process_visualizer.html (keep v2 only)",
+          "service": "frontend",
+          "files_to_modify": [
+            "power_flow_process_visualizer.html"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test -f archive/power_flow_process_visualizer.html && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-7-verification",
+      "name": "Integration & Verification",
+      "type": "integration",
+      "description": "Full verification of all visualizers and algorithms across browsers",
+      "depends_on": [
+        "phase-6-consolidation"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-7-1",
+          "description": "Verify all algorithms produce correct IEEE 14-bus solutions",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Load power_flow_v5.html",
+              "Select IEEE 14-bus case",
+              "Run Newton-Raphson, verify convergence",
+              "Run Gauss-Seidel, verify convergence",
+              "Run DC Power Flow, verify results",
+              "Compare results match expected IEEE 14-bus solution"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-7-2",
+          "description": "Verify no console errors across all main pages",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:8000",
+            "checks": [
+              "index.html - no console errors",
+              "power_flow_v5.html - no console errors",
+              "power_flow_matpower_v2.html - no console errors",
+              "power_flow_intuitive_v6_fixed.html - no console errors",
+              "power_flow_intuitive_v7.html - no console errors",
+              "power_flow_process_visualizer_v2.html - no console errors"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-7-3",
+          "description": "Verify JSDoc coverage on all public functions",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "grep -l '@param\\|@returns\\|@description' scripts/*.js | wc -l | awk '{if ($1 >= 3) print \"OK\"; else print \"FAIL\"}'",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 7,
+    "total_subtasks": 20,
+    "services_involved": [
+      "frontend"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 2,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-3-algorithm-standardization",
+            "phase-4-intuitive-visualizers"
+          ],
+          "reason": "Both depend only on phase-2, different file sets"
+        }
+      ],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution recommended - file changes may overlap in pattern application"
+    },
+    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 001 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "integration",
+      "browser"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All visualizers load without console errors",
+      "All algorithms produce correct IEEE 14-bus solutions",
+      "All public functions have JSDoc documentation",
+      "Shared modules are properly loaded by all dependent files",
+      "No regression in existing visualization functionality"
+    ],
+    "verification_steps": [
+      {
+        "name": "Browser Verification",
+        "command": "python -m http.server 8000",
+        "expected_outcome": "All pages load without console errors",
+        "type": "browser",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Algorithm Correctness",
+        "command": "Manual verification in browser console",
+        "expected_outcome": "Newton-Raphson converges in <10 iterations for IEEE 14-bus",
+        "type": "integration",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "JSDoc Coverage Check",
+        "command": "grep -l '@param' scripts/*.js | wc -l",
+        "expected_outcome": "3 or more files with JSDoc",
+        "type": "code_quality",
+        "required": true,
+        "blocking": false
+      }
+    ],
+    "reasoning": "Medium risk refactoring of numerical algorithms requires verification to ensure mathematical correctness is preserved. Browser-based testing since no automated test framework exists."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": false,
+      "commands": [],
+      "minimum_coverage": null,
+      "notes": "No unit test framework - verification through browser testing"
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "Manual browser verification"
+      ],
+      "services_to_test": [
+        "frontend"
+      ]
+    },
+    "e2e_tests": {
+      "required": true,
+      "commands": [
+        "Manual algorithm execution in browser"
+      ],
+      "flows": [
+        "newton-raphson-solve",
+        "gauss-seidel-solve",
+        "dc-power-flow"
+      ]
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:8000/index.html",
+          "checks": [
+            "renders",
+            "no-console-errors"
+          ]
+        },
+        {
+          "url": "http://localhost:8000/power_flow_v5.html",
+          "checks": [
+            "renders",
+            "no-console-errors",
+            "algorithms-work"
+          ]
+        },
+        {
+          "url": "http://localhost:8000/power_flow_matpower_v2.html",
+          "checks": [
+            "renders",
+            "no-console-errors",
+            "solve-works"
+          ]
+        },
+        {
+          "url": "http://localhost:8000/power_flow_intuitive_v6_fixed.html",
+          "checks": [
+            "renders",
+            "no-console-errors",
+            "stepping-works"
+          ]
+        },
+        {
+          "url": "http://localhost:8000/power_flow_intuitive_v7.html",
+          "checks": [
+            "renders",
+            "no-console-errors"
+          ]
+        },
+        {
+          "url": "http://localhost:8000/power_flow_process_visualizer_v2.html",
+          "checks": [
+            "renders",
+            "no-console-errors"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": []
+    }
+  },
+  "qa_signoff": null,
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "updated_at": "2026-01-11T13:28:19.352Z"
+}
