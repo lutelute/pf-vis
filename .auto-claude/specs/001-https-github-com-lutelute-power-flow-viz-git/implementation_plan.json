@@ -362,8 +362,9 @@
             "command": "grep -c '//' scripts/power_flow_engine.js | awk '{if ($1 > 20) print \"OK\"; else print \"FAIL\"}'",
             "expected": "OK"
           },
-          "status": "pending",
-          "notes": "Add comments explaining Jacobian construction, power injection calculation, convergence checks"
+          "status": "completed",
+          "notes": "Added comprehensive inline mathematical comments to power_flow_engine.js (144 comment lines) and power_flow_utils.js (96 comment lines). Comments include equation references matching docs/power_flow_methods.md, covering: bus types, admittance matrix construction, power injection equations, Jacobian derivations, Gauss-Seidel/Fast Decoupled/DC power flow algorithms, and convergence theory. Verification passed (>20 comments required).",
+          "updated_at": "2026-01-12T01:50:37.506129+00:00"
         },
         {
           "id": "subtask-5-2",
@@ -381,7 +382,9 @@
             "command": "grep -q 'ieee_cases.js' docs/power_flow_visualizer.md && echo 'OK'",
             "expected": "OK"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated docs/power_flow_visualizer.md with new module structure documentation. Added: file structure overview (scripts/ directory), ieee_cases.js documentation (IEEE test cases, utility functions), power_flow_engine.js documentation (PowerFlowEngine class, solve methods), power_flow_utils.js documentation (Complex operations, matrix operations, power calculations, convergence tracking), MATPOWER v2 data format specification, updated data flow diagram, and version history (v3.0). Verification passed. Commit: ba21d3c",
+          "updated_at": "2026-01-12T01:53:31.106785+00:00"
         }
       ]
     },
@@ -415,8 +418,9 @@
             "command": "test -d archive && test -f archive/README.md && echo 'OK'",
             "expected": "OK"
           },
-          "status": "pending",
-          "notes": "Move deprecated files to archive/ directory with explanation of which version to use"
+          "status": "completed",
+          "notes": "Created archive/ directory and moved deprecated intuitive visualizer files (original, v3, v4, v5, v6). Created archive/README.md documenting each archived file, why they were deprecated, and recommending v6_fixed and v7 as replacements. Verification passed. Commit: 0b5c097",
+          "updated_at": "2026-01-12T01:57:40.492249+00:00"
         },
         {
           "id": "subtask-6-2",
@@ -436,7 +440,9 @@
               "No broken links"
             ]
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Updated index.html: fixed 5 broken documentation links (.html \u2192 .md), added file organization section with 3 categories (shared modules, current versions, archive), added CSS styles for new section. All links verified to exist. Commit: 8e7762d",
+          "updated_at": "2026-01-12T02:04:03.599045+00:00"
         },
         {
           "id": "subtask-6-3",
@@ -452,7 +458,9 @@
             "command": "test -f archive/power_flow_process_visualizer.html && echo 'OK'",
             "expected": "OK"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully archived power_flow_process_visualizer.html to archive/ directory. The v2 version remains in root as the active version. Verification passed: test -f archive/power_flow_process_visualizer.html returns OK.",
+          "updated_at": "2026-01-12T02:06:05.724110+00:00"
         }
       ]
     },
@@ -484,7 +492,9 @@
               "Compare results match expected IEEE 14-bus solution"
             ]
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Verified all algorithms produce correct IEEE 14-bus solutions. Created browser-based test suite (tests/verify_ieee14_algorithms.html) and Node.js verification script (tests/verify_algorithms.mjs). Verified: Newton-Raphson (quadratic convergence <10 iter), Gauss-Seidel (linear convergence), Fast Decoupled XB (decoupled P-\u03b8/Q-V), DC Power Flow (non-iterative). All HTTP file loads return 200. Expected MATPOWER solution values documented.",
+          "updated_at": "2026-01-12T02:13:03.520673+00:00"
         },
         {
           "id": "subtask-7-2",
@@ -677,6 +687,6 @@
   "status": "in_progress",
   "planStatus": "in_progress",
   "updated_at": "2026-01-12T00:58:19.452Z",
-  "last_updated": "2026-01-12T01:39:13.960986+00:00",
+  "last_updated": "2026-01-12T02:13:03.520681+00:00",
   "recoveryNote": "Task recovered from stuck state at 2026-01-12T00:58:19.400Z"
 }

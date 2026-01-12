@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IEEE 14-Bus Algorithm Verification</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-card: #12121a;
+            --bg-surface: #1a1a25;
+            --accent-green: #10b981;
+            --accent-red: #ef4444;
+            --accent-cyan: #06b6d4;
+            --accent-orange: #f59e0b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #2d2d3d;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        h1 { margin-bottom: 20px; color: var(--accent-cyan); }
+        h2 { margin: 20px 0 10px; color: var(--text-secondary); font-size: 1.1rem; }
+        .test-container {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+        .test-result {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin: 5px 0;
+            background: var(--bg-surface);
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+        }
+        .pass { border-left: 4px solid var(--accent-green); }
+        .fail { border-left: 4px solid var(--accent-red); }
+        .warn { border-left: 4px solid var(--accent-orange); }
+        .status-icon { font-size: 1.2rem; }
+        .details { color: var(--text-secondary); font-size: 0.85rem; }
+        .summary {
+            background: var(--bg-surface);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+        .summary h3 { color: var(--accent-cyan); margin-bottom: 10px; }
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        .stat {
+            text-align: center;
+            padding: 15px;
+            background: var(--bg-card);
+            border-radius: 5px;
+        }
+        .stat-value { font-size: 2rem; font-weight: bold; }
+        .stat-label { color: var(--text-secondary); font-size: 0.9rem; }
+        .stat.passed .stat-value { color: var(--accent-green); }
+        .stat.failed .stat-value { color: var(--accent-red); }
+        .stat.total .stat-value { color: var(--accent-cyan); }
+        pre {
+            background: var(--bg-surface);
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            text-align: left;
+        }
+        th { background: var(--bg-surface); color: var(--text-secondary); }
+        .num { text-align: right; font-family: 'Courier New', monospace; }
+        .btn {
+            background: var(--accent-cyan);
+            color: var(--bg-dark);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 10px 5px 10px 0;
+        }
+        .btn:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <h1>IEEE 14-Bus Algorithm Verification</h1>
+    <p style="margin-bottom: 20px; color: var(--text-secondary);">
+        This page verifies that all power flow algorithms produce correct solutions for the IEEE 14-bus test case.
+    </p>
+
+    <button class="btn" onclick="runAllTests()">Run All Tests</button>
+    <button class="btn" style="background: var(--accent-orange);" onclick="location.reload()">Reset</button>
+
+    <div id="results"></div>
+    <div id="summary" class="summary" style="display: none;"></div>
+
+<script src="../scripts/ieee_cases.js"></script>
+<script src="../scripts/power_flow_engine.js"></script>
+<script>
+/**
+ * IEEE 14-Bus Algorithm Verification Test Suite
+ *
+ * @description Verifies all power flow algorithms produce correct solutions
+ * for the IEEE 14-bus test case. Tests Newton-Raphson, Gauss-Seidel,
+ * Fast Decoupled, and DC Power Flow methods.
+ */
+
+// Expected IEEE 14-bus solution values (from MATPOWER)
+const EXPECTED_SOLUTION = {
+    // Bus voltage magnitudes (p.u.) - from MATPOWER reference
+    voltages: {
+        1: 1.0600,   // Slack bus
+        2: 1.0450,   // PV bus
+        3: 1.0100,   // PV bus
+        4: 1.0177,   // PQ bus
+        5: 1.0195,   // PQ bus
+        6: 1.0700,   // PV bus
+        7: 1.0615,   // PQ bus
+        8: 1.0900,   // PV bus
+        9: 1.0559,   // PQ bus
+        10: 1.0510,  // PQ bus
+        11: 1.0569,  // PQ bus
+        12: 1.0552,  // PQ bus
+        13: 1.0503,  // PQ bus
+        14: 1.0355   // PQ bus
+    },
+    // Tolerance for voltage magnitude comparison
+    voltageTolerance: 0.015,  // 1.5% tolerance
+    // Expected voltage angle range (degrees)
+    angleRange: { min: -16, max: 0 }
+};
+
+let testResults = [];
+let resultsContainer;
+let summaryContainer;
+
+/**
+ * Add a test result to the display
+ */
+function addResult(name, passed, message, details = '') {
+    const result = { name, passed, message, details };
+    testResults.push(result);
+
+    const div = document.createElement('div');
+    div.className = `test-result ${passed ? 'pass' : 'fail'}`;
+    div.innerHTML = `
+        <span class="status-icon">${passed ? '✅' : '❌'}</span>
+        <div>
+            <strong>${name}</strong>
+            <div class="details">${message}</div>
+            ${details ? `<div class="details" style="margin-top:5px;">${details}</div>` : ''}
+        </div>
+    `;
+    resultsContainer.appendChild(div);
+}
+
+/**
+ * Add a warning result
+ */
+function addWarning(name, message, details = '') {
+    const div = document.createElement('div');
+    div.className = 'test-result warn';
+    div.innerHTML = `
+        <span class="status-icon">⚠️</span>
+        <div>
+            <strong>${name}</strong>
+            <div class="details">${message}</div>
+            ${details ? `<div class="details" style="margin-top:5px;">${details}</div>` : ''}
+        </div>
+    `;
+    resultsContainer.appendChild(div);
+}
+
+/**
+ * Add section header
+ */
+function addSection(title) {
+    const h2 = document.createElement('h2');
+    h2.textContent = title;
+    resultsContainer.appendChild(h2);
+}
+
+/**
+ * Verify voltage solution against expected values
+ */
+function verifyVoltages(busResults, algorithmName) {
+    let maxError = 0;
+    let errors = [];
+
+    for (const bus of busResults) {
+        const expected = EXPECTED_SOLUTION.voltages[bus.bus];
+        if (expected !== undefined) {
+            const error = Math.abs(bus.V - expected);
+            if (error > maxError) maxError = error;
+            if (error > EXPECTED_SOLUTION.voltageTolerance) {
+                errors.push(`Bus ${bus.bus}: |V|=${bus.V.toFixed(4)}, expected ${expected.toFixed(4)}, error=${error.toFixed(4)}`);
+            }
+        }
+    }
+
+    return { maxError, errors, passed: errors.length === 0 };
+}
+
+/**
+ * Verify voltage angles are within expected range
+ */
+function verifyAngles(busResults) {
+    let outOfRange = [];
+    for (const bus of busResults) {
+        if (bus.delta < EXPECTED_SOLUTION.angleRange.min ||
+            bus.delta > EXPECTED_SOLUTION.angleRange.max) {
+            outOfRange.push(`Bus ${bus.bus}: δ=${bus.delta.toFixed(2)}°`);
+        }
+    }
+    return {
+        passed: outOfRange.length === 0,
+        outOfRange
+    };
+}
+
+/**
+ * Test Newton-Raphson algorithm
+ */
+function testNewtonRaphson() {
+    addSection('Newton-Raphson Method');
+
+    try {
+        const engine = new PowerFlowEngine(IEEE_14_BUS);
+        const result = engine.solveNewtonRaphson({ tolerance: 1e-6, maxIterations: 50 });
+
+        // Test 1: Convergence
+        addResult(
+            'NR: Convergence',
+            result.converged,
+            result.converged
+                ? `Converged in ${result.iterations} iterations (max error: ${result.maxError.toExponential(2)})`
+                : `Failed to converge after ${result.iterations} iterations`,
+            `Final max error: ${result.maxError.toExponential(4)}`
+        );
+
+        // Test 2: Iteration count (should be < 10 for IEEE 14-bus)
+        const iterOk = result.iterations < 10;
+        addResult(
+            'NR: Iteration Efficiency',
+            iterOk,
+            iterOk
+                ? `Efficient: ${result.iterations} iterations (expected < 10)`
+                : `Warning: ${result.iterations} iterations (expected < 10)`
+        );
+
+        // Test 3: Voltage magnitudes
+        const voltageCheck = verifyVoltages(result.busResults, 'Newton-Raphson');
+        addResult(
+            'NR: Voltage Accuracy',
+            voltageCheck.passed,
+            voltageCheck.passed
+                ? `All voltages within ${EXPECTED_SOLUTION.voltageTolerance * 100}% of expected (max error: ${voltageCheck.maxError.toFixed(4)} p.u.)`
+                : `${voltageCheck.errors.length} buses outside tolerance`,
+            voltageCheck.errors.slice(0, 3).join('; ')
+        );
+
+        // Test 4: Voltage angles
+        const angleCheck = verifyAngles(result.busResults);
+        addResult(
+            'NR: Angle Range',
+            angleCheck.passed,
+            angleCheck.passed
+                ? `All angles within expected range [${EXPECTED_SOLUTION.angleRange.min}°, ${EXPECTED_SOLUTION.angleRange.max}°]`
+                : `${angleCheck.outOfRange.length} buses outside expected angle range`,
+            angleCheck.outOfRange.slice(0, 3).join('; ')
+        );
+
+        return result;
+    } catch (e) {
+        addResult('NR: Execution', false, `Error: ${e.message}`);
+        return null;
+    }
+}
+
+/**
+ * Test Gauss-Seidel algorithm
+ */
+function testGaussSeidel() {
+    addSection('Gauss-Seidel Method');
+
+    try {
+        const engine = new PowerFlowEngine(IEEE_14_BUS);
+        const result = engine.solveGaussSeidel({ tolerance: 1e-6, maxIterations: 100 });
+
+        // Test 1: Convergence
+        addResult(
+            'GS: Convergence',
+            result.converged,
+            result.converged
+                ? `Converged in ${result.iterations} iterations (max error: ${result.maxError.toExponential(2)})`
+                : `Failed to converge after ${result.iterations} iterations`,
+            `Final max error: ${result.maxError.toExponential(4)}`
+        );
+
+        // Test 2: Iteration count (Gauss-Seidel typically needs more iterations)
+        const iterOk = result.converged && result.iterations < 100;
+        addResult(
+            'GS: Convergence Speed',
+            iterOk,
+            iterOk
+                ? `Converged in ${result.iterations} iterations (linear convergence expected)`
+                : result.converged
+                    ? `Slow: ${result.iterations} iterations`
+                    : 'Did not converge'
+        );
+
+        // Test 3: Voltage magnitudes (compare to NR reference)
+        if (result.converged) {
+            const voltageCheck = verifyVoltages(result.busResults, 'Gauss-Seidel');
+            addResult(
+                'GS: Voltage Accuracy',
+                voltageCheck.passed,
+                voltageCheck.passed
+                    ? `All voltages within ${EXPECTED_SOLUTION.voltageTolerance * 100}% of expected`
+                    : `${voltageCheck.errors.length} buses outside tolerance`,
+                voltageCheck.errors.slice(0, 3).join('; ')
+            );
+        }
+
+        return result;
+    } catch (e) {
+        addResult('GS: Execution', false, `Error: ${e.message}`);
+        return null;
+    }
+}
+
+/**
+ * Test Fast Decoupled XB algorithm
+ */
+function testFastDecoupled() {
+    addSection('Fast Decoupled XB Method');
+
+    try {
+        const engine = new PowerFlowEngine(IEEE_14_BUS);
+        const result = engine.solveFastDecoupled({ tolerance: 1e-6, maxIterations: 50 });
+
+        // Test 1: Convergence
+        addResult(
+            'FDXB: Convergence',
+            result.converged,
+            result.converged
+                ? `Converged in ${result.iterations} iterations (max error: ${result.maxError.toExponential(2)})`
+                : `Failed to converge after ${result.iterations} iterations`,
+            `Final max error: ${result.maxError.toExponential(4)}`
+        );
+
+        // Test 2: Voltage magnitudes (compare to expected)
+        if (result.converged) {
+            const voltageCheck = verifyVoltages(result.busResults, 'Fast Decoupled');
+            addResult(
+                'FDXB: Voltage Accuracy',
+                voltageCheck.passed,
+                voltageCheck.passed
+                    ? `All voltages within ${EXPECTED_SOLUTION.voltageTolerance * 100}% of expected`
+                    : `${voltageCheck.errors.length} buses outside tolerance`,
+                voltageCheck.errors.slice(0, 3).join('; ')
+            );
+        }
+
+        return result;
+    } catch (e) {
+        addResult('FDXB: Execution', false, `Error: ${e.message}`);
+        return null;
+    }
+}
+
+/**
+ * Test DC Power Flow
+ */
+function testDCPowerFlow() {
+    addSection('DC Power Flow');
+
+    try {
+        const engine = new PowerFlowEngine(IEEE_14_BUS);
+        const result = engine.solveDC();
+
+        // Test 1: Solution obtained
+        addResult(
+            'DC: Solution',
+            result.converged,
+            result.converged
+                ? `DC solution obtained (non-iterative, ${result.iterations} "iteration")`
+                : `DC solution failed`,
+            'DC power flow is a linear approximation - always converges if matrix is non-singular'
+        );
+
+        // Test 2: All voltages should be 1.0 (DC assumption)
+        const allUnity = result.busResults.every(b => Math.abs(b.V - 1.0) < 0.001);
+        addResult(
+            'DC: Voltage Assumption',
+            allUnity,
+            allUnity
+                ? 'All voltage magnitudes set to 1.0 p.u. (DC assumption)'
+                : 'Unexpected voltage magnitudes in DC solution'
+        );
+
+        // Test 3: Angles should be reasonable
+        const angleCheck = verifyAngles(result.busResults);
+        addResult(
+            'DC: Angle Range',
+            angleCheck.passed,
+            angleCheck.passed
+                ? `Angles within expected range [${EXPECTED_SOLUTION.angleRange.min}°, ${EXPECTED_SOLUTION.angleRange.max}°]`
+                : `Some angles outside expected range`,
+            angleCheck.outOfRange.slice(0, 3).join('; ')
+        );
+
+        return result;
+    } catch (e) {
+        addResult('DC: Execution', false, `Error: ${e.message}`);
+        return null;
+    }
+}
+
+/**
+ * Compare AC and DC solutions
+ */
+function compareACvsDC(acResult, dcResult) {
+    addSection('AC vs DC Comparison');
+
+    if (!acResult || !dcResult) {
+        addWarning('Comparison', 'Cannot compare - missing AC or DC solution');
+        return;
+    }
+
+    // Calculate angle differences
+    let maxAngleDiff = 0;
+    let angleDiffs = [];
+
+    for (let i = 0; i < acResult.busResults.length; i++) {
+        const acBus = acResult.busResults[i];
+        const dcBus = dcResult.busResults[i];
+        const diff = Math.abs(acBus.delta - dcBus.delta);
+        angleDiffs.push({ bus: acBus.bus, diff });
+        if (diff > maxAngleDiff) maxAngleDiff = diff;
+    }
+
+    addResult(
+        'AC vs DC: Angle Agreement',
+        maxAngleDiff < 5,  // Within 5 degrees
+        `Max angle difference: ${maxAngleDiff.toFixed(2)}°`,
+        `DC approximation is valid when angles are small`
+    );
+}
+
+/**
+ * Display summary statistics
+ */
+function showSummary() {
+    const passed = testResults.filter(r => r.passed).length;
+    const failed = testResults.filter(r => !r.passed).length;
+    const total = testResults.length;
+
+    summaryContainer.style.display = 'block';
+    summaryContainer.innerHTML = `
+        <h3>Test Summary</h3>
+        <div class="summary-stats">
+            <div class="stat passed">
+                <div class="stat-value">${passed}</div>
+                <div class="stat-label">Passed</div>
+            </div>
+            <div class="stat failed">
+                <div class="stat-value">${failed}</div>
+                <div class="stat-label">Failed</div>
+            </div>
+            <div class="stat total">
+                <div class="stat-value">${total}</div>
+                <div class="stat-label">Total Tests</div>
+            </div>
+        </div>
+        <div style="margin-top: 15px; padding: 10px; background: var(--bg-surface); border-radius: 5px;">
+            ${passed === total
+                ? '<span style="color: var(--accent-green);">✅ All tests passed! IEEE 14-bus algorithms verified.</span>'
+                : `<span style="color: var(--accent-red);">⚠️ ${failed} test(s) failed. Review results above.</span>`
+            }
+        </div>
+    `;
+}
+
+/**
+ * Run all verification tests
+ */
+function runAllTests() {
+    resultsContainer = document.getElementById('results');
+    summaryContainer = document.getElementById('summary');
+    resultsContainer.innerHTML = '';
+    summaryContainer.style.display = 'none';
+    testResults = [];
+
+    // Verify IEEE 14-bus case data exists
+    addSection('Data Validation');
+    if (typeof IEEE_14_BUS === 'undefined') {
+        addResult('IEEE 14-Bus Data', false, 'IEEE_14_BUS constant not found - check ieee_cases.js');
+        showSummary();
+        return;
+    }
+    addResult('IEEE 14-Bus Data', true,
+        `Loaded: ${IEEE_14_BUS.name}`,
+        `${IEEE_14_BUS.bus.length} buses, ${IEEE_14_BUS.gen.length} generators, ${IEEE_14_BUS.branch.length} branches`
+    );
+
+    // Verify PowerFlowEngine exists
+    if (typeof PowerFlowEngine === 'undefined') {
+        addResult('PowerFlowEngine', false, 'PowerFlowEngine class not found - check power_flow_engine.js');
+        showSummary();
+        return;
+    }
+    addResult('PowerFlowEngine', true, 'PowerFlowEngine class available');
+
+    // Run algorithm tests
+    const nrResult = testNewtonRaphson();
+    const gsResult = testGaussSeidel();
+    const fdxbResult = testFastDecoupled();
+    const dcResult = testDCPowerFlow();
+
+    // Compare AC vs DC
+    compareACvsDC(nrResult, dcResult);
+
+    // Show summary
+    showSummary();
+}
+
+// Auto-run on load
+window.onload = runAllTests;
+</script>
+</body>
+</html>
