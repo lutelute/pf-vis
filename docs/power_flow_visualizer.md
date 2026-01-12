@@ -104,16 +104,99 @@ const systemOptions = [
 
 ### アーキテクチャ
 
-#### モジュール構成
+#### ファイル構成
+
+```
+power_flow_viz/
+├── power_flow_visualizer.html    # メインHTML
+├── scripts/
+│   ├── ieee_cases.js             # IEEE標準テストケースデータ
+│   ├── power_flow_engine.js      # 潮流計算エンジンクラス
+│   ├── power_flow_utils.js       # 数学ユーティリティ関数
+│   └── main.js                   # メインスクリプト
+└── docs/
+    └── power_flow_visualizer.md  # 本ドキュメント
+```
+
+#### 共有モジュール
+
+本アプリケーションは3つの共有モジュールで構成されています：
+
+##### 1. `scripts/ieee_cases.js` - IEEE標準テストケースデータ
+
+MATPOWER v2形式に準拠したIEEE標準テストシステムを提供します。
+
+```javascript
+// 利用可能なテストケース
+const IEEE_2_BUS   // 2母線システム（最小テスト用）
+const IEEE_5_BUS   // 5母線システム（基本学習用）
+const IEEE_9_BUS   // 9母線システム（WSCC 3機系統）
+const IEEE_14_BUS  // 14母線システム（標準テスト）
+const IEEE_30_BUS  // 30母線システム（中規模系統）
+
+// ユーティリティ関数
+getIEEECases()              // 全ケース一覧を取得
+getIEEECaseByBusCount(14)   // 母線数でケースを取得
+validateIEEECase(caseData)  // ケースデータの検証
+```
+
+##### 2. `scripts/power_flow_engine.js` - 潮流計算エンジン
+
+一貫したインターフェースを持つPowerFlowEngineクラスを提供します。
+
+```javascript
+// エンジンの初期化
+const engine = new PowerFlowEngine(IEEE_14_BUS);
+
+// 潮流計算の実行
+const result = engine.solve({
+    algorithm: 'nr',        // 'nr', 'fdxb', 'gs', 'dc'
+    tolerance: 1e-6,
+    maxIterations: 100
+});
+
+// 利用可能なメソッド
+engine.solveNewtonRaphson(options)  // Newton-Raphson法
+engine.solveFastDecoupled(options)  // 高速分離解法
+engine.solveGaussSeidel(options)    // Gauss-Seidel法
+engine.solveDC(options)             // DC潮流計算
+```
+
+##### 3. `scripts/power_flow_utils.js` - 数学ユーティリティ
+
+複素数演算、行列操作、収束判定などの補助関数を提供します。
+
+```javascript
+// 複素数演算
+Complex.create(re, im)      // 複素数の作成
+Complex.fromPolar(mag, θ)   // 極座標形式から作成
+Complex.multiply(a, b)      // 複素数の乗算
+Complex.conjugate(z)        // 共役複素数
+
+// 行列演算
+solveLinearSystem(A, b)     // Ax = b の求解（Gauss消去法）
+solveLU(L, U, b)            // LU分解による求解
+
+// 電力系統計算
+buildYbus(busData, branchData)    // アドミタンス行列構築
+calcPowerInjection(V, Ybus, i)    // 電力注入計算
+calcMismatch(V, Ybus, Sspec)      // ミスマッチ計算
+
+// 収束判定
+ConvergenceTracker              // 収束履歴管理クラス
+checkConvergence(mismatch, tol) // 収束判定
+```
+
+#### モジュール構成（クラス図）
 ```javascript
 // 主要クラス
 class PowerFlowVisualizer {
     // システム管理
     SystemManager
-    AlgorithmEngine
+    AlgorithmEngine         // → PowerFlowEngine を使用
     VisualizationController
     UIController
-    
+
     // データ管理
     ResultsDatabase
     ConfigurationManager
@@ -124,8 +207,42 @@ class PowerFlowVisualizer {
 #### データフロー
 ```
 User Input → Configuration → Algorithm Engine → Results → Visualization
-     ↑                                                          ↓
+     ↑              ↓                                          ↓
+     ↑        ieee_cases.js                                    ↓
+     ↑        power_flow_engine.js                             ↓
+     ↑        power_flow_utils.js                              ↓
      ←─────────────── Event Handler ←─────────────────────────
+```
+
+### MATPOWER互換データ形式
+
+共有モジュールはMATpower v2形式のデータ構造を使用します：
+
+```javascript
+const caseData = {
+    name: 'IEEE 14-Bus Test System',
+    baseMVA: 100,
+
+    // 母線データ: [BUS_I, TYPE, PD, QD, GS, BS, AREA, VM, VA, BASE_KV, ZONE, VMAX, VMIN]
+    // TYPE: 1=PQ, 2=PV, 3=Slack
+    bus: [
+        [1, 3, 0, 0, 0, 0, 1, 1.06, 0, 345, 1, 1.06, 0.94],
+        [2, 2, 21.7, 12.7, 0, 0, 1, 1.045, -4.98, 345, 1, 1.06, 0.94],
+        // ...
+    ],
+
+    // 発電機データ: [GEN_BUS, PG, QG, QMAX, QMIN, VG, MBASE, STATUS, PMAX, PMIN]
+    gen: [
+        [1, 232.4, -16.5, 100, -100, 1.06, 100, 1, 332.4, 0],
+        // ...
+    ],
+
+    // 送電線データ: [F_BUS, T_BUS, R, X, B, RATE_A, RATE_B, RATE_C, TAP, SHIFT, STATUS]
+    branch: [
+        [1, 2, 0.01938, 0.05917, 0.0528, 250, 250, 250, 0, 0, 1],
+        // ...
+    ]
+};
 ```
 
 ### 数値計算実装
@@ -458,7 +575,14 @@ function addCustomVisualization(name, renderFunction) {
 
 ---
 
-**ファイル**: `power_flow_visualizer.html`  
-**作成日**: 2024年12月30日  
-**更新日**: 2024年12月30日  
-**バージョン**: 2.0
+**ファイル**: `power_flow_visualizer.html`
+**作成日**: 2024年12月30日
+**更新日**: 2026年1月12日
+**バージョン**: 3.0
+
+## 📝 更新履歴
+
+| バージョン | 日付 | 変更内容 |
+|-----------|------|---------|
+| 3.0 | 2026-01-12 | 共有モジュール構成（`ieee_cases.js`, `power_flow_engine.js`, `power_flow_utils.js`）の追加、MATPOWER v2形式への統一 |
+| 2.0 | 2024-12-30 | 初版公開 |
