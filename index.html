@@ -36,7 +36,7 @@
                     </ul>
                     <div class="card-footer">
                         <a href="power_flow_v5.html" class="btn btn-primary">統合版起動 &rarr;</a>
-                        <a href="docs/power_flow_v5.html" class="btn btn-secondary">&#128214; 詳細</a>
+                        <a href="docs/power_flow_v5.md" class="btn btn-secondary">&#128214; 詳細</a>
                     </div>
                 </article>
 
@@ -71,7 +71,7 @@
                     </ul>
                     <div class="card-footer">
                         <a href="power_flow_process_visualizer_v2.html" class="btn btn-primary">v2起動 &rarr;</a>
-                        <a href="docs/power_flow_process_visualizer.html" class="btn btn-secondary">&#128214; 詳細</a>
+                        <a href="docs/power_flow_process_visualizer.md" class="btn btn-secondary">&#128214; 詳細</a>
                     </div>
                 </article>
 
@@ -139,25 +139,25 @@
                             <br><small>プロジェクト概要</small>
                         </div>
                     </a>
-                    <a href="docs/power_flow_methods.html" class="doc-link">
+                    <a href="docs/power_flow_methods.md" class="doc-link">
                         <span aria-hidden="true">&#128300;</span>
                         <div>
                             <strong>技術ノート</strong>
-                            <br><small>潮流計算手法詳解 (HTML版)</small>
+                            <br><small>潮流計算手法詳解</small>
                         </div>
                     </a>
-                    <a href="docs/power_flow_v5.html" class="doc-link">
+                    <a href="docs/power_flow_v5.md" class="doc-link">
                         <span aria-hidden="true">&#128202;</span>
                         <div>
                             <strong>統合版文書</strong>
-                            <br><small>MATPOWER準拠分析 (HTML版)</small>
+                            <br><small>MATPOWER準拠分析</small>
                         </div>
                     </a>
-                    <a href="docs/power_flow_process_visualizer.html" class="doc-link">
+                    <a href="docs/power_flow_process_visualizer.md" class="doc-link">
                         <span aria-hidden="true">&#127919;</span>
                         <div>
                             <strong>プロセス可視化</strong>
-                            <br><small>計算過程ステップ表示 (HTML版)</small>
+                            <br><small>計算過程ステップ表示</small>
                         </div>
                     </a>
                     <a href="docs/" class="doc-link">
@@ -167,6 +167,32 @@
                             <br><small>詳細文書・ソース</small>
                         </div>
                     </a>
+                </div>
+            </section>
+
+            <section class="file-organization" aria-label="ファイル構成">
+                <h2 class="doc-title">&#128193; ファイル構成</h2>
+                <div class="file-info">
+                    <div class="file-category">
+                        <h3>共通モジュール</h3>
+                        <ul>
+                            <li><code>scripts/ieee_cases.js</code> - IEEE標準系統データ (2/5/9/14/30バス)</li>
+                            <li><code>scripts/power_flow_engine.js</code> - 潮流計算エンジン (NR, GS, FDLF, DC)</li>
+                            <li><code>scripts/power_flow_utils.js</code> - 行列演算・収束追跡ユーティリティ</li>
+                        </ul>
+                    </div>
+                    <div class="file-category">
+                        <h3>現行バージョン</h3>
+                        <ul>
+                            <li><code>power_flow_intuitive_v6_fixed.html</code> - 直感的理解ツール (推奨)</li>
+                            <li><code>power_flow_intuitive_v7.html</code> - 大規模系統対応版</li>
+                            <li><code>power_flow_process_visualizer_v2.html</code> - 計算過程表示</li>
+                        </ul>
+                    </div>
+                    <div class="file-category">
+                        <h3>アーカイブ</h3>
+                        <p><small>旧バージョンは <a href="archive/">archive/</a> ディレクトリに移動されました。<br>詳細は <a href="archive/README.md">archive/README.md</a> をご覧ください。</small></p>
+                    </div>
                 </div>
             </section>
         </main>

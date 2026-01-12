@@ -242,6 +242,74 @@ body {
     color: var(--text-muted);
 }
 
+/* File Organization Section */
+.file-organization {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    margin-top: 30px;
+}
+
+.file-info {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+}
+
+.file-category {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.file-category h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--accent-cyan);
+    margin-bottom: 15px;
+}
+
+.file-category ul {
+    list-style: none;
+}
+
+.file-category li {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.file-category li:last-child {
+    border-bottom: none;
+}
+
+.file-category code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent-green);
+    background: var(--bg-dark);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.file-category p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.file-category a {
+    color: var(--accent-blue);
+    text-decoration: none;
+}
+
+.file-category a:hover {
+    text-decoration: underline;
+}
+
 /* Footer */
 .footer {
     text-align: center;
