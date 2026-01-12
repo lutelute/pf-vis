@@ -4,7 +4,27 @@
       "description": "v7 now aligned with v6_fixed patterns: includes large-scale system generators (generateIEEE30System, generateRandomPowerSystem), getDynamicProblem for unified problem handling, spy plot and network graph visualizations, and adaptive rendering for performance optimization",
       "category": "pattern",
       "discovered_at": "2026-01-12T01:26:16.581931+00:00"
+    },
+    "archive/README.md": {
+      "description": "Archive directory created for deprecated files. Contains old intuitive visualizer versions (original, v3, v4, v5, v6). README.md documents why files were deprecated and which current versions to use (v6_fixed, v7). Pattern: move deprecated files to archive/ with README explaining migration path.",
+      "category": "architecture",
+      "discovered_at": "2026-01-12T01:58:03.858257+00:00"
+    },
+    "index.html": {
+      "description": "Updated to link only to current versions with file organization section. Fixed broken .html links to .md files. Documents shared modules (ieee_cases.js, power_flow_engine.js, power_flow_utils.js), current versions (v6_fixed recommended, v7 for large-scale), and archive directory reference.",
+      "category": "file_organization",
+      "discovered_at": "2026-01-12T02:04:26.341698+00:00"
+    },
+    "tests/verify_ieee14_algorithms.html": {
+      "description": "Browser-based IEEE 14-bus algorithm verification test suite. Tests Newton-Raphson, Gauss-Seidel, Fast Decoupled XB, and DC Power Flow methods. Compares results against MATPOWER reference values with 1.5% tolerance. Auto-runs on page load.",
+      "category": "testing",
+      "discovered_at": "2026-01-12T02:15:18.658672+00:00"
+    },
+    "all pages": {
+      "description": "All main HTML pages verified for console error-free operation. DOM elements match getElementById calls, script dependencies exist, and console statements are intentional (informational/warnings only).",
+      "category": "verification",
+      "discovered_at": "2026-01-12T02:29:20.268068+00:00"
     }
   },
-  "last_updated": "2026-01-12T01:26:16.581938+00:00"
+  "last_updated": "2026-01-12T02:29:20.268076+00:00"
 }
