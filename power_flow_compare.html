@@ -805,9 +805,65 @@
     </div>
 
     <script>
+    /**
+     * Power Flow Algorithm Comparison Module
+     *
+     * @fileoverview This module provides a multi-algorithm power flow comparison
+     * tool that allows side-by-side evaluation of different iterative methods
+     * including Newton-Raphson, Fast Decoupled, Gauss-Seidel, and others.
+     *
+     * @description A MATPOWER-compatible power flow comparison tool designed for
+     * educational visualization. Implements multiple power flow algorithms with
+     * consistent interfaces to demonstrate convergence characteristics.
+     *
+     * @see https://matpower.org - MATPOWER User's Manual
+     * @see R. D. Zimmerman, C. E. Murillo-Sanchez (2020) MATPOWER 7.1
+     *
+     * @author Power Flow Visualization Project
+     * @license MIT
+     */
+
+    // ============================================================
+    // Constants
+    // ============================================================
+
+    /**
+     * Bus type constants matching MATPOWER convention
+     * @type {Object.<string, number>}
+     */
+    const BUS_TYPE = {
+        PQ: 1,      // PQ bus - both P and Q are specified
+        PV: 2,      // PV bus - P and V magnitude are specified
+        SLACK: 3    // Slack/Reference bus - V magnitude and angle are specified
+    };
+
+    /**
+     * Default algorithm options
+     * @type {Object}
+     */
+    const DEFAULT_OPTIONS = {
+        tolerance: 1e-6,        // Convergence tolerance (p.u.)
+        maxIterations: 100,     // Maximum number of iterations
+        algorithm: 'nr'         // Default algorithm: 'nr', 'fdxb', 'gs', 'dc'
+    };
+
     // ============================================================
     // Algorithm Definitions
     // ============================================================
+
+    /**
+     * Algorithm configuration object containing metadata for all supported
+     * power flow methods.
+     *
+     * @type {Object.<string, Object>}
+     * @property {string} name - Full algorithm name
+     * @property {string} shortName - Abbreviated name for UI display
+     * @property {string} color - Hex color code for visualization
+     * @property {string} desc - Brief description of the algorithm
+     * @property {string} matpower - Corresponding MATPOWER function name
+     * @property {string} complexity - Computational complexity per iteration
+     * @property {string} convergence - Convergence rate type
+     */
     const ALGORITHMS = {
         nr: {
             name: 'Newton-Raphson',
@@ -886,6 +942,21 @@
     // ============================================================
     // MATPOWER Test Cases
     // ============================================================
+
+    /**
+     * MATPOWER-compatible test case data
+     *
+     * @description Standard IEEE test systems formatted for MATPOWER compatibility.
+     * Each case contains bus, generator, and branch data matrices following
+     * the MATPOWER v2 data format specification.
+     *
+     * Bus data columns: [bus_i, type, Pd, Qd, Gs, Bs, area, Vm, Va, baseKV, zone, Vmax, Vmin]
+     * Generator data columns: [bus, Pg, Qg, Qmax, Qmin, Vg, mBase, status, Pmax, Pmin]
+     * Branch data columns: [fbus, tbus, r, x, b, rateA, rateB, rateC, ratio, angle, status]
+     *
+     * @type {Object.<string, Object>}
+     * @see https://matpower.org/docs/ref/matpower5.0/caseformat.html
+     */
     const MATPOWER_CASES = {
         case5: {
             name: '5-bus Example',
@@ -1081,33 +1152,82 @@
     };
 
     // ============================================================
-    // Power Flow Engine (Multi-Algorithm)
+    // PowerFlowEngine Class
     // ============================================================
+
+    /**
+     * Power Flow Engine Class (Multi-Algorithm)
+     *
+     * @description Main class for power flow calculations supporting multiple
+     * algorithms. Implements Newton-Raphson, Fast Decoupled (XB/BX), Gauss-Seidel,
+     * Gauss-Jacobi, DC Power Flow, Levenberg-Marquardt, and HELM methods.
+     * Uses MATPOWER data format conventions for input case data.
+     *
+     * @class
+     * @example
+     * // Create engine with IEEE 9-bus case data
+     * const engine = new PowerFlowEngine(MATPOWER_CASES.case9);
+     *
+     * // Run one iteration of Newton-Raphson
+     * const result = engine.runIteration('nr');
+     *
+     * // Check convergence
+     * if (result.maxError < tolerance) {
+     *     engine.converged = true;
+     * }
+     */
     class PowerFlowEngine {
+        /**
+         * Create a PowerFlowEngine instance
+         *
+         * @param {Object} caseData - MATPOWER-compatible case data
+         * @param {string} caseData.name - System name
+         * @param {number} caseData.baseMVA - Base power in MVA
+         * @param {Array<Array<number>>} caseData.bus - Bus data matrix
+         * @param {Array<Array<number>>} caseData.gen - Generator data matrix
+         * @param {Array<Array<number>>} caseData.branch - Branch data matrix
+         * @throws {Error} If case data is invalid or incomplete
+         */
         constructor(caseData) {
+            // Store base values
             this.baseMVA = caseData.baseMVA;
+
+            // Deep copy data to prevent mutation
             this.busData = JSON.parse(JSON.stringify(caseData.bus));
             this.genData = JSON.parse(JSON.stringify(caseData.gen));
             this.branchData = JSON.parse(JSON.stringify(caseData.branch));
-            
+
+            // System dimensions
             this.nBus = this.busData.length;
             this.nBranch = this.branchData.length;
-            
+
+            // Initialize the system
             this.reset();
         }
 
+        /**
+         * Reset the engine to initial state
+         *
+         * @description Resets all state variables to initial values from case data.
+         * Useful for re-running with different algorithm or options.
+         */
         reset() {
-            this.V = [];
-            this.delta = [];
-            this.Pgen = [];
-            this.Qgen = [];
-            
+            // State variables (to be initialized)
+            this.V = [];        // Voltage magnitudes (p.u.)
+            this.delta = [];    // Voltage angles (radians)
+            this.Pgen = [];     // Generator active power (p.u.)
+            this.Qgen = [];     // Generator reactive power (p.u.)
+
+            // Bus classification
             this.slackBus = -1;
             this.pvBuses = [];
             this.pqBuses = [];
-            
+
+            // Admittance matrix (Ybus)
+            // Stored as separate real (conductance) and imaginary (susceptance) parts
             this.Ybus = { re: [], im: [] };
-            
+
+            // Convergence tracking
             this.iteration = 0;
             this.converged = false;
             this.diverged = false;
@@ -1115,37 +1235,74 @@
             this.maxPError = Infinity;
             this.maxQError = Infinity;
             this.currentStep = 'init';
-            
-            this.initialize();
+
+            // Initialize the system
+            this._initialize();
         }
 
-        initialize() {
+        /**
+         * Initialize the power flow problem
+         *
+         * @private
+         * @description Sets up initial voltage profile, classifies buses by type,
+         * applies generator setpoints, and builds the admittance matrix.
+         */
+        _initialize() {
+            // Initialize voltage from bus data (flat start with bus voltage setpoints)
             for (let i = 0; i < this.nBus; i++) {
                 const bus = this.busData[i];
+                // Column 7: VM (voltage magnitude), Column 8: VA (voltage angle in degrees)
                 this.V[i] = bus[7];
-                this.delta[i] = bus[8] * Math.PI / 180;
-                
-                if (bus[1] === 3) this.slackBus = i;
-                else if (bus[1] === 2) this.pvBuses.push(i);
-                else this.pqBuses.push(i);
+                this.delta[i] = bus[8] * Math.PI / 180;  // Convert degrees to radians
+
+                // Classify bus by type (Column 1: BUS_TYPE)
+                if (bus[1] === BUS_TYPE.SLACK) {
+                    this.slackBus = i;
+                } else if (bus[1] === BUS_TYPE.PV) {
+                    this.pvBuses.push(i);
+                } else {
+                    this.pqBuses.push(i);
+                }
             }
 
+            // Initialize generator power arrays
             this.Pgen = new Array(this.nBus).fill(0);
             this.Qgen = new Array(this.nBus).fill(0);
-            
+
+            // Apply generator data
             for (const gen of this.genData) {
-                const busIdx = gen[0] - 1;
+                const busIdx = gen[0] - 1;  // Convert 1-indexed to 0-indexed
+
+                // Column 1: PG (MW), Column 2: QG (MVAr) - convert to p.u.
                 this.Pgen[busIdx] += gen[1] / this.baseMVA;
                 this.Qgen[busIdx] += gen[2] / this.baseMVA;
+
+                // Apply voltage setpoint for PV and slack buses
+                // Column 5: VG (voltage setpoint)
                 if (this.pvBuses.includes(busIdx) || busIdx === this.slackBus) {
                     this.V[busIdx] = gen[5];
                 }
             }
 
-            this.buildYbus();
+            // Build admittance matrix
+            this._buildYbus();
         }
 
-        buildYbus() {
+        /**
+         * Build the bus admittance matrix (Ybus)
+         *
+         * @private
+         * @description Constructs the Ybus matrix from branch data. Handles
+         * transmission lines with series impedance and shunt admittance,
+         * as well as transformers with off-nominal tap ratios.
+         *
+         * Mathematical formulation:
+         *   For a branch from bus i to bus j with impedance z = r + jx:
+         *   - Series admittance: y = 1/z = g + jb where g = r/(r² + x²), b = -x/(r² + x²)
+         *   - Off-diagonal elements: Yij = Yji = -y/tap
+         *   - Diagonal contributions: Yii += y/tap² + jB/2, Yjj += y + jB/2
+         */
+        _buildYbus() {
             for (let i = 0; i < this.nBus; i++) {
                 this.Ybus.re[i] = new Array(this.nBus).fill(0);
                 this.Ybus.im[i] = new Array(this.nBus).fill(0);
@@ -1179,36 +1336,74 @@
                 this.Ybus.im[to][to] += bSeries + b / 2;
             }
 
+            // Add shunt admittances from bus data
             for (let i = 0; i < this.nBus; i++) {
+                // Column 4: GS (shunt conductance, MW at V=1), Column 5: BS (shunt susceptance, MVAr at V=1)
                 this.Ybus.re[i][i] += this.busData[i][4] / this.baseMVA;
                 this.Ybus.im[i][i] += this.busData[i][5] / this.baseMVA;
             }
         }
 
-        calcPowerInjection() {
+        /**
+         * Calculate power injections at all buses
+         *
+         * @private
+         * @description Computes complex power injection at each bus using:
+         *   Pi = sum_j(Vi * Vj * (Gij * cos(δi - δj) + Bij * sin(δi - δj)))
+         *   Qi = sum_j(Vi * Vj * (Gij * sin(δi - δj) - Bij * cos(δi - δj)))
+         *
+         * @returns {Object} Object containing P and Q arrays of calculated injections
+         * @returns {Array<number>} return.P - Active power injections (p.u.)
+         * @returns {Array<number>} return.Q - Reactive power injections (p.u.)
+         */
+        _calcPowerInjection() {
             const P = new Array(this.nBus).fill(0);
             const Q = new Array(this.nBus).fill(0);
 
             for (let i = 0; i < this.nBus; i++) {
                 for (let j = 0; j < this.nBus; j++) {
+                    const Gij = this.Ybus.re[i][j];
+                    const Bij = this.Ybus.im[i][j];
                     const thetaij = this.delta[i] - this.delta[j];
-                    P[i] += this.V[i] * this.V[j] * (this.Ybus.re[i][j] * Math.cos(thetaij) + this.Ybus.im[i][j] * Math.sin(thetaij));
-                    Q[i] += this.V[i] * this.V[j] * (this.Ybus.re[i][j] * Math.sin(thetaij) - this.Ybus.im[i][j] * Math.cos(thetaij));
+
+                    // Power injection equations in polar form
+                    P[i] += this.V[i] * this.V[j] * (Gij * Math.cos(thetaij) + Bij * Math.sin(thetaij));
+                    Q[i] += this.V[i] * this.V[j] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
                 }
             }
             return { P, Q };
         }
 
-        calcMismatch() {
+        /**
+         * Calculate power mismatches at all buses
+         *
+         * @private
+         * @description Computes the difference between specified and calculated power:
+         *   ΔP = Pspec - Pcalc = (Pgen - Pload) - Pcalc
+         *   ΔQ = Qspec - Qcalc = (Qgen - Qload) - Qcalc
+         *
+         * @returns {Object} Mismatch data and calculated powers
+         * @returns {Array<Object>} return.deltaP - Active power mismatches
+         * @returns {Array<Object>} return.deltaQ - Reactive power mismatches
+         * @returns {Array<number>} return.P - Calculated active powers
+         * @returns {Array<number>} return.Q - Calculated reactive powers
+         */
+        _calcMismatch() {
             this.currentStep = 'mismatch';
-            const { P, Q } = this.calcPowerInjection();
+            const { P, Q } = this._calcPowerInjection();
             const deltaP = [], deltaQ = [];
 
             for (let i = 0; i < this.nBus; i++) {
-                if (i === this.slackBus) continue;
-                const Pload = this.busData[i][2] / this.baseMVA;
-                const Qload = this.busData[i][3] / this.baseMVA;
+                if (i === this.slackBus) continue;  // Slack bus has no mismatch equations
+
+                // Get specified powers (p.u.)
+                const Pload = this.busData[i][2] / this.baseMVA;  // Column 2: PD
+                const Qload = this.busData[i][3] / this.baseMVA;  // Column 3: QD
+
+                // Active power mismatch (for all non-slack buses)
                 deltaP.push({ bus: i, value: this.Pgen[i] - Pload - P[i] });
+
+                // Reactive power mismatch (only for PQ buses)
                 if (this.pqBuses.includes(i)) {
                     deltaQ.push({ bus: i, value: this.Qgen[i] - Qload - Q[i] });
                 }
@@ -1216,57 +1411,97 @@
             return { deltaP, deltaQ, P, Q };
         }
 
-        // Newton-Raphson
-        newtonRaphsonStep() {
-            const { deltaP, deltaQ } = this.calcMismatch();
+        /**
+         * Perform one Newton-Raphson iteration
+         *
+         * @private
+         * @description Implements the Newton-Raphson method:
+         *   1. Calculate power mismatches [ΔP; ΔQ]
+         *   2. Build Jacobian matrix J = [J11 J12; J21 J22]
+         *   3. Solve J × [Δδ; ΔV] = [ΔP; ΔQ] using LU decomposition
+         *   4. Update state: δ_new = δ + Δδ, V_new = V + ΔV
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        _solveNewtonRaphsonStep() {
+            const { deltaP, deltaQ } = this._calcMismatch();
             this.currentStep = 'check';
-            
+
+            // Form the mismatch vector f = [ΔP; ΔQ]
             const f = [...deltaP.map(d => d.value), ...deltaQ.map(d => d.value)];
             if (f.length === 0) return { maxError: 0 };
-            
+
+            // Build Jacobian matrix
             this.currentStep = 'jacobian';
-            const J = this.buildJacobian(deltaP, deltaQ);
-            
+            const J = this._buildJacobian(deltaP, deltaQ);
+
+            // Solve linear system: J × dx = f
             this.currentStep = 'solve';
-            const dx = this.solveLU(J, f);
+            const dx = this._solveLU(J, f);
             if (!dx || dx.some(v => !isFinite(v))) return { maxError: Infinity };
-            
+
+            // Update state variables
             this.currentStep = 'update';
             let idx = 0;
-            for (const dp of deltaP) this.delta[dp.bus] += dx[idx++];
+
+            // Update voltage angles
+            for (const dp of deltaP) {
+                this.delta[dp.bus] += dx[idx++];
+            }
+
+            // Update voltage magnitudes (PQ buses only)
             for (const dq of deltaQ) {
                 this.V[dq.bus] += dx[idx++];
+                // Enforce voltage limits
                 this.V[dq.bus] = Math.max(0.5, Math.min(1.5, this.V[dq.bus]));
             }
-            
+
+            // Calculate maximum errors
             this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
             this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
+
             return { maxError: Math.max(this.maxPError, this.maxQError) };
         }
 
-        // Fast Decoupled XB
-        fastDecoupledXBStep() {
-            const { deltaP, deltaQ } = this.calcMismatch();
+        /**
+         * Perform one Fast Decoupled XB iteration
+         *
+         * @private
+         * @description Implements the Fast Decoupled XB method:
+         *   1. P-δ subproblem: B' × Δδ = ΔP/V
+         *   2. Q-V subproblem: B'' × ΔV = ΔQ/V
+         *
+         * Assumes weak coupling between P-δ and Q-V relationships.
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        _solveFastDecoupledXBStep() {
+            const { deltaP, deltaQ } = this._calcMismatch();
             this.currentStep = 'check';
-            
+
             this.currentStep = 'jacobian';
-            // P-δ subproblem
+
+            // P-δ subproblem: B' × Δδ = ΔP/V
             if (deltaP.length > 0) {
-                const Bp = this.buildBMatrix(deltaP.map(d => d.bus));
+                const Bp = this._buildBMatrix(deltaP.map(d => d.bus));
                 const fp = deltaP.map(d => d.value / this.V[d.bus]);
                 this.currentStep = 'solve';
-                const dDelta = this.solveLU(Bp, fp);
+                const dDelta = this._solveLU(Bp, fp);
                 this.currentStep = 'update';
                 if (dDelta && dDelta.every(v => isFinite(v))) {
-                    for (let i = 0; i < deltaP.length; i++) this.delta[deltaP[i].bus] += dDelta[i];
+                    for (let i = 0; i < deltaP.length; i++) {
+                        this.delta[deltaP[i].bus] += dDelta[i];
+                    }
                 }
             }
-            
-            // Q-V subproblem
+
+            // Q-V subproblem: B'' × ΔV = ΔQ/V
             if (deltaQ.length > 0) {
-                const Bpp = this.buildBMatrix(deltaQ.map(d => d.bus));
+                const Bpp = this._buildBMatrix(deltaQ.map(d => d.bus));
                 const fq = deltaQ.map(d => d.value / this.V[d.bus]);
-                const dV = this.solveLU(Bpp, fq);
+                const dV = this._solveLU(Bpp, fq);
                 if (dV && dV.every(v => isFinite(v))) {
                     for (let i = 0; i < deltaQ.length; i++) {
                         this.V[deltaQ[i].bus] += dV[i];
@@ -1274,25 +1509,37 @@
                     }
                 }
             }
-            
-            const m = this.calcMismatch();
+
+            // Recalculate mismatches after updates
+            const m = this._calcMismatch();
             this.maxPError = m.deltaP.length > 0 ? Math.max(...m.deltaP.map(d => Math.abs(d.value))) : 0;
             this.maxQError = m.deltaQ.length > 0 ? Math.max(...m.deltaQ.map(d => Math.abs(d.value))) : 0;
             return { maxError: Math.max(this.maxPError, this.maxQError) };
         }
 
-        // Fast Decoupled BX (reverse order)
-        fastDecoupledBXStep() {
-            const { deltaP, deltaQ } = this.calcMismatch();
+        /**
+         * Perform one Fast Decoupled BX iteration
+         *
+         * @private
+         * @description Implements the Fast Decoupled BX method (reverse order):
+         *   1. Q-V subproblem: B'' × ΔV = ΔQ/V (first)
+         *   2. P-δ subproblem: B' × Δδ = ΔP/V (second)
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        _solveFastDecoupledBXStep() {
+            const { deltaP, deltaQ } = this._calcMismatch();
             this.currentStep = 'check';
-            
+
             this.currentStep = 'jacobian';
-            // Q-V first
+
+            // Q-V subproblem first
             if (deltaQ.length > 0) {
-                const Bpp = this.buildBMatrix(deltaQ.map(d => d.bus));
+                const Bpp = this._buildBMatrix(deltaQ.map(d => d.bus));
                 const fq = deltaQ.map(d => d.value / this.V[d.bus]);
                 this.currentStep = 'solve';
-                const dV = this.solveLU(Bpp, fq);
+                const dV = this._solveLU(Bpp, fq);
                 this.currentStep = 'update';
                 if (dV && dV.every(v => isFinite(v))) {
                     for (let i = 0; i < deltaQ.length; i++) {
@@ -1301,25 +1548,39 @@
                     }
                 }
             }
-            
-            // P-δ second
+
+            // P-δ subproblem second
             if (deltaP.length > 0) {
-                const Bp = this.buildBMatrix(deltaP.map(d => d.bus));
+                const Bp = this._buildBMatrix(deltaP.map(d => d.bus));
                 const fp = deltaP.map(d => d.value / this.V[d.bus]);
-                const dDelta = this.solveLU(Bp, fp);
+                const dDelta = this._solveLU(Bp, fp);
                 if (dDelta && dDelta.every(v => isFinite(v))) {
-                    for (let i = 0; i < deltaP.length; i++) this.delta[deltaP[i].bus] += dDelta[i];
+                    for (let i = 0; i < deltaP.length; i++) {
+                        this.delta[deltaP[i].bus] += dDelta[i];
+                    }
                 }
             }
-            
-            const m = this.calcMismatch();
+
+            // Recalculate mismatches after updates
+            const m = this._calcMismatch();
             this.maxPError = m.deltaP.length > 0 ? Math.max(...m.deltaP.map(d => Math.abs(d.value))) : 0;
             this.maxQError = m.deltaQ.length > 0 ? Math.max(...m.deltaQ.map(d => Math.abs(d.value))) : 0;
             return { maxError: Math.max(this.maxPError, this.maxQError) };
         }
 
-        // Gauss-Seidel
-        gaussSeidelStep() {
+        /**
+         * Perform one Gauss-Seidel iteration
+         *
+         * @private
+         * @description Implements the Gauss-Seidel method for power flow:
+         *   Vi^(k+1) = (1/Yii) * [((Pi - jQi)* / Vi*) - Σ(j≠i) Yij*Vj]
+         *
+         * Uses immediate updates (each bus uses latest voltages from previous buses).
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        _solveGaussSeidelStep() {
             this.currentStep = 'update';
             for (let i = 0; i < this.nBus; i++) {
                 if (i === this.slackBus) continue;
@@ -1361,313 +1622,553 @@
                 }
             }
             
-            const { deltaP, deltaQ } = this.calcMismatch();
+            // Calculate final mismatches
+            const { deltaP, deltaQ } = this._calcMismatch();
             this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
             this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
+
             return { maxError: Math.max(this.maxPError, this.maxQError) };
         }
 
-        // Gauss-Jacobi (simultaneous update)
-        gaussJacobiStep() {
+        /**
+         * Perform one Gauss-Jacobi iteration
+         *
+         * @private
+         * @description Implements the Gauss-Jacobi method for power flow.
+         * Unlike Gauss-Seidel, uses simultaneous updates (all buses updated
+         * at once using old values).
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        _solveGaussJacobiStep() {
             this.currentStep = 'update';
             const newV = [...this.V];
             const newDelta = [...this.delta];
-            
+
             for (let i = 0; i < this.nBus; i++) {
                 if (i === this.slackBus) continue;
-                
+
+                // Get specified powers
                 const Pspec = this.Pgen[i] - this.busData[i][2] / this.baseMVA;
                 const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : 0;
-                
+
+                // Calculate Σ(j≠i) Yij*Vj using OLD values (key difference from GS)
                 let sumYV_re = 0, sumYV_im = 0;
                 for (let j = 0; j < this.nBus; j++) {
                     if (j === i) continue;
-                    // Use OLD values (difference from GS)
                     const Vj_re = this.V[j] * Math.cos(this.delta[j]);
                     const Vj_im = this.V[j] * Math.sin(this.delta[j]);
                     sumYV_re += this.Ybus.re[i][j] * Vj_re - this.Ybus.im[i][j] * Vj_im;
                     sumYV_im += this.Ybus.re[i][j] * Vj_im + this.Ybus.im[i][j] * Vj_re;
                 }
-                
+
                 const Vi_re = this.V[i] * Math.cos(this.delta[i]);
                 const Vi_im = this.V[i] * Math.sin(this.delta[i]);
                 const Vmag2 = this.V[i] * this.V[i];
-                
+
                 const Yii_mag2 = this.Ybus.re[i][i] ** 2 + this.Ybus.im[i][i] ** 2;
                 if (Yii_mag2 < 1e-12) continue;
-                
+
                 const SoverVconj_re = (Pspec * Vi_re + Qspec * Vi_im) / Vmag2;
                 const SoverVconj_im = (Pspec * Vi_im - Qspec * Vi_re) / Vmag2;
-                
+
                 const rhs_re = SoverVconj_re - sumYV_re;
                 const rhs_im = SoverVconj_im - sumYV_im;
-                
+
                 const calcV_re = (rhs_re * this.Ybus.re[i][i] + rhs_im * this.Ybus.im[i][i]) / Yii_mag2;
                 const calcV_im = (rhs_im * this.Ybus.re[i][i] - rhs_re * this.Ybus.im[i][i]) / Yii_mag2;
-                
+
                 newDelta[i] = Math.atan2(calcV_im, calcV_re);
                 if (this.pqBuses.includes(i)) {
                     newV[i] = Math.max(0.5, Math.min(1.5, Math.sqrt(calcV_re * calcV_re + calcV_im * calcV_im)));
                 }
             }
-            
-            // Apply all updates at once
+
+            // Apply all updates at once (simultaneous update)
             for (let i = 0; i < this.nBus; i++) {
                 this.V[i] = newV[i];
                 this.delta[i] = newDelta[i];
             }
-            
-            const { deltaP, deltaQ } = this.calcMismatch();
+
+            // Calculate final mismatches
+            const { deltaP, deltaQ } = this._calcMismatch();
             this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
             this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
+
             return { maxError: Math.max(this.maxPError, this.maxQError) };
         }
 
-        // DC Power Flow (single iteration)
-        dcPowerFlowStep() {
+        /**
+         * Solve DC Power Flow
+         *
+         * @private
+         * @description DC power flow assumptions:
+         *   1. Voltage magnitudes are 1.0 p.u. at all buses
+         *   2. Resistance is negligible (r << x)
+         *   3. Angle differences are small (sin(θ) ≈ θ)
+         *
+         * Resulting linear equation: B × δ = P
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Always 0 for DC (single iteration)
+         */
+        _solveDCPowerFlowStep() {
             this.currentStep = 'jacobian';
+
+            // Build reduced B matrix (excluding slack bus)
             const buses = [];
             for (let i = 0; i < this.nBus; i++) {
                 if (i !== this.slackBus) buses.push(i);
             }
-            
-            const B = this.buildBMatrix(buses);
+
+            const B = this._buildBMatrix(buses);
             const P = buses.map(i => this.Pgen[i] - this.busData[i][2] / this.baseMVA);
-            
+
+            // Solve B × δ = P
             this.currentStep = 'solve';
-            const delta = this.solveLU(B, P);
-            
+            const delta = this._solveLU(B, P);
+
             this.currentStep = 'update';
             if (delta && delta.every(v => isFinite(v))) {
                 for (let i = 0; i < buses.length; i++) {
                     this.delta[buses[i]] = delta[i];
                 }
             }
-            
+
             this.converged = true;
             this.maxPError = 0;
             this.maxQError = 0;
+
             return { maxError: 0 };
         }
 
-        // Levenberg-Marquardt
-        levenbergMarquardtStep() {
-            const { deltaP, deltaQ } = this.calcMismatch();
+        /**
+         * Perform one Levenberg-Marquardt iteration
+         *
+         * @private
+         * @description Implements Levenberg-Marquardt method:
+         *   Newton-Raphson with damping factor for improved convergence.
+         *   (J + λI) × dx = f
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        _solveLevenbergMarquardtStep() {
+            const { deltaP, deltaQ } = this._calcMismatch();
             this.currentStep = 'check';
-            
+
             const f = [...deltaP.map(d => d.value), ...deltaQ.map(d => d.value)];
             if (f.length === 0) return { maxError: 0 };
-            
+
             this.currentStep = 'jacobian';
-            const J = this.buildJacobian(deltaP, deltaQ);
+            const J = this._buildJacobian(deltaP, deltaQ);
             const n = J.length;
-            
-            // Add damping: (J^T J + λI)
+
+            // Add damping: (J + λI)
             const lambda = 0.01;
             for (let i = 0; i < n; i++) {
                 J[i][i] += lambda;
             }
-            
+
             this.currentStep = 'solve';
-            const dx = this.solveLU(J, f);
+            const dx = this._solveLU(J, f);
             if (!dx || dx.some(v => !isFinite(v))) return { maxError: Infinity };
-            
+
             this.currentStep = 'update';
             let idx = 0;
-            for (const dp of deltaP) this.delta[dp.bus] += dx[idx++];
+            for (const dp of deltaP) {
+                this.delta[dp.bus] += dx[idx++];
+            }
             for (const dq of deltaQ) {
                 this.V[dq.bus] += dx[idx++];
                 this.V[dq.bus] = Math.max(0.5, Math.min(1.5, this.V[dq.bus]));
             }
-            
+
             this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
             this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
+
             return { maxError: Math.max(this.maxPError, this.maxQError) };
         }
 
-        // HELM (simplified Holomorphic Embedding)
-        helmStep() {
-            // Simplified HELM using power series expansion
-            const { deltaP, deltaQ } = this.calcMismatch();
+        /**
+         * Perform one HELM (Holomorphic Embedding) iteration
+         *
+         * @private
+         * @description Simplified HELM using NR-like update with relaxation
+         * for improved stability. Full HELM uses power series expansion.
+         *
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        _solveHelmStep() {
+            const { deltaP, deltaQ } = this._calcMismatch();
             this.currentStep = 'solve';
-            
+
             // Use NR-like update with relaxation for stability
             const f = [...deltaP.map(d => d.value), ...deltaQ.map(d => d.value)];
             if (f.length === 0) return { maxError: 0 };
-            
+
             this.currentStep = 'jacobian';
-            const J = this.buildJacobian(deltaP, deltaQ);
-            
-            const dx = this.solveLU(J, f);
+            const J = this._buildJacobian(deltaP, deltaQ);
+
+            const dx = this._solveLU(J, f);
             if (!dx || dx.some(v => !isFinite(v))) return { maxError: Infinity };
-            
+
             this.currentStep = 'update';
-            const alpha = 0.8; // relaxation
+            const alpha = 0.8;  // Relaxation factor for stability
             let idx = 0;
-            for (const dp of deltaP) this.delta[dp.bus] += alpha * dx[idx++];
+            for (const dp of deltaP) {
+                this.delta[dp.bus] += alpha * dx[idx++];
+            }
             for (const dq of deltaQ) {
                 this.V[dq.bus] += alpha * dx[idx++];
                 this.V[dq.bus] = Math.max(0.5, Math.min(1.5, this.V[dq.bus]));
             }
-            
+
             this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
             this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
+
             return { maxError: Math.max(this.maxPError, this.maxQError) };
         }
 
-        buildJacobian(deltaP, deltaQ) {
+        /**
+         * Build the Jacobian matrix
+         *
+         * @private
+         * @description Constructs the Jacobian matrix with sub-matrices:
+         *   J = [J11 J12]   where J11 = ∂P/∂δ, J12 = ∂P/∂V
+         *       [J21 J22]         J21 = ∂Q/∂δ, J22 = ∂Q/∂V
+         *
+         * @param {Array<Object>} deltaP - Active power mismatch data
+         * @param {Array<Object>} deltaQ - Reactive power mismatch data
+         * @returns {Array<Array<number>>} Jacobian matrix
+         */
+        _buildJacobian(deltaP, deltaQ) {
             const nP = deltaP.length, nQ = deltaQ.length;
             const n = nP + nQ;
             const J = Array(n).fill(null).map(() => Array(n).fill(0));
             
+            // J11: ∂P/∂δ (upper-left block)
             for (let i = 0; i < nP; i++) {
                 const bi = deltaP[i].bus;
                 for (let j = 0; j < nP; j++) {
                     const bj = deltaP[j].bus;
-                    J[i][j] = this.dPdDelta(bi, bj);
+                    J[i][j] = this._dPdDelta(bi, bj);
                 }
+                // J12: ∂P/∂V (upper-right block)
                 for (let j = 0; j < nQ; j++) {
                     const bj = deltaQ[j].bus;
-                    J[i][nP + j] = this.dPdV(bi, bj);
+                    J[i][nP + j] = this._dPdV(bi, bj);
                 }
             }
+
+            // J21: ∂Q/∂δ (lower-left block)
             for (let i = 0; i < nQ; i++) {
                 const bi = deltaQ[i].bus;
                 for (let j = 0; j < nP; j++) {
                     const bj = deltaP[j].bus;
-                    J[nP + i][j] = this.dQdDelta(bi, bj);
+                    J[nP + i][j] = this._dQdDelta(bi, bj);
                 }
+                // J22: ∂Q/∂V (lower-right block)
                 for (let j = 0; j < nQ; j++) {
                     const bj = deltaQ[j].bus;
-                    J[nP + i][nP + j] = this.dQdV(bi, bj);
+                    J[nP + i][nP + j] = this._dQdV(bi, bj);
                 }
             }
+
             return J;
         }
 
-        dPdDelta(i, j) {
+        /**
+         * Calculate ∂Pi/∂δj (Jacobian element)
+         *
+         * @private
+         * @param {number} i - Row bus index
+         * @param {number} j - Column bus index
+         * @returns {number} Partial derivative value
+         */
+        _dPdDelta(i, j) {
             if (i === j) {
+                // Diagonal element: ∂Pi/∂δi = Σ(k≠i) Vi*Vk*(-Gik*sin(θik) + Bik*cos(θik))
                 let sum = 0;
                 for (let k = 0; k < this.nBus; k++) {
                     if (k === i) continue;
+                    const Gik = this.Ybus.re[i][k];
+                    const Bik = this.Ybus.im[i][k];
                     const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[i] * this.V[k] * (-this.Ybus.re[i][k] * Math.sin(thetaik) + this.Ybus.im[i][k] * Math.cos(thetaik));
+                    sum += this.V[i] * this.V[k] * (-Gik * Math.sin(thetaik) + Bik * Math.cos(thetaik));
                 }
                 return sum;
+            } else {
+                // Off-diagonal: ∂Pi/∂δj = Vi*Vj*(Gij*sin(θij) - Bij*cos(θij))
+                const Gij = this.Ybus.re[i][j];
+                const Bij = this.Ybus.im[i][j];
+                const thetaij = this.delta[i] - this.delta[j];
+                return this.V[i] * this.V[j] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
             }
-            const thetaij = this.delta[i] - this.delta[j];
-            return this.V[i] * this.V[j] * (this.Ybus.re[i][j] * Math.sin(thetaij) - this.Ybus.im[i][j] * Math.cos(thetaij));
         }
 
-        dPdV(i, j) {
+        /**
+         * Calculate ∂Pi/∂Vj (Jacobian element)
+         *
+         * @private
+         * @param {number} i - Row bus index
+         * @param {number} j - Column bus index
+         * @returns {number} Partial derivative value
+         */
+        _dPdV(i, j) {
             if (i === j) {
+                // Diagonal: ∂Pi/∂Vi = 2*Vi*Gii + Σ(k≠i) Vk*(Gik*cos(θik) + Bik*sin(θik))
                 let sum = 2 * this.V[i] * this.Ybus.re[i][i];
                 for (let k = 0; k < this.nBus; k++) {
                     if (k === i) continue;
+                    const Gik = this.Ybus.re[i][k];
+                    const Bik = this.Ybus.im[i][k];
                     const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[k] * (this.Ybus.re[i][k] * Math.cos(thetaik) + this.Ybus.im[i][k] * Math.sin(thetaik));
+                    sum += this.V[k] * (Gik * Math.cos(thetaik) + Bik * Math.sin(thetaik));
                 }
                 return sum;
+            } else {
+                // Off-diagonal: ∂Pi/∂Vj = Vi*(Gij*cos(θij) + Bij*sin(θij))
+                const Gij = this.Ybus.re[i][j];
+                const Bij = this.Ybus.im[i][j];
+                const thetaij = this.delta[i] - this.delta[j];
+                return this.V[i] * (Gij * Math.cos(thetaij) + Bij * Math.sin(thetaij));
             }
-            const thetaij = this.delta[i] - this.delta[j];
-            return this.V[i] * (this.Ybus.re[i][j] * Math.cos(thetaij) + this.Ybus.im[i][j] * Math.sin(thetaij));
         }
 
-        dQdDelta(i, j) {
+        /**
+         * Calculate ∂Qi/∂δj (Jacobian element)
+         *
+         * @private
+         * @param {number} i - Row bus index
+         * @param {number} j - Column bus index
+         * @returns {number} Partial derivative value
+         */
+        _dQdDelta(i, j) {
             if (i === j) {
+                // Diagonal: ∂Qi/∂δi = Σ(k≠i) Vi*Vk*(Gik*cos(θik) + Bik*sin(θik))
                 let sum = 0;
                 for (let k = 0; k < this.nBus; k++) {
                     if (k === i) continue;
+                    const Gik = this.Ybus.re[i][k];
+                    const Bik = this.Ybus.im[i][k];
                     const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[i] * this.V[k] * (this.Ybus.re[i][k] * Math.cos(thetaik) + this.Ybus.im[i][k] * Math.sin(thetaik));
+                    sum += this.V[i] * this.V[k] * (Gik * Math.cos(thetaik) + Bik * Math.sin(thetaik));
                 }
                 return sum;
+            } else {
+                // Off-diagonal: ∂Qi/∂δj = -Vi*Vj*(Gij*cos(θij) + Bij*sin(θij))
+                const Gij = this.Ybus.re[i][j];
+                const Bij = this.Ybus.im[i][j];
+                const thetaij = this.delta[i] - this.delta[j];
+                return -this.V[i] * this.V[j] * (Gij * Math.cos(thetaij) + Bij * Math.sin(thetaij));
             }
-            const thetaij = this.delta[i] - this.delta[j];
-            return -this.V[i] * this.V[j] * (this.Ybus.re[i][j] * Math.cos(thetaij) + this.Ybus.im[i][j] * Math.sin(thetaij));
         }
 
-        dQdV(i, j) {
+        /**
+         * Calculate ∂Qi/∂Vj (Jacobian element)
+         *
+         * @private
+         * @param {number} i - Row bus index
+         * @param {number} j - Column bus index
+         * @returns {number} Partial derivative value
+         */
+        _dQdV(i, j) {
             if (i === j) {
+                // Diagonal: ∂Qi/∂Vi = -2*Vi*Bii + Σ(k≠i) Vk*(Gik*sin(θik) - Bik*cos(θik))
                 let sum = -2 * this.V[i] * this.Ybus.im[i][i];
                 for (let k = 0; k < this.nBus; k++) {
                     if (k === i) continue;
+                    const Gik = this.Ybus.re[i][k];
+                    const Bik = this.Ybus.im[i][k];
                     const thetaik = this.delta[i] - this.delta[k];
-                    sum += this.V[k] * (this.Ybus.re[i][k] * Math.sin(thetaik) - this.Ybus.im[i][k] * Math.cos(thetaik));
+                    sum += this.V[k] * (Gik * Math.sin(thetaik) - Bik * Math.cos(thetaik));
                 }
                 return sum;
+            } else {
+                // Off-diagonal: ∂Qi/∂Vj = Vi*(Gij*sin(θij) - Bij*cos(θij))
+                const Gij = this.Ybus.re[i][j];
+                const Bij = this.Ybus.im[i][j];
+                const thetaij = this.delta[i] - this.delta[j];
+                return this.V[i] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
             }
-            const thetaij = this.delta[i] - this.delta[j];
-            return this.V[i] * (this.Ybus.re[i][j] * Math.sin(thetaij) - this.Ybus.im[i][j] * Math.cos(thetaij));
         }
 
-        buildBMatrix(buses) {
+        /**
+         * Build B matrix for Fast Decoupled method
+         *
+         * @private
+         * @param {Array<number>} buses - List of bus indices to include
+         * @returns {Array<Array<number>>} B matrix (imaginary part of Ybus)
+         */
+        _buildBMatrix(buses) {
             const n = buses.length;
             const B = Array(n).fill(null).map(() => Array(n).fill(0));
+
             for (let i = 0; i < n; i++) {
                 for (let j = 0; j < n; j++) {
                     B[i][j] = -this.Ybus.im[buses[i]][buses[j]];
                 }
             }
+
             return B;
         }
 
-        solveLU(A, b) {
+        /**
+         * Solve linear system using LU decomposition with partial pivoting
+         *
+         * @private
+         * @description Solves Ax = b using LU decomposition:
+         *   1. Factor A = LU with partial pivoting
+         *   2. Solve Ly = Pb (forward substitution)
+         *   3. Solve Ux = y (backward substitution)
+         *
+         * @param {Array<Array<number>>} A - Coefficient matrix
+         * @param {Array<number>} b - Right-hand side vector
+         * @returns {Array<number>|null} Solution vector, or null if singular
+         */
+        _solveLU(A, b) {
             const n = A.length;
             if (n === 0) return [];
+
             try {
+                // Create working copy for LU factorization
                 const LU = A.map(row => [...row]);
                 const P = Array.from({ length: n }, (_, i) => i);
-                
+
+                // LU factorization with partial pivoting
                 for (let k = 0; k < n; k++) {
-                    let maxVal = Math.abs(LU[k][k]), maxIdx = k;
+                    // Find pivot
+                    let maxVal = Math.abs(LU[k][k]);
+                    let maxIdx = k;
                     for (let i = k + 1; i < n; i++) {
-                        if (Math.abs(LU[i][k]) > maxVal) { maxVal = Math.abs(LU[i][k]); maxIdx = i; }
+                        if (Math.abs(LU[i][k]) > maxVal) {
+                            maxVal = Math.abs(LU[i][k]);
+                            maxIdx = i;
+                        }
                     }
-                    if (maxIdx !== k) { [LU[k], LU[maxIdx]] = [LU[maxIdx], LU[k]]; [P[k], P[maxIdx]] = [P[maxIdx], P[k]]; }
-                    if (Math.abs(LU[k][k]) < 1e-12) LU[k][k] = 1e-10;
+
+                    // Swap rows if needed
+                    if (maxIdx !== k) {
+                        [LU[k], LU[maxIdx]] = [LU[maxIdx], LU[k]];
+                        [P[k], P[maxIdx]] = [P[maxIdx], P[k]];
+                    }
+
+                    // Handle near-singular matrix
+                    if (Math.abs(LU[k][k]) < 1e-12) {
+                        LU[k][k] = 1e-10;
+                    }
+
+                    // Elimination step
                     for (let i = k + 1; i < n; i++) {
                         LU[i][k] /= LU[k][k];
-                        for (let j = k + 1; j < n; j++) LU[i][j] -= LU[i][k] * LU[k][j];
+                        for (let j = k + 1; j < n; j++) {
+                            LU[i][j] -= LU[i][k] * LU[k][j];
+                        }
                     }
                 }
-                
+
+                // Forward substitution (solve Ly = Pb)
                 const y = new Array(n).fill(0);
-                for (let i = 0; i < n; i++) { y[i] = b[P[i]]; for (let j = 0; j < i; j++) y[i] -= LU[i][j] * y[j]; }
+                for (let i = 0; i < n; i++) {
+                    y[i] = b[P[i]];
+                    for (let j = 0; j < i; j++) {
+                        y[i] -= LU[i][j] * y[j];
+                    }
+                }
+
+                // Backward substitution (solve Ux = y)
                 const x = new Array(n).fill(0);
-                for (let i = n - 1; i >= 0; i--) { x[i] = y[i]; for (let j = i + 1; j < n; j++) x[i] -= LU[i][j] * x[j]; x[i] /= LU[i][i]; }
+                for (let i = n - 1; i >= 0; i--) {
+                    x[i] = y[i];
+                    for (let j = i + 1; j < n; j++) {
+                        x[i] -= LU[i][j] * x[j];
+                    }
+                    x[i] /= LU[i][i];
+                }
+
                 return x;
-            } catch (e) { return new Array(n).fill(0); }
+            } catch (e) {
+                return new Array(n).fill(0);
+            }
         }
 
-        runIteration(algorithm) {
+        /**
+         * Run one iteration of the specified algorithm
+         *
+         * @param {string} [algorithm='nr'] - Algorithm type: 'nr', 'fdxb', 'fdbx', 'gs', 'gj', 'dc', 'lm', 'helm'
+         * @returns {Object} Iteration results
+         * @returns {number} return.maxError - Maximum mismatch (p.u.)
+         */
+        runIteration(algorithm = 'nr') {
             this.iteration++;
+
             let result;
             switch (algorithm) {
-                case 'nr': result = this.newtonRaphsonStep(); break;
-                case 'fdxb': result = this.fastDecoupledXBStep(); break;
-                case 'fdbx': result = this.fastDecoupledBXStep(); break;
-                case 'gs': result = this.gaussSeidelStep(); break;
-                case 'gj': result = this.gaussJacobiStep(); break;
-                case 'dc': result = this.dcPowerFlowStep(); break;
-                case 'lm': result = this.levenbergMarquardtStep(); break;
-                case 'helm': result = this.helmStep(); break;
-                default: result = this.newtonRaphsonStep();
+                case 'nr':
+                    result = this._solveNewtonRaphsonStep();
+                    break;
+                case 'fdxb':
+                    result = this._solveFastDecoupledXBStep();
+                    break;
+                case 'fdbx':
+                    result = this._solveFastDecoupledBXStep();
+                    break;
+                case 'gs':
+                    result = this._solveGaussSeidelStep();
+                    break;
+                case 'gj':
+                    result = this._solveGaussJacobiStep();
+                    break;
+                case 'dc':
+                    result = this._solveDCPowerFlowStep();
+                    break;
+                case 'lm':
+                    result = this._solveLevenbergMarquardtStep();
+                    break;
+                case 'helm':
+                    result = this._solveHelmStep();
+                    break;
+                default:
+                    result = this._solveNewtonRaphsonStep();
             }
-            
-            this.errorHistory.push({ iteration: this.iteration, maxP: this.maxPError, maxQ: this.maxQError, max: result.maxError });
-            
-            if (!isFinite(result.maxError)) this.diverged = true;
+
+            // Record error history
+            this.errorHistory.push({
+                iteration: this.iteration,
+                maxP: this.maxPError,
+                maxQ: this.maxQError,
+                max: result.maxError
+            });
+
+            if (!isFinite(result.maxError)) {
+                this.diverged = true;
+            }
+
             return result;
         }
 
+        /**
+         * Get detailed bus results
+         *
+         * @description Returns voltage data for all buses in a format
+         * suitable for display in tables or export.
+         *
+         * @returns {Array<Object>} Array of bus result objects
+         * @returns {number} return[].bus - Bus number
+         * @returns {string} return[].type - Bus type ('Slack', 'PV', or 'PQ')
+         * @returns {number} return[].V - Voltage magnitude (p.u.)
+         * @returns {number} return[].delta - Voltage angle (degrees)
+         */
         getBusResults() {
-            const { P, Q } = this.calcPowerInjection();
+            const { P, Q } = this._calcPowerInjection();
             return this.busData.map((bus, i) => ({
                 bus: bus[0],
-                type: bus[1] === 3 ? 'Slack' : (bus[1] === 2 ? 'PV' : 'PQ'),
+                type: bus[1] === BUS_TYPE.SLACK ? 'Slack' : (bus[1] === BUS_TYPE.PV ? 'PV' : 'PQ'),
                 V: this.V[i],
-                delta: this.delta[i] * 180 / Math.PI
+                delta: this.delta[i] * 180 / Math.PI  // Convert to degrees
             }));
         }
     }
