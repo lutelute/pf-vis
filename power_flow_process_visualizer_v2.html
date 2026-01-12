@@ -958,9 +958,14 @@
             busPositions: []
         };
 
-        // ============================================================
-        // Initialize
-        // ============================================================
+        // ================================================================
+        // Initialization Functions
+        // ================================================================
+
+        /**
+         * Initializes the application when DOM is ready.
+         * Sets up the default 5-bus network and binds all UI controls.
+         */
         document.addEventListener('DOMContentLoaded', () => {
             initNetwork('5bus');
             initControls();
@@ -968,6 +973,16 @@
             updateBusTable();
         });
 
+        /**
+         * Initializes UI control event listeners.
+         *
+         * Binds event handlers for:
+         *   - Algorithm selection dropdown
+         *   - Network selection dropdown
+         *   - Run, step, pause, and reset buttons
+         *   - Animation speed slider
+         *   - Canvas hover events for tooltips
+         */
         function initControls() {
             document.getElementById('algorithmSelect').addEventListener('change', (e) => {
                 state.algorithm = e.target.value;
@@ -999,11 +1014,20 @@
             });
         }
 
+        /**
+         * Initializes a power network from predefined configurations.
+         *
+         * Deep copies bus and branch data from the networks dictionary,
+         * calculates circular layout positions for visualization, and
+         * constructs the Y-bus admittance matrix.
+         *
+         * @param {string} networkId - Network identifier ('3bus', '5bus', '9bus', '14bus', '30bus')
+         */
         function initNetwork(networkId) {
             const net = networks[networkId];
             state.buses = JSON.parse(JSON.stringify(net.buses));
             state.branches = JSON.parse(JSON.stringify(net.branches));
-            
+
             // Calculate bus positions
             const n = state.buses.length;
             const canvas = document.getElementById('networkCanvas');
@@ -1021,6 +1045,16 @@
             buildYbus();
         }
 
+        /**
+         * Constructs the Y-bus admittance matrix from branch data.
+         *
+         * For each branch with impedance Z = r + jx:
+         *   - Calculates admittance y = 1/Z = (r - jx)/(r² + x²)
+         *   - Sets off-diagonal elements: Yij = Yji = -y
+         *   - Adds to diagonal elements: Yii += y + jb/2 (shunt susceptance)
+         *
+         * Special handling for transformers (r ≈ 0): Uses pure reactance model.
+         */
         function buildYbus() {
             const n = state.buses.length;
             state.Ybus = Array(n).fill(null).map(() => 
@@ -1055,9 +1089,20 @@
             });
         }
 
-        // ============================================================
-        // Drawing
-        // ============================================================
+        // ================================================================
+        // Drawing Functions
+        // ================================================================
+
+        /**
+         * Renders the complete network visualization on the main canvas.
+         *
+         * Performs the following steps:
+         *   1. Clears and resizes canvas to match container
+         *   2. Recalculates bus positions in circular layout
+         *   3. Draws all branches with power flow arrows
+         *   4. Draws all bus nodes with mismatch indicators
+         *   5. Updates the Jacobian structure visualization
+         */
         function drawNetwork() {
             const canvas = document.getElementById('networkCanvas');
             const ctx = canvas.getContext('2d');
@@ -1113,6 +1158,22 @@
             drawJacobian();
         }
 
+        /**
+         * Draws a single bus node on the network canvas.
+         *
+         * Node appearance is determined by:
+         *   - Bus type: Slack (green), PV (orange), PQ (cyan)
+         *   - Mismatch magnitude: Red glow overlay for high mismatch
+         *   - Network size: Adaptive radius and font sizes
+         *
+         * Displays bus number, voltage magnitude, and phase angle labels
+         * (labels omitted for large networks to avoid clutter).
+         *
+         * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+         * @param {Object} bus - Bus data object with id, type, V, delta properties
+         * @param {{x: number, y: number}} pos - Canvas coordinates for bus center
+         * @param {{P: number, Q: number}} mismatch - Power mismatch values
+         */
         function drawBusNode(ctx, bus, pos, mismatch) {
             const n = state.buses.length;
             // Adaptive sizing based on network size
@@ -1177,11 +1238,23 @@
             }
         }
 
+        /**
+         * Draws a power flow direction arrow on a branch.
+         *
+         * Arrow is placed at the midpoint of the branch and oriented
+         * in the direction of positive power flow. Arrow flips 180°
+         * when flow is negative.
+         *
+         * @param {CanvasRenderingContext2D} ctx - Canvas rendering context
+         * @param {{x: number, y: number}} from - Start bus position
+         * @param {{x: number, y: number}} to - End bus position
+         * @param {number} flow - Power flow magnitude (positive = from→to direction)
+         */
         function drawFlowArrow(ctx, from, to, flow) {
             const midX = (from.x + to.x) / 2;
             const midY = (from.y + to.y) / 2;
             const angle = Math.atan2(to.y - from.y, to.x - from.x);
-            
+
             const arrowLen = 10;
             const flowMag = Math.abs(flow) * 20;
 
@@ -1200,11 +1273,23 @@
             ctx.restore();
         }
 
+        /**
+         * Visualizes the Jacobian matrix sparsity pattern.
+         *
+         * Renders a color-coded spy plot showing the 4 submatrices:
+         *   - J11 (∂P/∂δ): Blue cells
+         *   - J12 (∂P/∂V): Green cells
+         *   - J21 (∂Q/∂δ): Orange cells
+         *   - J22 (∂Q/∂V): Purple cells
+         *
+         * Non-zero entries (where Yij ≠ 0 or i = j) are shown in the
+         * corresponding color; zero entries appear as dark background.
+         */
         function drawJacobian() {
             const canvas = document.getElementById('jacobianCanvas');
             const ctx = canvas.getContext('2d');
             const rect = canvas.parentElement.getBoundingClientRect();
-            
+
             canvas.width = rect.width - 20;
             canvas.height = 100;
 
@@ -1247,9 +1332,24 @@
             ctx.fillText('∂P/∂V', offsetX + n * cellSize * 1.5, offsetY - 5);
         }
 
-        // ============================================================
-        // Power Flow Calculations
-        // ============================================================
+        // ================================================================
+        // Power Flow Calculation Functions
+        // ================================================================
+
+        /**
+         * Calculates the power mismatch (ΔP, ΔQ) for a single bus.
+         *
+         * Power injections are computed using:
+         *   P = Σ |Vi||Vj||Yij| cos(θij - δi + δj)
+         *   Q = Σ |Vi||Vj||Yij| sin(θij - δi + δj)
+         *
+         * Mismatch is the difference between specified and calculated values.
+         * For Slack buses, mismatch is always zero (P, Q are free variables).
+         * For PV buses, only P mismatch is meaningful (Q is free variable).
+         *
+         * @param {Object} bus - Bus object with V, delta, Pspec, Qspec, type properties
+         * @returns {{P: number, Q: number}} Power mismatches ΔP and ΔQ
+         */
         function calculateBusMismatch(bus) {
             if (bus.type === 'Slack') return { P: 0, Q: 0 };
 
@@ -1282,12 +1382,24 @@
             }
         }
 
+        /**
+         * Calculates the real power flow on a transmission line.
+         *
+         * Uses the power flow equation:
+         *   Pij = Vi² × g - Vi × Vj × (g×cos(δi-δj) + b×sin(δi-δj))
+         *
+         * where g and b are the line conductance and susceptance derived
+         * from the branch impedance Z = r + jx.
+         *
+         * @param {Object} branch - Branch object with from, to, r, x properties
+         * @returns {number} Real power flow Pij (positive = from→to)
+         */
         function calculateBranchFlow(branch) {
             const Vi = state.buses[branch.from].V;
             const Vj = state.buses[branch.to].V;
             const di = state.buses[branch.from].delta;
             const dj = state.buses[branch.to].delta;
-            
+
             const { r, x } = branch;
             const denom = r * r + x * x;
             const g = r / denom;
@@ -1297,6 +1409,15 @@
             return Pij;
         }
 
+        /**
+         * Finds the maximum power mismatch across all buses.
+         *
+         * Iterates through all buses, calculates their P and Q mismatches,
+         * and returns the largest absolute value found. Used for convergence
+         * checking against the tolerance threshold.
+         *
+         * @returns {number} Maximum of max(|ΔP|, |ΔQ|) across all buses
+         */
         function getMaxMismatch() {
             let maxP = 0, maxQ = 0;
             state.buses.forEach(bus => {
@@ -1307,12 +1428,26 @@
             return Math.max(maxP, maxQ);
         }
 
-        // ============================================================
+        // ================================================================
         // Algorithm Implementations
-        // ============================================================
+        // ================================================================
+
+        /**
+         * Dispatches to the appropriate power flow algorithm implementation.
+         *
+         * Routes execution to one of:
+         *   - Newton-Raphson: Quadratic convergence, full Jacobian
+         *   - Gauss-Seidel: Linear convergence, simple update
+         *   - Fast Decoupled: Approximated Jacobian, separate P-δ and Q-V
+         *   - DC Power Flow: Linear approximation, single iteration
+         *   - Gauss (Jacobi): Parallel-friendly simultaneous update
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function runIteration() {
             const algo = state.algorithm;
-            
+
             switch (algo) {
                 case 'newton-raphson':
                     await runNewtonRaphson();
@@ -1332,11 +1467,24 @@
             }
         }
 
-        // ============================================================
+        // ================================================================
         // Matrix Operations (Linear Algebra)
-        // ============================================================
-        
-        // Gauss elimination with partial pivoting to solve Ax = b
+        // ================================================================
+
+        /**
+         * Solves the linear system Ax = b using Gaussian elimination.
+         *
+         * Implements Gaussian elimination with partial pivoting:
+         *   1. Forward elimination with row swapping for numerical stability
+         *   2. Back substitution to obtain solution vector
+         *
+         * Handles near-singular matrices by checking pivot magnitudes
+         * and issuing console warnings when detected.
+         *
+         * @param {number[][]} A - Coefficient matrix (n × n)
+         * @param {number[]} b - Right-hand side vector (length n)
+         * @returns {number[]} Solution vector x (length n)
+         */
         function solveLinearSystem(A, b) {
             const n = A.length;
             // Create augmented matrix (deep copy)
@@ -1390,7 +1538,16 @@
             return x;
         }
         
-        // Calculate P and Q injections for a bus
+        /**
+         * Calculates P and Q power injections for a specific bus.
+         *
+         * Uses the AC power flow equations:
+         *   P = Σ |Vi||Vj|(Gij×cos(δi-δj) + Bij×sin(δi-δj))
+         *   Q = Σ |Vi||Vj|(Gij×sin(δi-δj) - Bij×cos(δi-δj))
+         *
+         * @param {number} busIdx - Index of the bus (0-based)
+         * @returns {{P: number, Q: number}} Calculated P and Q injections
+         */
         function calculatePQ(busIdx) {
             const bus = state.buses[busIdx];
             const n = state.buses.length;
@@ -1409,7 +1566,19 @@
             return { P, Q };
         }
         
-        // Build full Jacobian matrix for Newton-Raphson (standard formulation)
+        /**
+         * Builds the full Jacobian matrix for Newton-Raphson power flow.
+         *
+         * Constructs the standard 4-submatrix Jacobian:
+         *   J = [H  N]  where H = ∂P/∂δ (nNonSlack × nNonSlack)
+         *       [M  L]        N = ∂P/∂V (nNonSlack × nPQ)
+         *                     M = ∂Q/∂δ (nPQ × nNonSlack)
+         *                     L = ∂Q/∂V (nPQ × nPQ)
+         *
+         * Also computes the mismatch vector [ΔP; ΔQ] and returns bus mappings.
+         *
+         * @returns {{J: number[][], mismatch: number[], nonSlackBuses: number[], pqBuses: number[], nNonSlack: number, nPQ: number}}
+         */
         function buildFullJacobian() {
             const n = state.buses.length;
             
@@ -1575,7 +1744,17 @@
             return { J, mismatch, nonSlackBuses, pqBuses, nNonSlack, nPQ };
         }
         
-        // Build B' and B'' matrices for Fast Decoupled method
+        /**
+         * Builds B' and B'' matrices for the Fast Decoupled power flow method.
+         *
+         * The Fast Decoupled method uses simplified susceptance matrices:
+         *   B' (for P-δ subproblem): Derived from -B (susceptance)
+         *   B'' (for Q-V subproblem): Derived from -B (susceptance)
+         *
+         * Both matrices ignore resistance and assume voltage magnitudes ≈ 1.0.
+         *
+         * @returns {{Bp: number[][], Bpp: number[][], nonSlackBuses: number[], pqBuses: number[], nNonSlack: number, nPQ: number}}
+         */
         function buildBMatrices() {
             const n = state.buses.length;
             
@@ -1633,6 +1812,23 @@
             return { Bp, Bpp, nonSlackBuses, pqBuses, nNonSlack, nPQ };
         }
 
+        /**
+         * Executes one Newton-Raphson iteration with animation.
+         *
+         * Newton-Raphson achieves quadratic convergence by solving:
+         *   [Δδ]   -1   [ΔP]
+         *   [ΔV] = J  × [ΔQ]
+         *
+         * Steps performed with visualization:
+         *   1. Calculate power mismatches ΔP, ΔQ
+         *   2. Build full Jacobian matrix J
+         *   3. Solve linear system J × Δx = mismatch
+         *   4. Update state variables δ, V
+         *   5. Check convergence criterion
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function runNewtonRaphson() {
             // Step 1: Calculate mismatches
             await animateStep('mismatch', 'ミスマッチ ΔP, ΔQ 計算中...');
@@ -1713,11 +1909,26 @@ max(|ΔP|, |ΔQ|) = ${maxError.toExponential(3)}
 ${maxError < state.tolerance ? '<span class="eq-highlight">✓ 収束!</span>' : '→ 次の反復へ'}`);
         }
 
+        /**
+         * Executes one Gauss-Seidel iteration with animation.
+         *
+         * Gauss-Seidel updates each bus voltage sequentially using:
+         *   Vi = (1/Yii) × [(Pi - jQi)/Vi* - Σ(j≠i) Yij × Vj]
+         *
+         * Features:
+         *   - Uses most recent values immediately (sequential update)
+         *   - Over-relaxation factor α = 1.4 for faster convergence
+         *   - PV buses maintain fixed voltage magnitude
+         *   - Linear convergence rate
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function runGaussSeidel() {
             await animateStep('update', 'Gauss-Seidel更新中...');
 
             const n = state.buses.length;
-            
+
             for (let i = 0; i < n; i++) {
                 const bus = state.buses[i];
                 if (bus.type === 'Slack') continue;
@@ -1814,10 +2025,25 @@ V_${i+1}^(k+1) = 1/Y_${i+1}${i+1} × [
             await animateStep('check', '収束判定...');
         }
 
+        /**
+         * Executes one Fast Decoupled power flow iteration with animation.
+         *
+         * The Fast Decoupled method separates P-δ and Q-V subproblems:
+         *   1. P-δ subproblem: B' × Δδ = ΔP/V
+         *   2. Q-V subproblem: B'' × ΔV = ΔQ/V
+         *
+         * Advantages:
+         *   - Constant B matrices (computed once per network)
+         *   - Smaller systems to solve than full Newton-Raphson
+         *   - Near-quadratic convergence for well-conditioned systems
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function runFastDecoupled() {
             const n = state.buses.length;
             const { Bp, Bpp, nonSlackBuses, pqBuses, nNonSlack, nPQ } = buildBMatrices();
-            
+
             // P-delta subproblem
             await animateStep('mismatch', 'P-δ サブ問題...');
             
@@ -1896,9 +2122,23 @@ B"行列で電圧を更新...`);
             await animateStep('check', '収束判定...');
         }
 
+        /**
+         * Executes DC power flow calculation with animation.
+         *
+         * DC power flow is a linear approximation assuming:
+         *   - All voltage magnitudes = 1.0 p.u.
+         *   - Angle differences are small: sin(δ) ≈ δ
+         *   - Line resistance is negligible: r << x
+         *
+         * Solves: P = B × δ in a single iteration.
+         * Does not compute reactive power Q (only real power P and angles δ).
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function runDCPowerFlow() {
             await animateStep('init', 'DC潮流計算 (線形)...');
-            
+
             updateEquationDisplay(`DC潮流計算:
 仮定: |V| = 1.0, sin(δ) ≈ δ, r << x
 
@@ -1942,14 +2182,29 @@ B"行列で電圧を更新...`);
             updateBusTable();
         }
 
+        /**
+         * Executes one Gauss (Jacobi) iteration with animation.
+         *
+         * Unlike Gauss-Seidel, Jacobi method uses all OLD values for
+         * computation, then updates all buses simultaneously.
+         *
+         * Features:
+         *   - All bus updates computed from previous iteration values
+         *   - Simultaneous update (natural parallelism for hardware)
+         *   - Slight over-relaxation (α = 1.2) for faster convergence
+         *   - Generally slower convergence than Gauss-Seidel
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function runGauss() {
             await animateStep('update', 'Gauss (Jacobi) 更新中...');
 
             const n = state.buses.length;
-            
+
             // Store old values (Jacobi uses all old values for computation)
-            const oldVoltages = state.buses.map(b => ({ 
-                V: b.V, 
+            const oldVoltages = state.buses.map(b => ({
+                V: b.V,
                 delta: b.delta,
                 Pspec: b.Pspec,
                 Qspec: b.Qspec
@@ -2056,9 +2311,21 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             await animateStep('check', '収束判定...');
         }
 
-        // ============================================================
-        // Animation helpers
-        // ============================================================
+        // ================================================================
+        // Animation Helper Functions
+        // ================================================================
+
+        /**
+         * Updates the step indicator UI and status message during iteration.
+         *
+         * Marks previous steps as completed, current step as active,
+         * and updates the status text display.
+         *
+         * @async
+         * @param {string} step - Step identifier ('init', 'mismatch', 'jacobian', 'solve', 'update', 'check')
+         * @param {string} message - Status message to display
+         * @returns {Promise<void>}
+         */
         async function animateStep(step, message) {
             state.currentStep = step;
             
@@ -2080,6 +2347,17 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             document.getElementById('statusText').textContent = message;
         }
 
+        /**
+         * Highlights a bus node being updated during iteration animation.
+         *
+         * Creates a flash effect on the canvas and highlights the corresponding
+         * table row. For large networks (> 20 buses), animation is skipped
+         * to maintain performance.
+         *
+         * @async
+         * @param {number} busIndex - Index of the bus being updated (0-based)
+         * @returns {Promise<void>}
+         */
         async function highlightBusUpdate(busIndex) {
             // Skip individual bus animation for large networks
             const n = state.buses.length;
@@ -2113,30 +2391,67 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             await delay(150 / state.speed);
         }
         
-        // Batch update for large networks at end of iteration
+        /**
+         * Batch updates all visualizations after iteration completion.
+         *
+         * Used primarily for large networks where individual bus animations
+         * are skipped for performance reasons.
+         */
         function updateVisualization() {
             drawNetwork();
             updateBusTable();
         }
 
+        /**
+         * Updates the equation display panel with formatted HTML content.
+         *
+         * Accepts HTML strings with syntax highlighting classes:
+         *   - eq-variable: Variable names
+         *   - eq-highlight: Emphasized text
+         *   - eq-updating: Currently changing values
+         *
+         * @param {string} text - HTML content to display
+         */
         function updateEquationDisplay(text) {
             document.getElementById('equationDisplay').innerHTML = text;
         }
 
+        /**
+         * Returns a Promise that resolves after the specified delay.
+         *
+         * Used for animation timing between iteration steps.
+         *
+         * @param {number} ms - Delay duration in milliseconds
+         * @returns {Promise<void>} Promise that resolves after delay
+         */
         function delay(ms) {
             return new Promise(resolve => setTimeout(resolve, ms));
         }
 
-        // ============================================================
-        // Simulation control
-        // ============================================================
+        // ================================================================
+        // Simulation Control Functions
+        // ================================================================
+
+        /**
+         * Runs the power flow simulation until convergence or max iterations.
+         *
+         * Main simulation loop that:
+         *   1. Executes iterations with the selected algorithm
+         *   2. Records convergence history for charting
+         *   3. Updates all visualizations after each iteration
+         *   4. Checks convergence against tolerance threshold
+         *   5. Handles pause/resume functionality
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function runSimulation() {
             if (state.running) return;
-            
+
             state.running = true;
             state.paused = false;
             state.stepMode = false;
-            
+
             updateStatus('running', '実行中...');
             document.getElementById('runBtn').disabled = true;
             document.getElementById('pauseBtn').disabled = false;
@@ -2178,9 +2493,19 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             state.running = false;
         }
 
+        /**
+         * Executes a single iteration step (manual step-through mode).
+         *
+         * Performs one power flow iteration and updates all displays.
+         * Used for educational purposes to observe each iteration in detail.
+         * Does not run if simulation is already running and not paused.
+         *
+         * @async
+         * @returns {Promise<void>}
+         */
         async function stepSimulation() {
             if (state.running && !state.paused) return;
-            
+
             state.stepMode = true;
             updateStatus('running', 'ステップ実行...');
 
@@ -2204,6 +2529,12 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             }
         }
 
+        /**
+         * Toggles the pause state of a running simulation.
+         *
+         * When paused, the simulation loop continues but skips iteration execution.
+         * Updates the pause button text and status indicator accordingly.
+         */
         function togglePause() {
             state.paused = !state.paused;
             const btn = document.getElementById('pauseBtn');
@@ -2216,6 +2547,16 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             }
         }
 
+        /**
+         * Resets the simulation to initial state.
+         *
+         * Performs the following:
+         *   1. Stops any running simulation
+         *   2. Resets iteration counter and convergence history
+         *   3. Reinitializes the network with original bus values
+         *   4. Clears step indicators and equation display
+         *   5. Redraws all visualizations
+         */
         function resetSimulation() {
             state.running = false;
             state.paused = false;
@@ -2244,15 +2585,35 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             updateBusTable();
         }
 
+        /**
+         * Updates the status indicator dot and text.
+         *
+         * @param {string} status - Status class ('running', 'converged', 'diverged', 'idle')
+         * @param {string} text - Status message to display
+         */
         function updateStatus(status, text) {
             const dot = document.getElementById('statusDot');
             dot.className = 'status-dot ' + status;
             document.getElementById('statusText').textContent = text;
         }
 
-        // ============================================================
-        // UI Updates
-        // ============================================================
+        // ================================================================
+        // UI Update Functions
+        // ================================================================
+
+        /**
+         * Updates the bus data table with current voltage and mismatch values.
+         *
+         * Displays for each bus:
+         *   - Bus ID and type
+         *   - Voltage magnitude |V| and phase angle δ
+         *   - Power mismatches ΔP and ΔQ with visual bar indicators
+         *
+         * Bar colors indicate mismatch severity:
+         *   - Green: < 10% (converging)
+         *   - Orange: 10-50% (moderate)
+         *   - Red: > 50% (high mismatch)
+         */
         function updateBusTable() {
             const tbody = document.getElementById('busTableBody');
             tbody.innerHTML = '';
@@ -2288,6 +2649,16 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             });
         }
 
+        /**
+         * Renders the convergence history chart.
+         *
+         * Draws a log-scale plot of the error (max mismatch) vs iteration number.
+         * Features:
+         *   - Logarithmic Y-axis for wide error range visualization
+         *   - Tolerance threshold shown as dashed red line
+         *   - Grid lines for readability
+         *   - Interactive points showing each iteration's error
+         */
         function updateConvergenceChart() {
             const canvas = document.getElementById('convergenceChart');
             const ctx = canvas.getContext('2d');
@@ -2378,6 +2749,18 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             ctx.restore();
         }
 
+        /**
+         * Handles mouse hover events on the network canvas.
+         *
+         * Detects when the mouse is over a bus node (within 30px radius)
+         * and displays a tooltip with detailed bus information including:
+         *   - Bus name and type
+         *   - Voltage magnitude and phase angle
+         *   - Specified P and Q values
+         *   - Current power mismatches ΔP and ΔQ
+         *
+         * @param {MouseEvent} e - Mouse event from canvas
+         */
         function handleCanvasHover(e) {
             const canvas = document.getElementById('networkCanvas');
             const rect = canvas.getBoundingClientRect();
