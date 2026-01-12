@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>潮流計算 収束可視化 v7 (安定版)</title>
+    <title>潮流計算 収束可視化 v7</title>
     <style>
         :root {
             --bg-dark: #0f0f1a;
@@ -30,7 +30,7 @@
         header { text-align: center; padding: 15px 0; border-bottom: 1px solid var(--border); margin-bottom: 15px; }
         h1 { font-size: 1.6rem; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .subtitle { color: var(--text-secondary); font-size: 0.9rem; }
-        
+
         .control-panel {
             background: var(--bg-card);
             border-radius: 10px;
@@ -65,13 +65,13 @@
         .btn-secondary { background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border); }
         .btn:hover { transform: translateY(-1px); }
         .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        
+
         .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px; }
         .viz-card { background: var(--bg-card); border-radius: 10px; overflow: hidden; }
         .viz-header { padding: 10px 15px; border-bottom: 1px solid var(--border); font-size: 0.95rem; font-weight: 600; }
         .viz-body { padding: 10px; height: 350px; position: relative; }
         .viz-body canvas { width: 100%; height: 100%; }
-        
+
         .info-panel {
             background: var(--bg-card);
             border-radius: 10px;
@@ -82,7 +82,7 @@
         .info-stat { background: var(--bg-surface); padding: 12px; border-radius: 6px; text-align: center; }
         .info-value { font-size: 1.4rem; font-weight: 600; color: var(--accent-cyan); font-family: monospace; }
         .info-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; margin-top: 3px; }
-        
+
         .log-panel {
             background: var(--bg-card);
             border-radius: 10px;
@@ -103,7 +103,7 @@
         .log-warning { color: var(--accent-orange); }
         .log-error { color: var(--accent-red); }
         .log-info { color: var(--accent-cyan); }
-        
+
         @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
 
         /* Navigation Bar */
@@ -199,8 +199,8 @@
     </nav>
     <div class="container">
         <header>
-            <h1>⚡ 潮流計算 収束の可視化 v7 (安定版)</h1>
-            <p class="subtitle">Newton-Raphson法、Gauss-Seidel法、勾配降下法、DC潮流法の比較 - 10ノード対応</p>
+            <h1>⚡ 潮流計算 収束の可視化 v7</h1>
+            <p class="subtitle">Newton-Raphson法、Gauss-Seidel法、勾配降下法、DC潮流法の比較（2〜500ノード対応）</p>
         </header>
 
         <div class="control-panel">
@@ -223,9 +223,11 @@
                     <option value="2bus_voltage_collapse">2ノード(電圧崩壊直前) - 非常に困難</option>
                     <option value="3bus_unbalanced">3ノード(不平衡負荷) - 困難</option>
                     <option value="3bus">3ノード系統 - 標準</option>
-                    <option value="5bus_ieee">5ノード(IEEE) - 中規模</option>
-                    <option value="9bus_ieee">9ノード(IEEE) - 大規模</option>
-                    <option value="10bus_simple">10ノード(簡易) - 安定動作確認済み</option>
+                    <option value="30bus_ieee">30ノード系統(IEEE風) - 中規模</option>
+                    <option value="30bus_random">30ノード系統(ランダム) - 中規模</option>
+                    <option value="100bus_random">100ノード系統 - 大規模</option>
+                    <option value="300bus_random">300ノード系統 - 超大規模</option>
+                    <option value="500bus_random">500ノード系統 - 極大規模</option>
                 </select>
             </div>
             <div class="control-group">
@@ -297,6 +299,18 @@
             </div>
         </div>
 
+        <!-- 新しい可視化パネル -->
+        <div class="main-grid" style="margin-top: 15px;">
+            <div class="viz-card">
+                <div class="viz-header">🔲 Y行列スパースパターン (Spy Plot)</div>
+                <div class="viz-body"><canvas id="spyPlot"></canvas></div>
+            </div>
+            <div class="viz-card">
+                <div class="viz-header">🕸️ 系統ネットワーク構造</div>
+                <div class="viz-body"><canvas id="networkGraph"></canvas></div>
+            </div>
+        </div>
+
         <div class="log-panel">
             <h3>📝 計算ログ</h3>
             <div id="logOutput">初期化完了。実行ボタンを押してください。</div>
@@ -310,14 +324,13 @@
     const problems = {
         '2bus_light': {
             name: '2ノード(軽負荷)',
-            // Y = [10-j30, -10+j30; -10+j30, 10-j30]
             Ybus: [[{re:10,im:-30}, {re:-10,im:30}], [{re:-10,im:30}, {re:10,im:-30}]],
             buses: [
                 { type:'Slack', V:1.0, delta:0 },
                 { type:'PQ', V:1.0, delta:0, Pspec:-0.3, Qspec:-0.1 }
             ],
             solverBus: 1,
-            initialV: 1.05, initialDelta: 0.05
+            initialV: 1.2, initialDelta: 0.25
         },
         '2bus_medium': {
             name: '2ノード(中負荷)',
@@ -327,7 +340,7 @@
                 { type:'PQ', V:1.0, delta:0, Pspec:-0.5, Qspec:-0.2 }
             ],
             solverBus: 1,
-            initialV: 1.05, initialDelta: 0.05
+            initialV: 1.2, initialDelta: 0.3
         },
         '2bus_heavy': {
             name: '2ノード(重負荷)',
@@ -337,7 +350,7 @@
                 { type:'PQ', V:1.0, delta:0, Pspec:-0.9, Qspec:-0.4 }
             ],
             solverBus: 1,
-            initialV: 1.1, initialDelta: 0.1
+            initialV: 1.25, initialDelta: 0.35
         },
         '2bus_critical': {
             name: '2ノード(臨界負荷) - 収束困難',
@@ -347,7 +360,7 @@
                 { type:'PQ', V:1.0, delta:0, Pspec:-1.1, Qspec:-0.5 }
             ],
             solverBus: 1,
-            initialV: 1.2, initialDelta: 0.15
+            initialV: 1.3, initialDelta: 0.4
         },
         '2bus_voltage_collapse': {
             name: '2ノード(電圧崩壊直前) - 非常に困難',
@@ -357,11 +370,10 @@
                 { type:'PQ', V:1.0, delta:0, Pspec:-1.4, Qspec:-0.7 }
             ],
             solverBus: 1,
-            initialV: 1.3, initialDelta: 0.2
+            initialV: 1.35, initialDelta: 0.45
         },
         '3bus_unbalanced': {
             name: '3ノード(不平衡負荷) - 収束困難',
-            // 不平衡な負荷分布で収束が困難
             Ybus: [
                 [{re:12,im:-35}, {re:-6,im:18}, {re:-6,im:17}],
                 [{re:-6,im:18}, {re:15,im:-45}, {re:-9,im:27}],
@@ -373,11 +385,10 @@
                 { type:'PQ', V:1.0, delta:0, Pspec:-0.2, Qspec:-0.05 }
             ],
             solverBus: 1,
-            initialV: 1.25, initialDelta: 0.18
+            initialV: 1.3, initialDelta: 0.35
         },
         '3bus': {
             name: '3ノード系統',
-            // 簡単な3バス: Slack - PQ - PQ (直列接続)
             Ybus: [
                 [{re:10,im:-30}, {re:-10,im:30}, {re:0,im:0}],
                 [{re:-10,im:30}, {re:20,im:-60}, {re:-10,im:30}],
@@ -388,98 +399,216 @@
                 { type:'PQ', V:1.0, delta:0, Pspec:-0.4, Qspec:-0.15 },
                 { type:'PQ', V:1.0, delta:0, Pspec:-0.3, Qspec:-0.1 }
             ],
-            solverBus: 1,  // バス2を主に可視化
-            initialV: 1.05, initialDelta: 0.05
-        },
-        '5bus_ieee': {
-            name: '5ノード(IEEE) - 中規模系統',
-            // IEEE 5バス修正版
-            Ybus: [
-                [{re:12.5,im:-37.5}, {re:-5,im:15}, {re:-2.5,im:7.5}, {re:-5,im:15}, {re:0,im:0}],
-                [{re:-5,im:15}, {re:8.33,im:-25}, {re:-3.33,im:10}, {re:0,im:0}, {re:0,im:0}],
-                [{re:-2.5,im:7.5}, {re:-3.33,im:10}, {re:12.5,im:-37.5}, {re:-3.33,im:10}, {re:-3.33,im:10}],
-                [{re:-5,im:15}, {re:0,im:0}, {re:-3.33,im:10}, {re:11.66,im:-35}, {re:-3.33,im:10}],
-                [{re:0,im:0}, {re:0,im:0}, {re:-3.33,im:10}, {re:-3.33,im:10}, {re:6.66,im:-20}]
-            ],
-            buses: [
-                { type:'Slack', V:1.06, delta:0 },
-                { type:'PV', V:1.00, delta:0, Pspec:0.4 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.6, Qspec:-0.3 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.4, Qspec:-0.2 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.3, Qspec:-0.15 }
-            ],
-            solverBus: 2,  // バス3 (主負荷) を可視化
-            initialV: 1.15, initialDelta: 0.12
-        },
-        '9bus_ieee': {
-            name: '9ノード(IEEE) - 大規模系統',
-            // IEEE 9バス系統の簡略版 (WSCC 3-machine 9-bus)
-            Ybus: [
-                [{re:10.4,im:-31.2}, {re:-4.2,im:12.6}, {re:0,im:0}, {re:-6.2,im:18.6}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                [{re:-4.2,im:12.6}, {re:8.7,im:-26.1}, {re:-4.5,im:13.5}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                [{re:0,im:0}, {re:-4.5,im:13.5}, {re:9.3,im:-27.9}, {re:0,im:0}, {re:0,im:0}, {re:-4.8,im:14.4}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                [{re:-6.2,im:18.6}, {re:0,im:0}, {re:0,im:0}, {re:11.5,im:-34.5}, {re:-2.8,im:8.4}, {re:0,im:0}, {re:-2.5,im:7.5}, {re:0,im:0}, {re:0,im:0}],
-                [{re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-2.8,im:8.4}, {re:7.6,im:-22.8}, {re:-4.8,im:14.4}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                [{re:0,im:0}, {re:0,im:0}, {re:-4.8,im:14.4}, {re:0,im:0}, {re:-4.8,im:14.4}, {re:12.1,im:-36.3}, {re:0,im:0}, {re:0,im:0}, {re:-2.5,im:7.5}],
-                [{re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-2.5,im:7.5}, {re:0,im:0}, {re:0,im:0}, {re:5.8,im:-17.4}, {re:-3.3,im:9.9}, {re:0,im:0}],
-                [{re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-3.3,im:9.9}, {re:6.1,im:-18.3}, {re:-2.8,im:8.4}],
-                [{re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-2.5,im:7.5}, {re:0,im:0}, {re:-2.8,im:8.4}, {re:5.3,im:-15.9}]
-            ],
-            buses: [
-                { type:'Slack', V:1.04, delta:0 },
-                { type:'PV', V:1.025, delta:0, Pspec:1.63 },
-                { type:'PV', V:1.025, delta:0, Pspec:0.85 },
-                { type:'PQ', V:1.0, delta:0, Pspec:0, Qspec:0 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-1.25, Qspec:-0.5 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.9, Qspec:-0.3 },
-                { type:'PQ', V:1.0, delta:0, Pspec:0, Qspec:0 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-1.0, Qspec:-0.35 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.125, Qspec:-0.05 }
-            ],
-            solverBus: 4,  // バス5 (最大負荷) を可視化
-            initialV: 1.2, initialDelta: 0.15
-        },
-        '10bus_simple': {
-            name: '10ノード(簡易) - 安定動作確認済み',
-            // シンプルなリング + 中央ハブ構造
-            Ybus: [
-                // Bus 0 (Slack)
-                [{re:15,im:-45}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}],
-                // Bus 1 (PV)  
-                [{re:-5,im:15}, {re:20,im:-60}, {re:-5,im:15}, {re:0,im:0}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:0,im:0}],
-                // Bus 2 (PQ)
-                [{re:0,im:0}, {re:-5,im:15}, {re:15,im:-45}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                // Bus 3 (PQ)
-                [{re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:10,im:-30}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                // Bus 4 (PQ) - Solver Bus
-                [{re:0,im:0}, {re:-5,im:15}, {re:0,im:0}, {re:-5,im:15}, {re:15,im:-45}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                // Bus 5 (PQ)
-                [{re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:15,im:-45}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}],
-                // Bus 6 (PQ)
-                [{re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:15,im:-45}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}],
-                // Bus 7 (PQ)
-                [{re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:15,im:-45}, {re:-5,im:15}, {re:0,im:0}],
-                // Bus 8 (PQ)
-                [{re:0,im:0}, {re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:15,im:-45}, {re:-5,im:15}],
-                // Bus 9 (PQ)
-                [{re:-5,im:15}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:0,im:0}, {re:-5,im:15}, {re:10,im:-30}]
-            ],
-            buses: [
-                { type:'Slack', V:1.05, delta:0 },
-                { type:'PV', V:1.02, delta:0, Pspec:0.8 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.2, Qspec:-0.1 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.15, Qspec:-0.08 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.3, Qspec:-0.15 }, // Solver Bus
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.25, Qspec:-0.12 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.18, Qspec:-0.09 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.22, Qspec:-0.11 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.28, Qspec:-0.14 },
-                { type:'PQ', V:1.0, delta:0, Pspec:-0.16, Qspec:-0.08 }
-            ],
-            solverBus: 4,  // バス5 (中央の負荷バス) を可視化
-            initialV: 1.05, initialDelta: 0.08
+            solverBus: 1,
+            initialV: 1.2, initialDelta: 0.3
         }
     };
+
+    // ================================================================
+    // 大規模系統生成関数
+    // ================================================================
+
+    /**
+     * Generates a simplified IEEE 30-bus power system model.
+     * Creates a ring topology with additional mesh connections for realistic network structure.
+     * @returns {Object} Problem definition with Ybus matrix, bus data, and initial conditions
+     */
+    function generateIEEE30System() {
+        const nBus = 30;
+        const Ybus = Array(nBus).fill(null).map(() => Array(nBus).fill(null).map(() => ({re: 0, im: 0})));
+        const buses = [];
+
+        buses.push({ type: 'Slack', V: 1.06, delta: 0 });
+        buses.push({ type: 'PQ', V: 1.043, delta: 0, Pspec: 0.4, Qspec: 0.1 });
+        buses.push({ type: 'PQ', V: 1.025, delta: 0, Pspec: 0.0, Qspec: 0.0 });
+        buses.push({ type: 'PQ', V: 1.01, delta: 0, Pspec: 0.0, Qspec: 0.0 });
+        buses.push({ type: 'PQ', V: 1.01, delta: 0, Pspec: 0.0, Qspec: 0.0 });
+
+        const seed = 12345;
+        let rng = seed;
+        function seededRandom() {
+            rng = (rng * 1103515245 + 12345) & 0x7fffffff;
+            return rng / 0x7fffffff;
+        }
+
+        for (let i = 5; i < nBus; i++) {
+            const loadP = -0.05 - seededRandom() * 0.15;
+            const loadQ = -0.02 - seededRandom() * 0.08;
+            buses.push({ type: 'PQ', V: 1.0, delta: 0, Pspec: loadP, Qspec: loadQ });
+        }
+
+        function addBranch(i, j, g, b) {
+            Ybus[i][j].re -= g;
+            Ybus[i][j].im -= b;
+            Ybus[j][i].re -= g;
+            Ybus[j][i].im -= b;
+            Ybus[i][i].re += g;
+            Ybus[i][i].im += b;
+            Ybus[j][j].re += g;
+            Ybus[j][j].im += b;
+        }
+
+        for (let i = 0; i < nBus; i++) {
+            const next = (i + 1) % nBus;
+            const g = 0.5 + seededRandom() * 0.5;
+            const b = 8 + seededRandom() * 8;
+            addBranch(i, next, g, b);
+        }
+
+        for (let i = 0; i < nBus; i++) {
+            if (seededRandom() < 0.25) {
+                const target = (i + 3 + Math.floor(seededRandom() * (nBus - 6))) % nBus;
+                if (target !== i && target !== (i + 1) % nBus && target !== (i - 1 + nBus) % nBus) {
+                    const g = 0.3 + seededRandom() * 0.3;
+                    const b = 5 + seededRandom() * 5;
+                    addBranch(i, target, g, b);
+                }
+            }
+        }
+
+        for (let i = 0; i < nBus; i++) {
+            Ybus[i][i].im += 0.01;
+        }
+
+        return {
+            name: 'IEEE 30バス簡易系統',
+            Ybus: Ybus,
+            buses: buses,
+            solverBus: 5,
+            initialV: 1.2,
+            initialDelta: 0.35
+        };
+    }
+
+    /**
+     * Generates a random power system with specified number of buses.
+     * Creates scalable network with ring topology and sector-based mesh connections.
+     * @param {number} nBus - Number of buses in the system
+     * @returns {Object} Problem definition with Ybus matrix, bus data, and initial conditions
+     */
+    function generateRandomPowerSystem(nBus = 30) {
+        const Ybus = Array(nBus).fill(null).map(() => Array(nBus).fill(null).map(() => ({re: 0, im: 0})));
+        const buses = [];
+
+        let rng = 54321 + nBus;
+        function seededRandom() {
+            rng = (rng * 1103515245 + 12345) & 0x7fffffff;
+            return rng / 0x7fffffff;
+        }
+
+        buses.push({ type: 'Slack', V: 1.05, delta: 0 });
+
+        const nGen = Math.max(2, Math.floor(nBus * 0.1));
+        for (let i = 1; i < nGen; i++) {
+            const Pgen = (0.1 + seededRandom() * 0.2) * Math.sqrt(30 / nBus);
+            const Qgen = (0.03 + seededRandom() * 0.07) * Math.sqrt(30 / nBus);
+            buses.push({ type: 'PQ', V: 1.0, delta: 0, Pspec: Pgen, Qspec: Qgen });
+        }
+
+        for (let i = nGen; i < nBus; i++) {
+            const loadP = (-0.08 - seededRandom() * 0.25) * Math.sqrt(30 / nBus);
+            const loadQ = (-0.03 - seededRandom() * 0.12) * Math.sqrt(30 / nBus);
+            buses.push({ type: 'PQ', V: 1.0, delta: 0, Pspec: loadP, Qspec: loadQ });
+        }
+
+        function addBranch(i, j, g, b) {
+            if (i === j) return;
+            Ybus[i][j].re -= g;
+            Ybus[i][j].im -= b;
+            Ybus[j][i].re -= g;
+            Ybus[j][i].im -= b;
+            Ybus[i][i].re += g;
+            Ybus[i][i].im += b;
+            Ybus[j][j].re += g;
+            Ybus[j][j].im += b;
+        }
+
+        for (let i = 0; i < nBus; i++) {
+            const next = (i + 1) % nBus;
+            const g = 0.5 + seededRandom() * 0.5;
+            const b = 10 + seededRandom() * 10;
+            addBranch(i, next, g, b);
+        }
+
+        if (nBus > 30) {
+            const nSectors = Math.ceil(nBus / 30);
+            for (let s = 0; s < nSectors; s++) {
+                const sectorStart = s * Math.floor(nBus / nSectors);
+                const sectorEnd = Math.min((s + 1) * Math.floor(nBus / nSectors), nBus);
+
+                if (sectorStart > 0) {
+                    const g = 0.8 + seededRandom() * 0.4;
+                    const b = 15 + seededRandom() * 10;
+                    addBranch(0, sectorStart, g, b);
+                }
+
+                for (let i = sectorStart; i < sectorEnd - 2; i++) {
+                    if (seededRandom() < 0.3) {
+                        const target = i + 2 + Math.floor(seededRandom() * Math.min(5, sectorEnd - i - 2));
+                        if (target < sectorEnd) {
+                            const g = 0.3 + seededRandom() * 0.3;
+                            const b = 6 + seededRandom() * 6;
+                            addBranch(i, target, g, b);
+                        }
+                    }
+                }
+            }
+        }
+
+        const connectProb = Math.max(0.05, 0.2 * (30 / nBus));
+        for (let i = 0; i < nBus; i++) {
+            if (seededRandom() < connectProb) {
+                const maxJump = Math.min(10, Math.floor(nBus / 10));
+                const target = (i + 2 + Math.floor(seededRandom() * maxJump)) % nBus;
+                if (target !== i && target !== (i + 1) % nBus) {
+                    const g = 0.2 + seededRandom() * 0.2;
+                    const b = 5 + seededRandom() * 5;
+                    addBranch(i, target, g, b);
+                }
+            }
+        }
+
+        for (let i = 0; i < nBus; i++) {
+            Ybus[i][i].im += 0.02;
+        }
+
+        const initialV = 1.15 + 0.1 * seededRandom();
+        const initialDelta = 0.3 + 0.2 * seededRandom();
+
+        return {
+            name: `${nBus}ノード ランダム系統`,
+            Ybus: Ybus,
+            buses: buses,
+            solverBus: Math.min(nGen + 1, nBus - 1),
+            initialV: initialV,
+            initialDelta: initialDelta
+        };
+    }
+
+    /**
+     * Retrieves or generates the problem definition for the given key.
+     * @param {string} problemKey - Problem identifier
+     * @returns {Object} Problem definition
+     */
+    function getDynamicProblem(problemKey) {
+        try {
+            if (problemKey === '30bus_ieee') {
+                return generateIEEE30System();
+            } else if (problemKey === '30bus_random') {
+                return generateRandomPowerSystem(30);
+            } else if (problemKey === '100bus_random') {
+                return generateRandomPowerSystem(100);
+            } else if (problemKey === '300bus_random') {
+                return generateRandomPowerSystem(300);
+            } else if (problemKey === '500bus_random') {
+                return generateRandomPowerSystem(500);
+            } else {
+                return problems[problemKey];
+            }
+        } catch (error) {
+            return problems['2bus_medium'];
+        }
+    }
 
     // ================================================================
     // 状態管理
@@ -491,18 +620,17 @@
         speed: 2,
         running: false,
         iteration: 0,
-        maxIterations: 500,  // 困難な問題に対応
+        maxIterations: 500,
         V: 1.0,
         delta: 0,
         trajectory: [],
         errorHistory: [],
         trueSolution: null,
         dcSolution: null,
-        // 診断用
         stuckCount: 0,
         oscillationCount: 0,
         divergenceCount: 0,
-        lastErrors: [],  // 直近のエラー履歴（振動検出用）
+        lastErrors: [],
         diagnosisResult: null
     };
 
@@ -510,7 +638,7 @@
     // 収束診断
     // ================================================================
     const DIAGNOSIS = {
-        CONVERGED: { code: 'converged', label: '✓ 収束', color: 'success', 
+        CONVERGED: { code: 'converged', label: '✓ 収束', color: 'success',
             desc: '許容誤差以内に収束しました。' },
         OSCILLATING: { code: 'oscillating', label: '⚠ 振動', color: 'warning',
             desc: '解の近傍で振動しています。ステップサイズを小さくするか、ダンピングを追加してください。' },
@@ -535,22 +663,19 @@
     function diagnoseConvergence() {
         const n = state.errorHistory.length;
         if (n < 2) return null;
-        
+
         const currentError = state.errorHistory[n - 1];
         const prevError = state.errorHistory[n - 2];
         const tol = state.tolerance;
-        
-        // 収束判定
+
         if (currentError < tol) {
             return DIAGNOSIS.CONVERGED;
         }
-        
-        // DC法は特別扱い
+
         if (state.algorithm === 'dc') {
             return DIAGNOSIS.DC_APPROXIMATION;
         }
-        
-        // 発散検出（誤差が3回連続で増加）
+
         if (n >= 3) {
             const e1 = state.errorHistory[n - 3];
             const e2 = state.errorHistory[n - 2];
@@ -559,15 +684,13 @@
                 return DIAGNOSIS.DIVERGING;
             }
         }
-        
-        // 振動検出（誤差が上下を繰り返す）
+
         if (n >= 4) {
             const errors = state.errorHistory.slice(-4);
             const diffs = [];
             for (let i = 1; i < errors.length; i++) {
                 diffs.push(errors[i] - errors[i-1]);
             }
-            // 符号が交互に変わる = 振動
             let signChanges = 0;
             for (let i = 1; i < diffs.length; i++) {
                 if (diffs[i] * diffs[i-1] < 0) signChanges++;
@@ -576,13 +699,11 @@
                 return DIAGNOSIS.OSCILLATING;
             }
         }
-        
-        // 停滞検出（改善率が非常に小さい）
+
         if (n >= 5) {
             const recentErrors = state.errorHistory.slice(-5);
             const improvement = (recentErrors[0] - recentErrors[4]) / recentErrors[0];
             if (Math.abs(improvement) < 0.01) {
-                // 局所解か停滞かを判断
                 if (currentError > tol * 10) {
                     return DIAGNOSIS.LOCAL_MINIMUM;
                 } else {
@@ -590,8 +711,7 @@
                 }
             }
         }
-        
-        // 収束遅延検出（線形収束の検出）
+
         if (n >= 10 && state.algorithm !== 'newton') {
             const e1 = state.errorHistory[n - 10];
             const e2 = state.errorHistory[n - 1];
@@ -600,41 +720,37 @@
                 return DIAGNOSIS.SLOW_CONVERGENCE;
             }
         }
-        
-        // 数値精度問題（誤差が許容値に近いが収束しない）
+
         if (currentError < tol * 10 && currentError > tol && n > 20) {
             return DIAGNOSIS.NUMERICAL_ISSUE;
         }
-        
-        // 最大反復到達
+
         if (state.iteration >= state.maxIterations - 1) {
             return DIAGNOSIS.MAX_ITER;
         }
-        
-        return null;  // 継続中
+
+        return null;
     }
 
     function logDiagnosis(diagnosis) {
         if (!diagnosis) return;
-        
+
         const prefix = diagnosis.label;
         const msg = diagnosis.desc;
-        
+
         log(`\n========== 診断結果 ==========`, diagnosis.color);
         log(`${prefix}`, diagnosis.color);
         log(`${msg}`, diagnosis.color);
-        
-        // UIパネルに表示
+
         const panel = document.getElementById('diagnosisPanel');
         const title = document.getElementById('diagnosisTitle');
         const desc = document.getElementById('diagnosisDesc');
         const hint = document.getElementById('diagnosisHint');
-        
+
         panel.style.display = 'block';
         title.textContent = diagnosis.label;
         desc.textContent = diagnosis.desc;
-        
-        // 背景色を設定
+
         const colors = {
             success: 'rgba(81, 207, 102, 0.2)',
             warning: 'rgba(255, 169, 77, 0.2)',
@@ -642,8 +758,7 @@
             info: 'rgba(77, 171, 247, 0.2)'
         };
         panel.style.background = colors[diagnosis.color] || colors.info;
-        
-        // 追加のアドバイス
+
         let hintText = '';
         if (diagnosis.code === 'oscillating') {
             hintText = `💡 許容誤差を緩和してみてください（現在: ${state.tolerance.toExponential(1)}）`;
@@ -667,14 +782,14 @@
         } else if (diagnosis.code === 'converged') {
             hintText = `🎉 ${state.iteration}回の反復で収束しました`;
         }
-        
+
         hint.textContent = hintText;
-        
+
         log(`==============================\n`);
-        
+
         state.diagnosisResult = diagnosis;
     }
-    
+
     function hideDiagnosisPanel() {
         document.getElementById('diagnosisPanel').style.display = 'none';
     }
@@ -682,13 +797,12 @@
     // ================================================================
     // 潮流計算コア関数
     // ================================================================
-    
-    // P, Q計算 (単一バス、他バスはフラット想定)
+
     function calcPQ(prob, busIdx, V, delta) {
         const Ybus = prob.Ybus;
         const n = Ybus.length;
         let Pcalc = 0, Qcalc = 0;
-        
+
         for (let j = 0; j < n; j++) {
             let Vj, deltaj;
             if (j === busIdx) {
@@ -706,121 +820,189 @@
         return { Pcalc, Qcalc };
     }
 
-    // ミスマッチ計算
     function calcMismatch(prob, busIdx, V, delta) {
         const { Pcalc, Qcalc } = calcPQ(prob, busIdx, V, delta);
         const bus = prob.buses[busIdx];
-        return {
-            deltaP: bus.Pspec - Pcalc,
-            deltaQ: bus.Qspec - Qcalc
-        };
+
+        if (bus.type === 'PV') {
+            return {
+                deltaP: bus.Pspec - Pcalc,
+                deltaQ: bus.V - V
+            };
+        } else {
+            return {
+                deltaP: bus.Pspec - Pcalc,
+                deltaQ: bus.Qspec - Qcalc
+            };
+        }
     }
 
-    // 誤差ノルム
     function calcError(prob, busIdx, V, delta) {
         const m = calcMismatch(prob, busIdx, V, delta);
         return Math.sqrt(m.deltaP * m.deltaP + m.deltaQ * m.deltaQ);
     }
 
-    // Jacobian計算（数値微分で汎用化）
     function calcJacobian(prob, busIdx, V, delta) {
         const h = 1e-6;
         const m0 = calcMismatch(prob, busIdx, V, delta);
-        
-        // ∂P/∂δ, ∂Q/∂δ
+
         const m_d = calcMismatch(prob, busIdx, V, delta + h);
-        const J11 = -(m_d.deltaP - m0.deltaP) / h;  // dP/dδ (ミスマッチの微分なので符号反転)
-        const J21 = -(m_d.deltaQ - m0.deltaQ) / h;  // dQ/dδ
-        
-        // ∂P/∂V, ∂Q/∂V
+        const J11 = -(m_d.deltaP - m0.deltaP) / h;
+        const J21 = -(m_d.deltaQ - m0.deltaQ) / h;
+
         const m_V = calcMismatch(prob, busIdx, V + h, delta);
-        const J12 = -(m_V.deltaP - m0.deltaP) / h;  // dP/dV
-        const J22 = -(m_V.deltaQ - m0.deltaQ) / h;  // dQ/dV
-        
+        const J12 = -(m_V.deltaP - m0.deltaP) / h;
+        const J22 = -(m_V.deltaQ - m0.deltaQ) / h;
+
         return { J11, J12, J21, J22 };
     }
 
-    // 真の解をNR法で計算
     function computeTrueSolution(prob) {
         const busIdx = prob.solverBus;
         let V = 1.0, delta = 0.0;
-        
-        for (let iter = 0; iter < 50; iter++) {
+
+        let damping = 1.0;
+        let prevErr = Infinity;
+
+        for (let iter = 0; iter < 100; iter++) {
             const m = calcMismatch(prob, busIdx, V, delta);
             const err = Math.sqrt(m.deltaP * m.deltaP + m.deltaQ * m.deltaQ);
-            if (err < 1e-12) return { V, delta, converged: true, iterations: iter };
-            
+
+            if (err < 1e-10) {
+                return { V, delta, converged: true, iterations: iter };
+            }
+
+            if (err > prevErr * 2) {
+                damping *= 0.5;
+                if (damping < 0.01) {
+                    break;
+                }
+            } else if (err < prevErr * 0.9) {
+                damping = Math.min(1.0, damping * 1.2);
+            }
+            prevErr = err;
+
             const J = calcJacobian(prob, busIdx, V, delta);
             const det = J.J11 * J.J22 - J.J12 * J.J21;
-            if (Math.abs(det) < 1e-15) break;
-            
-            delta += (J.J22 * m.deltaP - J.J12 * m.deltaQ) / det;
-            V += (-J.J21 * m.deltaP + J.J11 * m.deltaQ) / det;
-            V = Math.max(0.5, Math.min(1.3, V));
+            if (Math.abs(det) < 1e-12) {
+                break;
+            }
+
+            const dDelta = damping * (J.J22 * m.deltaP - J.J12 * m.deltaQ) / det;
+            const dV = damping * (-J.J21 * m.deltaP + J.J11 * m.deltaQ) / det;
+
+            delta += dDelta;
+            V += dV;
+            V = Math.max(0.5, Math.min(1.5, V));
+            delta = Math.max(-0.8, Math.min(0.8, delta));
         }
-        return { V, delta, converged: false, iterations: 50 };
+        return { V, delta, converged: false, iterations: 100 };
     }
 
-    // DC潮流計算 (Q無視、V=1固定、線形近似)
-    // P ≈ B * δ → δ ≈ P / B (Bは負なので符号注意)
     function computeDCSolution(prob) {
         const busIdx = prob.solverBus;
-        const B0 = prob.Ybus[busIdx][0].im;  // Slackとのサセプタンス（正の値、例: 30）
-        const Pspec = prob.buses[busIdx].Pspec;  // 負荷は負
-        // DC近似: P = V₁V₂B sin(δ) ≈ B*δ (小角度近似、V=1)
-        // δ = P / B
+        const n = prob.Ybus.length;
+
+        const Bii = prob.Ybus[busIdx][busIdx].im;
+
+        if (Math.abs(Bii) < 1e-10) {
+            return { V: 1.0, delta: 0 };
+        }
+
+        let B0 = 0;
+        for (let j = 0; j < n; j++) {
+            if (j !== busIdx && prob.buses[j].type === 'Slack') {
+                B0 = -prob.Ybus[busIdx][j].im;
+                break;
+            }
+        }
+
+        if (Math.abs(B0) < 1e-10) {
+            B0 = Bii;
+        }
+
+        const Pspec = prob.buses[busIdx].Pspec || 0;
         const delta = Pspec / B0;
-        return { V: 1.0, delta };
+
+        return { V: 1.0, delta: Math.max(-0.5, Math.min(0.5, delta)) };
     }
 
     // ================================================================
     // アルゴリズム実装
     // ================================================================
-    
+
+    /**
+     * Performs one Newton-Raphson iteration step for power flow calculation.
+     * Uses damping factor (70%) and step limiting for improved convergence stability.
+     * @returns {{error: number, converged: boolean}} Result object
+     */
     function newtonStep() {
-        const prob = problems[state.problem];
+        const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
         const m = calcMismatch(prob, busIdx, state.V, state.delta);
         const J = calcJacobian(prob, busIdx, state.V, state.delta);
         const det = J.J11 * J.J22 - J.J12 * J.J21;
-        
-        if (Math.abs(det) < 1e-15) {
+
+        if (Math.abs(det) < 1e-12) {
             log('Jacobian特異! 計算停止', 'error');
             return { error: Infinity, converged: false };
         }
-        
-        const dDelta = (J.J22 * m.deltaP - J.J12 * m.deltaQ) / det;
-        const dV = (-J.J21 * m.deltaP + J.J11 * m.deltaQ) / det;
-        
+
+        let dDelta = (J.J22 * m.deltaP - J.J12 * m.deltaQ) / det;
+        let dV = (-J.J21 * m.deltaP + J.J11 * m.deltaQ) / det;
+
+        const dampingFactor = 0.7;
+        dDelta *= dampingFactor;
+        dV *= dampingFactor;
+
+        const maxStep = 0.15;
+        if (Math.abs(dDelta) > maxStep) {
+            dDelta = Math.sign(dDelta) * maxStep;
+        }
+        if (Math.abs(dV) > maxStep) {
+            dV = Math.sign(dV) * maxStep;
+        }
+
         state.delta += dDelta;
         state.V += dV;
-        state.V = Math.max(0.5, Math.min(1.3, state.V));
-        
+        state.V = Math.max(0.6, Math.min(1.4, state.V));
+        state.delta = Math.max(-0.8, Math.min(0.8, state.delta));
+
         const error = calcError(prob, busIdx, state.V, state.delta);
         log(`NR[${state.iteration}]: V=${state.V.toFixed(5)}, δ=${(state.delta*180/Math.PI).toFixed(3)}°, err=${error.toExponential(2)}`);
-        
+
         return { error, converged: error < state.tolerance };
     }
 
+    /**
+     * Performs one Gauss-Seidel iteration step for power flow calculation.
+     * Uses adaptive relaxation factor based on error trend.
+     * @returns {{error: number, converged: boolean}} Result object
+     */
     function gaussSeidelStep() {
-        const prob = problems[state.problem];
+        const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
         const Ybus = prob.Ybus;
         const bus = prob.buses[busIdx];
-        
+
         const Yii = Ybus[busIdx][busIdx];
-        
-        // V_new = (1/Yii) * [S*/V* - Σ(j≠i) Yij*Vj]
+
+        const Yiimag2 = Yii.re * Yii.re + Yii.im * Yii.im;
+        if (Yiimag2 < 1e-10) {
+            log(`GS[${state.iteration}]: Y行列対角要素が小さすぎます`, 'error');
+            return { error: Infinity, converged: false };
+        }
+
         const V_re = state.V * Math.cos(state.delta);
         const V_im = state.V * Math.sin(state.delta);
         const Vmag2 = state.V * state.V;
-        
-        // S* / V (S = P + jQ, S* = P - jQ)
-        const Sconj_re = bus.Pspec, Sconj_im = -bus.Qspec;
+
+        const Pspec = bus.Pspec || 0;
+        const Qspec = bus.Qspec || 0;
+        const Sconj_re = Pspec, Sconj_im = -Qspec;
         const SoV_re = (Sconj_re * V_re + Sconj_im * V_im) / Vmag2;
         const SoV_im = (Sconj_im * V_re - Sconj_re * V_im) / Vmag2;
-        
-        // Σ Yij * Vj (j ≠ i)
+
         let sumYV_re = 0, sumYV_im = 0;
         for (let j = 0; j < Ybus.length; j++) {
             if (j === busIdx) continue;
@@ -832,118 +1014,122 @@
             sumYV_re += Yij.re * Vj_re - Yij.im * Vj_im;
             sumYV_im += Yij.re * Vj_im + Yij.im * Vj_re;
         }
-        
+
         const rhs_re = SoV_re - sumYV_re;
         const rhs_im = SoV_im - sumYV_im;
-        
-        // V_new = rhs / Yii
-        const Yiimag2 = Yii.re * Yii.re + Yii.im * Yii.im;
+
         const Vnew_re = (rhs_re * Yii.re + rhs_im * Yii.im) / Yiimag2;
         const Vnew_im = (rhs_im * Yii.re - rhs_re * Yii.im) / Yiimag2;
-        
+
         const newMag = Math.sqrt(Vnew_re * Vnew_re + Vnew_im * Vnew_im);
         const newAngle = Math.atan2(Vnew_im, Vnew_re);
-        
-        // 適応緩和係数
-        const prevError = state.errorHistory.length > 0 ? 
+
+        const prevError = state.errorHistory.length > 0 ?
             state.errorHistory[state.errorHistory.length - 1] : Infinity;
         const currentError = calcError(prob, busIdx, state.V, state.delta);
-        
-        // 緩和係数（電力系統Y行列は対角優位でないため小さめに）
+
         let alpha = 0.5;
         if (currentError > prevError) alpha = 0.2;
-        
-        const oldV = state.V, oldDelta = state.delta;
+
         state.V = state.V + alpha * (newMag - state.V);
         state.delta = state.delta + alpha * (newAngle - state.delta);
-        state.V = Math.max(0.5, Math.min(1.3, state.V));
-        
+        state.V = Math.max(0.6, Math.min(1.4, state.V));
+        state.delta = Math.max(-0.8, Math.min(0.8, state.delta));
+
         const error = calcError(prob, busIdx, state.V, state.delta);
-        
-        // 停滞検出
+
         if (Math.abs(error - prevError) < 1e-10 && state.iteration > 20) {
             log(`GS[${state.iteration}]: 停滞検出 - GS法はこの系統では収束困難`, 'warning');
         } else {
             log(`GS[${state.iteration}]: V=${state.V.toFixed(5)}, δ=${(state.delta*180/Math.PI).toFixed(3)}°, err=${error.toExponential(2)}`);
         }
-        
+
         return { error, converged: error < state.tolerance };
     }
 
+    /**
+     * Performs one gradient descent iteration step for power flow calculation.
+     * Uses numerical central difference and backtracking line search.
+     * @returns {{error: number, converged: boolean}} Result object
+     */
     function gradientStep() {
-        const prob = problems[state.problem];
+        const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
         const currentError = calcError(prob, busIdx, state.V, state.delta);
-        
-        // 中心差分で数値勾配（目的関数 = error² の勾配）
+
         const h = 1e-5;
         const err_dp = calcError(prob, busIdx, state.V, state.delta + h);
         const err_dm = calcError(prob, busIdx, state.V, state.delta - h);
         const err_Vp = calcError(prob, busIdx, state.V + h, state.delta);
         const err_Vm = calcError(prob, busIdx, state.V - h, state.delta);
-        
+
         const grad_delta = (err_dp * err_dp - err_dm * err_dm) / (2 * h);
         const grad_V = (err_Vp * err_Vp - err_Vm * err_Vm) / (2 * h);
-        
+
         const gradNorm = Math.sqrt(grad_delta * grad_delta + grad_V * grad_V);
         if (gradNorm < 1e-12) {
             log(`GD[${state.iteration}]: 勾配がゼロ - 停止`, 'warning');
             return { error: currentError, converged: currentError < state.tolerance };
         }
-        
-        // 正規化した降下方向
+
         const dir_delta = -grad_delta / gradNorm;
         const dir_V = -grad_V / gradNorm;
-        
-        // 誤差に応じた初期ステップサイズ
+
         let baseStep = Math.min(0.1, currentError * 0.5);
         baseStep = Math.max(baseStep, 1e-4);
-        
-        // 線探索で最良点を探す
+
         let bestV = state.V, bestDelta = state.delta, bestErr = currentError;
         for (let k = 0; k < 20; k++) {
             const alpha = baseStep * Math.pow(0.5, k);
-            const newV = Math.max(0.5, Math.min(1.3, state.V + alpha * dir_V));
-            const newDelta = state.delta + alpha * dir_delta;
+            const newV = Math.max(0.6, Math.min(1.4, state.V + alpha * dir_V));
+            const newDelta = Math.max(-0.8, Math.min(0.8, state.delta + alpha * dir_delta));
             const newErr = calcError(prob, busIdx, newV, newDelta);
-            
+
             if (newErr < bestErr) {
                 bestErr = newErr;
                 bestV = newV;
                 bestDelta = newDelta;
             }
         }
-        
+
         state.V = bestV;
         state.delta = bestDelta;
-        
+
         log(`GD[${state.iteration}]: V=${state.V.toFixed(5)}, δ=${(state.delta*180/Math.PI).toFixed(3)}°, err=${bestErr.toExponential(2)}`);
-        
+
         return { error: bestErr, converged: bestErr < state.tolerance };
     }
 
+    /**
+     * Applies the DC power flow approximation solution.
+     * DC method is a linear approximation that completes in one iteration.
+     * @returns {{error: number, converged: boolean}} Result object
+     */
     function dcStep() {
-        // DC法は1回で解が出る（線形近似）
         const dc = state.dcSolution;
         state.V = dc.V;
         state.delta = dc.delta;
-        
-        const prob = problems[state.problem];
+
+        const prob = getDynamicProblem(state.problem);
         const error = calcError(prob, prob.solverBus, state.V, state.delta);
-        
+
         log(`DC潮流法の結果:`);
         log(`  V = ${state.V.toFixed(5)} (固定), δ = ${(state.delta*180/Math.PI).toFixed(3)}°`);
         log(`  AC解との誤差: ${error.toExponential(2)}`);
-        
+
         if (state.trueSolution && state.trueSolution.converged) {
             const dV = Math.abs(state.V - state.trueSolution.V);
             const dDelta = Math.abs(state.delta - state.trueSolution.delta) * 180 / Math.PI;
             log(`  真の解との差: ΔV=${dV.toFixed(4)}, Δδ=${dDelta.toFixed(2)}°`, 'warning');
         }
-        
-        return { error, converged: true };  // DC法は常に1回で完了
+
+        return { error, converged: true };
     }
 
+    /**
+     * Dispatches to the appropriate algorithm-specific step function.
+     * @returns {{error: number, converged: boolean}} Result from the selected algorithm
+     */
     function doIteration() {
         switch (state.algorithm) {
             case 'newton': return newtonStep();
@@ -956,7 +1142,7 @@
     // ================================================================
     // UI制御
     // ================================================================
-    
+
     function log(msg, type = '') {
         const el = document.getElementById('logOutput');
         const cls = type ? `log-${type}` : '';
@@ -969,53 +1155,67 @@
     }
 
     function reset() {
-        state.running = false;
-        state.iteration = 0;
-        
-        const prob = problems[state.problem];
-        state.V = prob.initialV;
-        state.delta = prob.initialDelta;
-        state.trajectory = [{ V: state.V, delta: state.delta }];
-        state.errorHistory = [];
-        
-        // 診断状態のリセット
-        state.stuckCount = 0;
-        state.oscillationCount = 0;
-        state.divergenceCount = 0;
-        state.lastErrors = [];
-        state.diagnosisResult = null;
-        hideDiagnosisPanel();
-        
-        // 真の解を計算
-        state.trueSolution = computeTrueSolution(prob);
-        state.dcSolution = computeDCSolution(prob);
-        
-        clearLog();
-        log(`=== ${prob.name} ===`);
-        log(`初期点: V=${state.V.toFixed(4)}, δ=${(state.delta*180/Math.PI).toFixed(2)}°`);
-        
-        if (state.trueSolution.converged) {
-            log(`真の解: V=${state.trueSolution.V.toFixed(5)}, δ=${(state.trueSolution.delta*180/Math.PI).toFixed(3)}° (${state.trueSolution.iterations}回で収束)`, 'success');
-        } else {
-            log(`真の解: 計算失敗`, 'error');
+        try {
+            state.running = false;
+            state.iteration = 0;
+
+            const prob = getDynamicProblem(state.problem);
+            const nBuses = prob.buses.length;
+
+            state.maxIterations = Math.max(500, nBuses * 5);
+
+            state.V = prob.initialV;
+            state.delta = prob.initialDelta;
+            state.trajectory = [{ V: state.V, delta: state.delta }];
+            state.errorHistory = [];
+
+            state.stuckCount = 0;
+            state.oscillationCount = 0;
+            state.divergenceCount = 0;
+            state.lastErrors = [];
+            state.diagnosisResult = null;
+            hideDiagnosisPanel();
+
+            const startTrue = performance.now();
+            state.trueSolution = computeTrueSolution(prob);
+            const elapsedTrue = performance.now() - startTrue;
+
+            state.dcSolution = computeDCSolution(prob);
+
+            clearLog();
+            log(`=== ${prob.name} ===`);
+            log(`バス数: ${nBuses}, 最大反復: ${state.maxIterations}`);
+            log(`初期点: V=${state.V.toFixed(4)}, δ=${(state.delta*180/Math.PI).toFixed(2)}°`);
+
+            if (state.trueSolution.converged) {
+                log(`真の解: V=${state.trueSolution.V.toFixed(5)}, δ=${(state.trueSolution.delta*180/Math.PI).toFixed(3)}° (${state.trueSolution.iterations}回, ${elapsedTrue.toFixed(0)}ms)`, 'success');
+            } else {
+                log(`真の解: 計算失敗 (${elapsedTrue.toFixed(0)}ms)`, 'error');
+            }
+            log(`DC近似: V=1.0, δ=${(state.dcSolution.delta*180/Math.PI).toFixed(3)}°`);
+            log(`許容誤差: ${state.tolerance.toExponential(1)}`);
+
+            if (nBuses > 100) {
+                log(`💡 大規模系統です。描画は簡略化されています。`, 'info');
+            }
+            log('---');
+
+            updateDisplay();
+            drawAll();
+        } catch (error) {
+            log(`エラー: ${error.message}`, 'error');
         }
-        log(`DC近似: V=1.0, δ=${(state.dcSolution.delta*180/Math.PI).toFixed(3)}°`);
-        log(`許容誤差: ${state.tolerance.toExponential(1)}`);
-        log('---');
-        
-        updateDisplay();
-        drawAll();
     }
 
     function updateDisplay() {
         document.getElementById('iterValue').textContent = state.iteration;
         document.getElementById('voltageValue').textContent = state.V.toFixed(4);
         document.getElementById('angleValue').textContent = (state.delta * 180 / Math.PI).toFixed(2) + '°';
-        
+
         if (state.errorHistory.length > 0) {
             document.getElementById('errorValue').textContent = state.errorHistory[state.errorHistory.length - 1].toExponential(2);
         }
-        
+
         if (state.trueSolution && state.trueSolution.converged) {
             document.getElementById('trueVValue').textContent = state.trueSolution.V.toFixed(4);
             document.getElementById('trueDeltaValue').textContent = (state.trueSolution.delta * 180 / Math.PI).toFixed(2) + '°';
@@ -1027,23 +1227,37 @@
         state.running = true;
         state.diagnosisResult = null;
         document.getElementById('runBtn').disabled = true;
-        
+
+        const prob = getDynamicProblem(state.problem);
+        const nBuses = prob.buses.length;
+
+        let drawInterval;
+        if (nBuses > 200) {
+            drawInterval = 10;
+        } else if (nBuses > 100) {
+            drawInterval = 5;
+        } else if (nBuses > 30) {
+            drawInterval = 3;
+        } else {
+            drawInterval = 1;
+        }
+
         let lastDiagnosis = null;
-        
+
         while (state.running && state.iteration < state.maxIterations) {
             const result = doIteration();
             state.iteration++;
             state.trajectory.push({ V: state.V, delta: state.delta });
             state.errorHistory.push(result.error);
-            
-            updateDisplay();
-            drawAll();
-            
-            // 定期的に診断を実行
+
+            if (state.iteration % drawInterval === 0 || result.converged) {
+                updateDisplay();
+                drawAll();
+            }
+
             if (state.iteration % 5 === 0 || result.converged) {
                 const diagnosis = diagnoseConvergence();
                 if (diagnosis && diagnosis !== lastDiagnosis) {
-                    // 重大な問題が検出されたら早期終了
                     if (diagnosis.code === 'diverging' || diagnosis.code === 'singular') {
                         logDiagnosis(diagnosis);
                         break;
@@ -1051,21 +1265,24 @@
                     lastDiagnosis = diagnosis;
                 }
             }
-            
+
             if (result.converged) {
                 logDiagnosis(DIAGNOSIS.CONVERGED);
                 break;
             }
-            
+
             if (state.algorithm === 'dc') {
                 logDiagnosis(DIAGNOSIS.DC_APPROXIMATION);
                 break;
             }
-            
-            await new Promise(r => setTimeout(r, 300 / state.speed));
+
+            const delay = nBuses > 100 ? 50 / state.speed : 300 / state.speed;
+            await new Promise(r => setTimeout(r, delay));
         }
-        
-        // 最終診断
+
+        updateDisplay();
+        drawAll();
+
         if (!state.diagnosisResult) {
             const finalDiagnosis = diagnoseConvergence();
             if (finalDiagnosis) {
@@ -1074,26 +1291,30 @@
                 logDiagnosis(DIAGNOSIS.MAX_ITER);
             }
         }
-        
+
         state.running = false;
         document.getElementById('runBtn').disabled = false;
     }
 
+    /**
+     * Executes a single iteration step (step-through animation mode).
+     * @async
+     * @returns {Promise<void>}
+     */
     async function step() {
         if (state.running) return;
-        
+
         const result = doIteration();
         state.iteration++;
         state.trajectory.push({ V: state.V, delta: state.delta });
         state.errorHistory.push(result.error);
-        
+
         updateDisplay();
         drawAll();
-        
+
         if (result.converged) {
             logDiagnosis(DIAGNOSIS.CONVERGED);
         } else {
-            // ステップごとに診断
             const diagnosis = diagnoseConvergence();
             if (diagnosis && diagnosis.code !== 'converged') {
                 log(`[診断] ${diagnosis.label}: ${diagnosis.desc}`, diagnosis.color);
@@ -1104,20 +1325,28 @@
     // ================================================================
     // 描画
     // ================================================================
-    
+
     function getViewRange() {
-        const prob = problems[state.problem];
+        const prob = getDynamicProblem(state.problem);
         let allV = [state.trueSolution?.V || 1, state.dcSolution?.V || 1, prob.initialV];
         let allD = [state.trueSolution?.delta || 0, state.dcSolution?.delta || 0, prob.initialDelta];
-        
+
         state.trajectory.forEach(p => { allV.push(p.V); allD.push(p.delta); });
-        
-        const Vmin = Math.min(...allV) - 0.1;
-        const Vmax = Math.max(...allV) + 0.1;
-        const dMin = Math.min(...allD) - 0.1;
-        const dMax = Math.max(...allD) + 0.1;
-        
-        return { Vmin: Math.max(0.5, Vmin), Vmax: Math.min(1.4, Vmax), dMin, dMax };
+
+        const Vmargin = 0.15;
+        const dMargin = 0.15;
+
+        const Vmin = Math.min(...allV) - Vmargin;
+        const Vmax = Math.max(...allV) + Vmargin;
+        const dMin = Math.min(...allD) - dMargin;
+        const dMax = Math.max(...allD) + dMargin;
+
+        return {
+            Vmin: Math.max(0.4, Vmin),
+            Vmax: Math.min(1.6, Vmax),
+            dMin: Math.max(-1.0, dMin),
+            dMax: Math.min(1.0, dMax)
+        };
     }
 
     function drawAll() {
@@ -1125,6 +1354,224 @@
         drawErrorSurface();
         drawConvergenceChart();
         drawVectorField();
+        drawSpyPlot();
+        drawNetworkGraph();
+    }
+
+    function drawSpyPlot() {
+        const canvas = document.getElementById('spyPlot');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width - 20;
+        canvas.height = rect.height - 20;
+        const w = canvas.width, h = canvas.height;
+
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, w, h);
+
+        const prob = getDynamicProblem(state.problem);
+        const Ybus = prob.Ybus;
+        const n = Ybus.length;
+
+        const margin = 40;
+        const size = Math.min(w - margin * 2, h - margin * 2);
+        const cellSize = size / n;
+        const offsetX = (w - size) / 2;
+        const offsetY = (h - size) / 2;
+
+        ctx.fillStyle = '#252540';
+        ctx.fillRect(offsetX, offsetY, size, size);
+
+        let nnz = 0;
+        let maxMag = 0;
+
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                const mag = Math.sqrt(Ybus[i][j].re ** 2 + Ybus[i][j].im ** 2);
+                if (mag > maxMag) maxMag = mag;
+            }
+        }
+
+        for (let i = 0; i < n; i++) {
+            for (let j = 0; j < n; j++) {
+                const val = Ybus[i][j];
+                const mag = Math.sqrt(val.re ** 2 + val.im ** 2);
+
+                if (mag > 1e-10) {
+                    nnz++;
+                    const intensity = Math.min(1, mag / maxMag);
+
+                    if (i === j) {
+                        ctx.fillStyle = `rgba(77, 171, 247, ${0.3 + 0.7 * intensity})`;
+                    } else {
+                        const hue = 30 - 30 * intensity;
+                        ctx.fillStyle = `hsla(${hue}, 80%, 50%, ${0.4 + 0.6 * intensity})`;
+                    }
+
+                    const x = offsetX + j * cellSize;
+                    const y = offsetY + i * cellSize;
+
+                    if (n <= 50) {
+                        ctx.fillRect(x + 0.5, y + 0.5, Math.max(cellSize - 1, 2), Math.max(cellSize - 1, 2));
+                    } else {
+                        ctx.fillRect(x, y, Math.max(cellSize, 1), Math.max(cellSize, 1));
+                    }
+                }
+            }
+        }
+
+        ctx.fillStyle = '#e9ecef';
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+
+        const sparsity = (1 - nnz / (n * n)) * 100;
+        ctx.fillText(`${n}×${n} 行列`, w / 2, 15);
+        ctx.fillText(`非ゼロ: ${nnz} (スパース性: ${sparsity.toFixed(1)}%)`, w / 2, h - 5);
+
+        if (n <= 30) {
+            ctx.font = '8px sans-serif';
+            ctx.textAlign = 'right';
+            for (let i = 0; i < n; i += Math.ceil(n / 10)) {
+                ctx.fillText(i.toString(), offsetX - 3, offsetY + i * cellSize + cellSize / 2 + 3);
+            }
+            ctx.textAlign = 'center';
+            for (let j = 0; j < n; j += Math.ceil(n / 10)) {
+                ctx.fillText(j.toString(), offsetX + j * cellSize + cellSize / 2, offsetY + size + 12);
+            }
+        }
+
+        ctx.font = '9px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#4dabf7';
+        ctx.fillRect(5, 5, 10, 10);
+        ctx.fillStyle = '#e9ecef';
+        ctx.fillText('対角', 18, 13);
+
+        ctx.fillStyle = '#ff6b6b';
+        ctx.fillRect(55, 5, 10, 10);
+        ctx.fillStyle = '#e9ecef';
+        ctx.fillText('非対角', 68, 13);
+    }
+
+    function drawNetworkGraph() {
+        const canvas = document.getElementById('networkGraph');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width - 20;
+        canvas.height = rect.height - 20;
+        const w = canvas.width, h = canvas.height;
+
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillRect(0, 0, w, h);
+
+        const prob = getDynamicProblem(state.problem);
+        const Ybus = prob.Ybus;
+        const buses = prob.buses;
+        const n = Ybus.length;
+
+        const positions = [];
+        const cx = w / 2, cy = h / 2;
+        const radius = Math.min(w, h) * 0.38;
+
+        for (let i = 0; i < n; i++) {
+            const angle = (2 * Math.PI * i / n) - Math.PI / 2;
+            positions.push({
+                x: cx + radius * Math.cos(angle),
+                y: cy + radius * Math.sin(angle)
+            });
+        }
+
+        const edges = [];
+        for (let i = 0; i < n; i++) {
+            for (let j = i + 1; j < n; j++) {
+                const mag = Math.sqrt(Ybus[i][j].re ** 2 + Ybus[i][j].im ** 2);
+                if (mag > 1e-10) {
+                    edges.push({ from: i, to: j, weight: mag });
+                }
+            }
+        }
+
+        const maxWeight = Math.max(...edges.map(e => e.weight), 1);
+
+        edges.forEach(edge => {
+            const p1 = positions[edge.from];
+            const p2 = positions[edge.to];
+
+            const intensity = edge.weight / maxWeight;
+            const lineWidth = 0.5 + 2 * intensity;
+            const alpha = 0.2 + 0.6 * intensity;
+
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(100, 180, 255, ${alpha})`;
+            ctx.lineWidth = lineWidth;
+            ctx.stroke();
+        });
+
+        const nodeRadius = n > 100 ? 3 : (n > 30 ? 5 : 8);
+
+        positions.forEach((pos, i) => {
+            ctx.beginPath();
+            ctx.arc(pos.x, pos.y, nodeRadius, 0, 2 * Math.PI);
+
+            const bus = buses[i];
+            if (bus.type === 'Slack') {
+                ctx.fillStyle = '#51cf66';
+                ctx.strokeStyle = '#2b8a3e';
+            } else if (i === prob.solverBus) {
+                ctx.fillStyle = '#ff6b6b';
+                ctx.strokeStyle = '#c92a2a';
+            } else if (bus.Pspec > 0) {
+                ctx.fillStyle = '#ffd43b';
+                ctx.strokeStyle = '#f59f00';
+            } else {
+                ctx.fillStyle = '#4dabf7';
+                ctx.strokeStyle = '#1971c2';
+            }
+
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+        });
+
+        if (n <= 30) {
+            ctx.font = '9px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#1a1a2e';
+            positions.forEach((pos, i) => {
+                ctx.fillText(i.toString(), pos.x, pos.y);
+            });
+        }
+
+        ctx.font = '9px sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+
+        const legendY = 5;
+        const legendItems = [
+            { color: '#51cf66', label: 'Slack' },
+            { color: '#ff6b6b', label: '解析対象' },
+            { color: '#ffd43b', label: '発電' },
+            { color: '#4dabf7', label: '負荷' }
+        ];
+
+        legendItems.forEach((item, i) => {
+            const x = 5 + i * 60;
+            ctx.beginPath();
+            ctx.arc(x + 5, legendY + 5, 4, 0, 2 * Math.PI);
+            ctx.fillStyle = item.color;
+            ctx.fill();
+            ctx.fillStyle = '#e9ecef';
+            ctx.fillText(item.label, x + 12, legendY);
+        });
+
+        ctx.fillStyle = '#868e96';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${n}ノード, ${edges.length}ブランチ`, w / 2, h - 8);
     }
 
     function drawComplexPlane() {
@@ -1135,7 +1582,7 @@
         canvas.height = rect.height - 20;
         const w = canvas.width, h = canvas.height;
         const cx = w / 2, cy = h / 2;
-        
+
         const range = getViewRange();
         const maxR = Math.max(range.Vmax, Math.abs(range.dMin), Math.abs(range.dMax)) * 1.2;
         const scale = Math.min(w, h) * 0.4 / maxR;
@@ -1143,7 +1590,6 @@
         ctx.fillStyle = '#1a1a2e';
         ctx.fillRect(0, 0, w, h);
 
-        // グリッド
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         for (let r = 0.2; r <= maxR; r += 0.2) {
             ctx.beginPath();
@@ -1155,7 +1601,6 @@
         ctx.moveTo(cx, 0); ctx.lineTo(cx, h);
         ctx.stroke();
 
-        // DC解
         if (state.dcSolution) {
             const x = cx + state.dcSolution.V * Math.cos(state.dcSolution.delta) * scale;
             const y = cy - state.dcSolution.V * Math.sin(state.dcSolution.delta) * scale;
@@ -1168,7 +1613,6 @@
             ctx.fillText('DC', x + 10, y);
         }
 
-        // 真の解
         if (state.trueSolution && state.trueSolution.converged) {
             const x = cx + state.trueSolution.V * Math.cos(state.trueSolution.delta) * scale;
             const y = cy - state.trueSolution.V * Math.sin(state.trueSolution.delta) * scale;
@@ -1184,7 +1628,6 @@
             ctx.fillText('真の解', x + 12, y);
         }
 
-        // 軌跡
         if (state.trajectory.length > 1) {
             ctx.beginPath();
             ctx.strokeStyle = '#ffa94d';
@@ -1222,10 +1665,21 @@
         const w = canvas.width, h = canvas.height;
 
         const range = getViewRange();
-        const prob = problems[state.problem];
+        const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
-        const res = 40;
-        
+
+        const nBuses = prob.buses.length;
+        let res;
+        if (nBuses > 200) {
+            res = 15;
+        } else if (nBuses > 100) {
+            res = 20;
+        } else if (nBuses > 30) {
+            res = 25;
+        } else {
+            res = 40;
+        }
+
         const errors = [];
         let maxErr = 0;
         for (let i = 0; i < res; i++) {
@@ -1249,7 +1703,6 @@
             }
         }
 
-        // 軌跡
         if (state.trajectory.length > 1) {
             ctx.beginPath();
             ctx.strokeStyle = 'white';
@@ -1271,7 +1724,6 @@
             ctx.fill();
         }
 
-        // 真の解
         if (state.trueSolution && state.trueSolution.converged) {
             const sx = (state.trueSolution.delta - range.dMin) / (range.dMax - range.dMin) * w;
             const sy = (1 - (state.trueSolution.V - range.Vmin) / (range.Vmax - range.Vmin)) * h;
@@ -1285,6 +1737,12 @@
         ctx.font = '11px sans-serif';
         ctx.fillText('δ →', w - 25, h - 5);
         ctx.fillText('|V| ↑', 5, 12);
+
+        if (nBuses > 50) {
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.font = '9px sans-serif';
+            ctx.fillText(`${nBuses}バス (簡易表示)`, 5, h - 5);
+        }
     }
 
     function drawConvergenceChart() {
@@ -1315,7 +1773,6 @@
         const maxLog = Math.max(...logData) + 0.5;
         const xScale = pw / Math.max(data.length, 10);
 
-        // グリッド
         ctx.strokeStyle = 'rgba(255,255,255,0.1)';
         for (let i = 0; i <= 5; i++) {
             const y = pad.top + i * ph / 5;
@@ -1325,7 +1782,6 @@
             ctx.stroke();
         }
 
-        // 許容値ライン
         const tolY = pad.top + (maxLog - Math.log10(state.tolerance)) / (maxLog - minLog) * ph;
         ctx.strokeStyle = '#ff6b6b';
         ctx.setLineDash([5, 5]);
@@ -1335,7 +1791,6 @@
         ctx.stroke();
         ctx.setLineDash([]);
 
-        // 誤差曲線
         ctx.beginPath();
         ctx.strokeStyle = '#4dabf7';
         ctx.lineWidth = 2;
@@ -1347,7 +1802,6 @@
         });
         ctx.stroke();
 
-        // 現在点
         if (data.length > 0) {
             const x = pad.left + data.length * xScale;
             const y = pad.top + (maxLog - Math.log10(Math.max(data[data.length - 1], 1e-15))) / (maxLog - minLog) * ph;
@@ -1357,7 +1811,6 @@
             ctx.fill();
         }
 
-        // 軸ラベル
         ctx.fillStyle = '#e9ecef';
         ctx.font = '10px sans-serif';
         ctx.textAlign = 'center';
@@ -1388,9 +1841,21 @@
         ctx.fillRect(0, 0, w, h);
 
         const range = getViewRange();
-        const prob = problems[state.problem];
+        const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
-        const gridSize = 10;
+        const nBuses = prob.buses.length;
+
+        let gridSize;
+        if (nBuses > 200) {
+            gridSize = 5;
+        } else if (nBuses > 100) {
+            gridSize = 6;
+        } else if (nBuses > 30) {
+            gridSize = 8;
+        } else {
+            gridSize = 10;
+        }
+
         const cellW = w / gridSize, cellH = h / gridSize;
 
         for (let i = 1; i < gridSize; i++) {
@@ -1409,7 +1874,7 @@
                 const hue = (1 - Math.min(mag, 1)) * 120;
                 ctx.strokeStyle = `hsl(${hue}, 70%, 50%)`;
                 ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
-                
+
                 ctx.beginPath();
                 ctx.moveTo(cx, cy);
                 ctx.lineTo(cx + dx * 2, cy + dy * 2);
@@ -1417,7 +1882,6 @@
             }
         }
 
-        // 軌跡
         if (state.trajectory.length > 1) {
             ctx.beginPath();
             ctx.strokeStyle = '#4dabf7';
@@ -1431,7 +1895,6 @@
             ctx.stroke();
         }
 
-        // 真の解
         if (state.trueSolution && state.trueSolution.converged) {
             const sx = (state.trueSolution.delta - range.dMin) / (range.dMax - range.dMin) * w;
             const sy = (1 - (state.trueSolution.V - range.Vmin) / (range.Vmax - range.Vmin)) * h;
@@ -1445,33 +1908,43 @@
         ctx.font = '11px sans-serif';
         ctx.fillText('δ →', w - 25, h - 5);
         ctx.fillText('|V| ↑', 5, 12);
+
+        if (nBuses > 50) {
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.font = '9px sans-serif';
+            ctx.fillText(`${nBuses}バス (簡易表示)`, 5, h - 5);
+        }
     }
 
     // ================================================================
     // 初期化
     // ================================================================
     document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('algoSelect').addEventListener('change', e => {
-            state.algorithm = e.target.value;
-            reset();
-        });
-        document.getElementById('problemSelect').addEventListener('change', e => {
-            state.problem = e.target.value;
-            reset();
-        });
-        document.getElementById('toleranceInput').addEventListener('change', e => {
-            state.tolerance = parseFloat(e.target.value);
-            reset();
-        });
-        document.getElementById('speedSlider').addEventListener('input', e => {
-            state.speed = parseFloat(e.target.value);
-            document.getElementById('speedValue').textContent = state.speed.toFixed(1) + 'x';
-        });
-        document.getElementById('runBtn').addEventListener('click', run);
-        document.getElementById('stepBtn').addEventListener('click', step);
-        document.getElementById('resetBtn').addEventListener('click', reset);
+        try {
+            document.getElementById('algoSelect').addEventListener('change', e => {
+                state.algorithm = e.target.value;
+                reset();
+            });
+            document.getElementById('problemSelect').addEventListener('change', e => {
+                state.problem = e.target.value;
+                reset();
+            });
+            document.getElementById('toleranceInput').addEventListener('change', e => {
+                state.tolerance = parseFloat(e.target.value);
+                reset();
+            });
+            document.getElementById('speedSlider').addEventListener('input', e => {
+                state.speed = parseFloat(e.target.value);
+                document.getElementById('speedValue').textContent = state.speed.toFixed(1) + 'x';
+            });
+            document.getElementById('runBtn').addEventListener('click', run);
+            document.getElementById('stepBtn').addEventListener('click', step);
+            document.getElementById('resetBtn').addEventListener('click', reset);
 
-        reset();
+            reset();
+        } catch (error) {
+            // Initialization error handling
+        }
     });
 
     window.addEventListener('resize', drawAll);
