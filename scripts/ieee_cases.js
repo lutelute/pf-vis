@@ -493,14 +493,14 @@ if (typeof window !== 'undefined') {
     };
 }
 
-// For ES6 module systems
-export {
-    IEEE_2_BUS,
-    IEEE_5_BUS,
-    IEEE_9_BUS,
-    IEEE_14_BUS,
-    IEEE_30_BUS,
-    getIEEECases,
-    getIEEECaseByBusCount,
-    validateIEEECase
-};
+// For ES6 module systems (wrapped to prevent errors in non-module context)
+// export {
+//     IEEE_2_BUS,
+//     IEEE_5_BUS,
+//     IEEE_9_BUS,
+//     IEEE_14_BUS,
+//     IEEE_30_BUS,
+//     getIEEECases,
+//     getIEEECaseByBusCount,
+//     validateIEEECase
+// };

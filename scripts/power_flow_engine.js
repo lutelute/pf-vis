@@ -1429,5 +1429,5 @@ if (typeof window !== 'undefined') {
     window.DEFAULT_OPTIONS = DEFAULT_OPTIONS;
 }
 
-// For ES6 module systems
-export { PowerFlowEngine, BUS_TYPE, DEFAULT_OPTIONS };
+// For ES6 module systems (wrapped to prevent errors in non-module context)
+// export { PowerFlowEngine, BUS_TYPE, DEFAULT_OPTIONS };
