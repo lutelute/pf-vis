@@ -42,6 +42,27 @@ const MAX_CONDITION_NUMBER = 1e12;
  * @description Provides basic complex number operations without external libraries.
  * Complex numbers are represented as objects with 're' (real) and 'im' (imaginary) properties.
  *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * COMPLEX NUMBER MATHEMATICS
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Rectangular form: z = a + jb where a = Re(z), b = Im(z)
+ * Polar form:       z = |z|e^(jθ) = |z|(cos θ + j sin θ)
+ *
+ * Operations:
+ *   Addition:       (a + jb) + (c + jd) = (a + c) + j(b + d)
+ *   Multiplication: (a + jb)(c + jd) = (ac - bd) + j(ad + bc)
+ *   Division:       (a + jb)/(c + jd) = (ac + bd)/(c² + d²) + j(bc - ad)/(c² + d²)
+ *   Conjugate:      (a + jb)* = a - jb
+ *   Magnitude:      |z| = √(a² + b²)
+ *   Angle:          ∠z = arctan(b/a)
+ *
+ * Power system applications:
+ *   Complex voltage: V = |V|∠θ = |V|(cos θ + j sin θ)
+ *   Complex power:   S = P + jQ = V·I*
+ *   Admittance:      Y = G + jB (conductance + j·susceptance)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
  * @namespace Complex
  */
 const Complex = {
@@ -187,11 +208,36 @@ const Complex = {
 // ============================================================
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * MATRIX OPERATIONS FOR POWER FLOW
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Key matrices in power flow analysis:
+ *
+ * 1. Admittance Matrix (Ybus): Y ∈ ℂ^(n×n)
+ *    - Y_ij = G_ij + jB_ij
+ *    - Sparse for power systems (only connected buses have non-zero entries)
+ *
+ * 2. Jacobian Matrix (J): J ∈ ℝ^((2n-2-m)×(2n-2-m))
+ *    - J = [∂P/∂θ, ∂P/∂|V|; ∂Q/∂θ, ∂Q/∂|V|]
+ *    - Updated each Newton-Raphson iteration
+ *
+ * 3. B' and B'' matrices (Fast Decoupled):
+ *    - Constant approximations of Jacobian blocks
+ *    - B' for P-θ subproblem, B'' for Q-|V| subproblem
+ *
+ * Matrix norms used for convergence:
+ *   - Frobenius: ||A||_F = √(Σ_ij |a_ij|²)
+ *   - Infinity:  ||A||_∞ = max_i (Σ_j |a_ij|)
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
  * Create a zero matrix
  *
  * @param {number} rows - Number of rows
  * @param {number} cols - Number of columns
- * @returns {Array<Array<number>>} Zero matrix
+ * @returns {Array<Array<number>>} Zero matrix [0]_{rows×cols}
  */
 function createZeroMatrix(rows, cols) {
     return Array(rows).fill(null).map(() => Array(cols).fill(0));
@@ -385,19 +431,50 @@ function infinityNorm(A) {
 // ============================================================
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * LINEAR ALGEBRA FOR POWER FLOW
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Newton-Raphson requires solving: J·Δx = -f(x)
+ * where J is the Jacobian matrix and f is the mismatch vector.
+ *
+ * Solution methods:
+ *
+ * 1. Gaussian Elimination with Partial Pivoting:
+ *    - Form augmented matrix [A|b]
+ *    - Forward elimination: reduce to upper triangular
+ *    - Back substitution: solve from bottom up
+ *    - Complexity: O(n³)
+ *
+ * 2. LU Decomposition (A = LU):
+ *    - Factor: A = P·L·U where P is permutation, L lower, U upper
+ *    - Solve Ly = Pb (forward substitution)
+ *    - Solve Ux = y (backward substitution)
+ *    - Advantage: reuse factorization for multiple right-hand sides
+ *
+ * Numerical stability:
+ *    - Partial pivoting: max |a_ik| for i ≥ k in column k
+ *    - Handles near-singular matrices with pivot tolerance
+ *    - Condition number κ(A) indicates numerical sensitivity
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
  * Solve linear system Ax = b using Gaussian elimination with partial pivoting
  *
  * @description Implements Gaussian elimination with partial pivoting for
  * numerical stability. Creates an augmented matrix [A|b] and performs
  * forward elimination followed by back substitution.
  *
- * Mathematical steps:
- *   1. Form augmented matrix [A|b]
- *   2. For each column k:
- *      - Find pivot (largest element in column below diagonal)
- *      - Swap rows if necessary
- *      - Eliminate elements below pivot
- *   3. Back substitution to find solution
+ * Algorithm:
+ *   Step 1: Form augmented matrix [A|b]
+ *   Step 2: Forward Elimination
+ *     for k = 1 to n:
+ *       - Find pivot: max|a_ik| for i ≥ k
+ *       - Swap rows if needed
+ *       - Eliminate: a_ij^(k+1) = a_ij^(k) - (a_ik/a_kk)·a_kj
+ *   Step 3: Back Substitution
+ *     x_i = (b_i - Σ(j>i) a_ij·x_j) / a_ii
  *
  * @param {Array<Array<number>>} A - Coefficient matrix (n x n)
  * @param {Array<number>} b - Right-hand side vector (length n)
@@ -575,17 +652,44 @@ function solveLU(A, b) {
 // ============================================================
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * BUS ADMITTANCE MATRIX (Ybus) CONSTRUCTION
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * The Ybus matrix relates bus voltages to current injections: I = Y·V
+ *
+ * For a transmission line from bus i to bus j:
+ *
+ * Series Admittance (from impedance z = r + jx):
+ *   y_ij = 1/z_ij = 1/(r + jx)
+ *        = r/(r² + x²) - j·x/(r² + x²)
+ *        = g_ij + j·b_ij                                             ... (7)
+ *
+ * Ybus Element Rules:
+ *   Diagonal (self-admittance):
+ *     Y_ii = Σ(k∈neighbors) y_ik + y_shunt,i                         ... (8)
+ *
+ *   Off-diagonal (mutual admittance, i ≠ j):
+ *     Y_ij = -y_ij                                                    ... (9)
+ *
+ * Transformer with tap ratio τ:
+ *   Off-diagonal: Y_ij = Y_ji = -y/τ
+ *   From-bus:     Y_ii += y/τ² + jB_c/2
+ *   To-bus:       Y_jj += y + jB_c/2
+ *
+ * Properties:
+ *   - Symmetric for systems without phase-shifting transformers
+ *   - Sparse (typically 3-5 non-zeros per row)
+ *   - Complex valued: Y = G + jB
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
  * Build bus admittance matrix (Ybus) from branch data
  *
  * @description Constructs the Ybus matrix from branch data. Handles
  * transmission lines with series impedance and shunt admittance,
  * as well as transformers with off-nominal tap ratios.
- *
- * Mathematical formulation:
- *   For a branch from bus i to bus j with impedance z = r + jx:
- *   - Series admittance: y = 1/z = g + jb where g = r/(r² + x²), b = -x/(r² + x²)
- *   - Off-diagonal elements: Yij = Yji = -y/tap
- *   - Diagonal contributions: Yii += y/tap² + jB/2, Yjj += y + jB/2
  *
  * @param {number} nBus - Number of buses
  * @param {Array<Object>} branches - Branch data array
@@ -673,11 +777,34 @@ function buildYbusFromMATpower(nBus, branchData, baseMVA = 100) {
 // ============================================================
 
 /**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * POWER INJECTION CALCULATIONS
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Power flow equations in polar form (derived from S = V·I*):
+ *
+ * Active Power at bus i:
+ *   P_i = Σ_j |V_i||V_j|[G_ij·cos(θ_i - θ_j) + B_ij·sin(θ_i - θ_j)]  ... (4)
+ *
+ * Reactive Power at bus i:
+ *   Q_i = Σ_j |V_i||V_j|[G_ij·sin(θ_i - θ_j) - B_ij·cos(θ_i - θ_j)]  ... (6)
+ *
+ * Power balance:
+ *   P_i = P_gen,i - P_load,i  (net injection)
+ *   Q_i = Q_gen,i - Q_load,i  (net injection)
+ *
+ * Sign convention:
+ *   - Positive: power injected into bus (generation)
+ *   - Negative: power absorbed from bus (load)
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+/**
  * Calculate power injections at a bus
  *
- * @description Computes complex power injection at a bus using:
- *   Pi = sum_j(Vi * Vj * (Gij * cos(δi - δj) + Bij * sin(δi - δj)))
- *   Qi = sum_j(Vi * Vj * (Gij * sin(δi - δj) - Bij * cos(δi - δj)))
+ * @description Computes complex power injection at a bus using polar form:
+ *   P_i = Σ_j |V_i||V_j|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]           ... (4)
+ *   Q_i = Σ_j |V_i||V_j|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]           ... (6)
  *
  * @param {number} busIdx - Bus index (0-indexed)
  * @param {Array<number>} V - Voltage magnitudes (p.u.)
@@ -818,6 +945,36 @@ function calcBranchFlow(branch, V, delta) {
 // ============================================================
 // Convergence Helpers
 // ============================================================
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * CONVERGENCE THEORY FOR POWER FLOW
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Convergence criteria:
+ *   max(|ΔP_i|, |ΔQ_i|) < ε for all buses i                          ... (81)
+ *
+ * Convergence orders:
+ *   - Newton-Raphson: Quadratic (||e^(k+1)|| ≤ C·||e^(k)||²)         ... (70)
+ *   - Fast Decoupled: Quasi-quadratic (order ≈ 1.6-1.8)
+ *   - Gauss-Seidel: Linear (||e^(k+1)|| ≤ ρ·||e^(k)||, ρ < 1)       ... (75)
+ *
+ * Convergence rate estimation:
+ *   ρ = ||e^(k+1)|| / ||e^(k)||                                      ... (76)
+ *
+ * Remaining iterations estimate:
+ *   n ≈ log(ε/e_current) / log(ρ)
+ *
+ * Divergence detection:
+ *   - Error exceeds threshold (e.g., 10^10)
+ *   - Error not finite (NaN or Infinity)
+ *   - Error consistently increasing over multiple iterations
+ *
+ * Typical convergence tolerances:
+ *   - Engineering: ε = 10^-4 p.u. (practical applications)
+ *   - Research:    ε = 10^-8 p.u. (high precision studies)
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
 
 /**
  * Convergence Tracker class

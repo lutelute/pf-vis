@@ -22,12 +22,21 @@
 
 /**
  * Bus type constants matching MATPOWER convention
+ *
+ * Bus Classification in Power Flow Analysis:
+ *   - Slack (Type 3): Reference bus with known |V| and θ (typically θ = 0°)
+ *                     Balances system power: P_slack = Σ P_load - Σ P_gen (other)
+ *   - PV (Type 2):    Generator bus with known P and |V|, solves for Q and θ
+ *                     Subject to reactive power limits: Q_min ≤ Q ≤ Q_max
+ *   - PQ (Type 1):    Load bus with known P and Q, solves for |V| and θ
+ *                     Most common bus type in practical power systems
+ *
  * @type {Object.<string, number>}
  */
 const BUS_TYPE = {
-    PQ: 1,      // PQ bus - both P and Q are specified
-    PV: 2,      // PV bus - P and V magnitude are specified
-    SLACK: 3    // Slack/Reference bus - V magnitude and angle are specified
+    PQ: 1,      // PQ bus - both P and Q are specified, solve for |V| and θ
+    PV: 2,      // PV bus - P and |V| specified, solve for Q and θ
+    SLACK: 3    // Slack/Reference bus - |V| and θ specified, solve for P and Q
 };
 
 /**
@@ -188,20 +197,44 @@ class PowerFlowEngine {
      * transmission lines with series impedance and shunt admittance,
      * as well as transformers with off-nominal tap ratios.
      *
-     * Mathematical formulation:
-     *   For a branch from bus i to bus j with impedance z = r + jx:
-     *   - Series admittance: y = 1/z = g + jb where g = r/(r² + x²), b = -x/(r² + x²)
-     *   - Off-diagonal elements: Yij = Yji = -y/tap
-     *   - Diagonal contributions: Yii += y/tap² + jB/2, Yjj += y + jB/2
+     * ═══════════════════════════════════════════════════════════════════════
+     * MATHEMATICAL FORMULATION (Admittance Matrix Construction)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * For a transmission line from bus i to bus j with impedance z = R + jX:
+     *
+     * Step 1: Series Admittance Calculation
+     *   y_ij = 1/(R_ij + jX_ij)
+     *        = R_ij/(R² + X²) - j·X_ij/(R² + X²)
+     *        = g_ij + j·b_ij                                          ... (7)
+     *
+     *   where:
+     *     g_ij = R_ij/(R_ij² + X_ij²)  [Conductance, real part]
+     *     b_ij = -X_ij/(R_ij² + X_ij²) [Susceptance, imaginary part]
+     *
+     * Step 2: Ybus Element Assignment
+     *   Self-admittance (diagonal):
+     *     Y_ii = Σ(k ∈ neighbors of i) y_ik + y_sh,i                   ... (8)
+     *
+     *   Mutual admittance (off-diagonal, i ≠ j):
+     *     Y_ij = -y_ij                                                  ... (9)
+     *
+     * Step 3: Transformer Model (with tap ratio τ)
+     *   Off-diagonal:   Y_ij = Y_ji = -y/τ
+     *   From-bus diag:  Y_ii += y/τ² + jB_c/2
+     *   To-bus diag:    Y_jj += y + jB_c/2
+     *
+     *   where B_c is the total line charging susceptance.
+     * ═══════════════════════════════════════════════════════════════════════
      */
     _buildYbus() {
-        // Initialize Ybus as zero matrix
+        // Initialize Ybus as zero matrix: Y = [0]_nxn
         for (let i = 0; i < this.nBus; i++) {
             this.Ybus.re[i] = new Array(this.nBus).fill(0);
             this.Ybus.im[i] = new Array(this.nBus).fill(0);
         }
 
-        // Process each branch
+        // Process each branch to build Ybus
         for (const branch of this.branchData) {
             const from = branch[0] - 1;  // F_BUS (1-indexed to 0-indexed)
             const to = branch[1] - 1;    // T_BUS
@@ -215,34 +248,37 @@ class PowerFlowEngine {
             if (Math.abs(r) < 1e-8) r = 1e-6;
             if (Math.abs(x) < 1e-8) x = 1e-6;
 
-            // Calculate series admittance: y = 1/(r + jx) = (r - jx)/(r² + x²)
-            const z2 = r * r + x * x;
-            const g = r / z2;           // Conductance (real part)
-            const bSeries = -x / z2;    // Susceptance (imaginary part)
+            // Series admittance: y = 1/z = 1/(r + jx)
+            // Using complex division: y = (r - jx)/(r² + x²) = g + jb
+            const z2 = r * r + x * x;    // |z|² = r² + x²
+            const g = r / z2;            // g = Re(y) = r/(r² + x²) [Conductance]
+            const bSeries = -x / z2;     // b = Im(y) = -x/(r² + x²) [Susceptance]
 
             // Handle tap ratio (0 means transmission line, use 1)
-            const tapRatio = tap === 0 ? 1 : tap;
+            const tapRatio = tap === 0 ? 1 : tap;  // τ (tau)
 
-            // Off-diagonal elements: Yij = -y/tap
+            // Off-diagonal elements: Y_ij = Y_ji = -y/τ (mutual admittance)
+            // Negative sign because current flows out of bus i into the line
             this.Ybus.re[from][to] -= g / tapRatio;
             this.Ybus.im[from][to] -= bSeries / tapRatio;
             this.Ybus.re[to][from] -= g / tapRatio;
             this.Ybus.im[to][from] -= bSeries / tapRatio;
 
-            // Diagonal elements: include tap ratio effects and line charging
-            // From-bus: y/tap² + jB/2
+            // Diagonal elements (self-admittance with tap ratio and line charging)
+            // From-bus: Y_ii += y/τ² + jB_c/2 (includes tap ratio squared)
             this.Ybus.re[from][from] += g / (tapRatio * tapRatio);
             this.Ybus.im[from][from] += bSeries / (tapRatio * tapRatio) + b / 2;
-            // To-bus: y + jB/2
+            // To-bus: Y_jj += y + jB_c/2 (no tap ratio on receiving end)
             this.Ybus.re[to][to] += g;
             this.Ybus.im[to][to] += bSeries + b / 2;
         }
 
-        // Add shunt admittances from bus data
+        // Add shunt admittances from bus data: Y_ii += G_sh + jB_sh
         for (let i = 0; i < this.nBus; i++) {
-            // Column 4: GS (shunt conductance, MW at V=1), Column 5: BS (shunt susceptance, MVAr at V=1)
-            const Gs = this.busData[i][4] / this.baseMVA;
-            const Bs = this.busData[i][5] / this.baseMVA;
+            // Column 4: GS (shunt conductance, MW at V=1)
+            // Column 5: BS (shunt susceptance, MVAr at V=1)
+            const Gs = this.busData[i][4] / this.baseMVA;  // Convert to p.u.
+            const Bs = this.busData[i][5] / this.baseMVA;  // Convert to p.u.
             this.Ybus.re[i][i] += Gs;
             this.Ybus.im[i][i] += Bs;
         }
@@ -252,9 +288,28 @@ class PowerFlowEngine {
      * Calculate power injections at all buses
      *
      * @private
-     * @description Computes complex power injection at each bus using:
-     *   Pi = sum_j(Vi * Vj * (Gij * cos(δi - δj) + Bij * sin(δi - δj)))
-     *   Qi = sum_j(Vi * Vj * (Gij * sin(δi - δj) - Bij * cos(δi - δj)))
+     * @description Computes complex power injection at each bus using the
+     * power balance equations derived from Kirchhoff's current law.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * POWER FLOW EQUATIONS (Polar Form)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Starting from complex power: S_i = V_i · I_i*
+     * where I_i = Σ_j Y_ij · V_j (from Ohm's law)
+     *
+     * Active Power (Real Part of S_i):
+     *   P_i = Σ_j |V_i||V_j|[G_ij·cos(θ_i - θ_j) + B_ij·sin(θ_i - θ_j)]  ... (4)
+     *
+     * Reactive Power (Imaginary Part of S_i):
+     *   Q_i = Σ_j |V_i||V_j|[G_ij·sin(θ_i - θ_j) - B_ij·cos(θ_i - θ_j)]  ... (6)
+     *
+     * where:
+     *   |V_i|, |V_j| = Voltage magnitudes at buses i and j (p.u.)
+     *   θ_i, θ_j     = Voltage angles at buses i and j (radians)
+     *   G_ij, B_ij   = Real and imaginary parts of Y_ij
+     *   θ_i - θ_j    = Phase angle difference between buses
+     * ═══════════════════════════════════════════════════════════════════════
      *
      * @returns {Object} Object containing P and Q arrays of calculated injections
      * @returns {Array<number>} return.P - Active power injections (p.u.)
@@ -266,12 +321,14 @@ class PowerFlowEngine {
 
         for (let i = 0; i < this.nBus; i++) {
             for (let j = 0; j < this.nBus; j++) {
-                const Gij = this.Ybus.re[i][j];
-                const Bij = this.Ybus.im[i][j];
-                const thetaij = this.delta[i] - this.delta[j];
+                const Gij = this.Ybus.re[i][j];  // G_ij = Re(Y_ij)
+                const Bij = this.Ybus.im[i][j];  // B_ij = Im(Y_ij)
+                const thetaij = this.delta[i] - this.delta[j];  // θ_ij = θ_i - θ_j
 
-                // Power injection equations in polar form
+                // Active power: P_i += |V_i||V_j|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]
                 P[i] += this.V[i] * this.V[j] * (Gij * Math.cos(thetaij) + Bij * Math.sin(thetaij));
+
+                // Reactive power: Q_i += |V_i||V_j|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]
                 Q[i] += this.V[i] * this.V[j] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
             }
         }
@@ -283,9 +340,27 @@ class PowerFlowEngine {
      * Calculate power mismatches at all buses
      *
      * @private
-     * @description Computes the difference between specified and calculated power:
-     *   ΔP = Pspec - Pcalc = (Pgen - Pload) - Pcalc
-     *   ΔQ = Qspec - Qcalc = (Qgen - Qload) - Qcalc
+     * @description Computes the difference between specified and calculated power.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * MISMATCH VECTOR (Newton-Raphson Formulation)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * The power flow problem is formulated as finding zeros of:
+     *   f(x) = [ΔP; ΔQ] = [P_spec - P_calc(x); Q_spec - Q_calc(x)] = 0  ... (17)
+     *
+     * where:
+     *   ΔP_i = P_spec,i - P_calc,i = (P_gen,i - P_load,i) - P_i(V, θ)
+     *   ΔQ_i = Q_spec,i - Q_calc,i = (Q_gen,i - Q_load,i) - Q_i(V, θ)
+     *
+     * State variable vector:
+     *   x = [θ_2, ..., θ_n, |V|_1, ..., |V|_m]^T                        ... (16)
+     *
+     *   where n = non-slack buses, m = PQ buses
+     *
+     * Convergence criterion:
+     *   max(|ΔP|, |ΔQ|) < ε (tolerance)
+     * ═══════════════════════════════════════════════════════════════════════
      *
      * @returns {Object} Mismatch data and calculated powers
      * @returns {Array<Object>} return.deltaP - Active power mismatches
@@ -383,9 +458,30 @@ class PowerFlowEngine {
      * Build the Jacobian matrix
      *
      * @private
-     * @description Constructs the Jacobian matrix with sub-matrices:
-     *   J = [J11 J12]   where J11 = ∂P/∂δ, J12 = ∂P/∂V
-     *       [J21 J22]         J21 = ∂Q/∂δ, J22 = ∂Q/∂V
+     * @description Constructs the Jacobian matrix for Newton-Raphson iteration.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * JACOBIAN MATRIX STRUCTURE
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * The Jacobian is the matrix of partial derivatives:
+     *
+     *       ┌                           ┐
+     *   J = │ ∂P/∂θ (J_Pθ)   ∂P/∂|V| (J_P|V|) │                         ... (19)
+     *       │ ∂Q/∂θ (J_Qθ)   ∂Q/∂|V| (J_Q|V|) │
+     *       └                           ┘
+     *
+     * Matrix dimensions:
+     *   - J_Pθ:  (n-1) × (n-1)  [non-slack buses × non-slack buses]
+     *   - J_P|V|: (n-1) × m     [non-slack buses × PQ buses]
+     *   - J_Qθ:  m × (n-1)      [PQ buses × non-slack buses]
+     *   - J_Q|V|: m × m         [PQ buses × PQ buses]
+     *
+     * Newton-Raphson update equation:
+     *   J · [Δθ; Δ|V|] = -[ΔP; ΔQ]                                      ... (18)
+     *
+     * The Jacobian enables quadratic convergence: ||e^(k+1)|| ∝ ||e^(k)||²
+     * ═══════════════════════════════════════════════════════════════════════
      *
      * @param {Array<Object>} deltaP - Active power mismatch data
      * @param {Array<Object>} deltaQ - Reactive power mismatch data
@@ -438,16 +534,35 @@ class PowerFlowEngine {
     }
 
     /**
-     * Calculate ∂Pi/∂δj (Jacobian element)
+     * Calculate ∂P_i/∂θ_j (Jacobian J_Pθ element)
      *
      * @private
+     * @description Computes partial derivative of active power w.r.t. voltage angle.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * J_Pθ BLOCK DERIVATION
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * From P_i = Σ_j |V_i||V_j|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]:
+     *
+     * Diagonal (i = j):
+     *   ∂P_i/∂θ_i = -Q_i - |V_i|²·B_ii                                  ... (21)
+     *
+     *   Expanded form:
+     *   = Σ(k≠i) |V_i||V_k|[-G_ik·sin(θ_ik) + B_ik·cos(θ_ik)]          ... (20)
+     *
+     * Off-diagonal (i ≠ j):
+     *   ∂P_i/∂θ_j = |V_i||V_j|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]        ... (22)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
      * @param {number} i - Row bus index
      * @param {number} j - Column bus index
      * @returns {number} Partial derivative value
      */
     _dPdDelta(i, j) {
         if (i === j) {
-            // Diagonal element: ∂Pi/∂δi = Σ(k≠i) Vi*Vk*(-Gik*sin(θik) + Bik*cos(θik))
+            // Diagonal: ∂P_i/∂θ_i = Σ(k≠i) |V_i||V_k|[-G_ik·sin(θ_ik) + B_ik·cos(θ_ik)]
+            // This equals -Q_i - |V_i|²·B_ii (can be derived from power equation)
             let sum = 0;
             for (let k = 0; k < this.nBus; k++) {
                 if (k === i) continue;
@@ -458,7 +573,7 @@ class PowerFlowEngine {
             }
             return sum;
         } else {
-            // Off-diagonal: ∂Pi/∂δj = Vi*Vj*(Gij*sin(θij) - Bij*cos(θij))
+            // Off-diagonal: ∂P_i/∂θ_j = |V_i||V_j|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]
             const Gij = this.Ybus.re[i][j];
             const Bij = this.Ybus.im[i][j];
             const thetaij = this.delta[i] - this.delta[j];
@@ -467,16 +582,31 @@ class PowerFlowEngine {
     }
 
     /**
-     * Calculate ∂Pi/∂Vj (Jacobian element)
+     * Calculate ∂P_i/∂|V_j| (Jacobian J_P|V| element)
      *
      * @private
+     * @description Computes partial derivative of active power w.r.t. voltage magnitude.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * J_P|V| BLOCK DERIVATION
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Diagonal (i = j):
+     *   ∂P_i/∂|V_i| = (P_i + |V_i|²·G_ii) / |V_i|                       ... (24)
+     *
+     *   Expanded: 2|V_i|·G_ii + Σ(k≠i) |V_k|[G_ik·cos(θ_ik) + B_ik·sin(θ_ik)]
+     *
+     * Off-diagonal (i ≠ j):
+     *   ∂P_i/∂|V_j| = |V_i|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]           ... (25)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
      * @param {number} i - Row bus index
      * @param {number} j - Column bus index
      * @returns {number} Partial derivative value
      */
     _dPdV(i, j) {
         if (i === j) {
-            // Diagonal: ∂Pi/∂Vi = 2*Vi*Gii + Σ(k≠i) Vk*(Gik*cos(θik) + Bik*sin(θik))
+            // Diagonal: ∂P_i/∂|V_i| = 2|V_i|·G_ii + Σ(k≠i) |V_k|[G_ik·cos(θ_ik) + B_ik·sin(θ_ik)]
             let sum = 2 * this.V[i] * this.Ybus.re[i][i];
             for (let k = 0; k < this.nBus; k++) {
                 if (k === i) continue;
@@ -487,7 +617,7 @@ class PowerFlowEngine {
             }
             return sum;
         } else {
-            // Off-diagonal: ∂Pi/∂Vj = Vi*(Gij*cos(θij) + Bij*sin(θij))
+            // Off-diagonal: ∂P_i/∂|V_j| = |V_i|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]
             const Gij = this.Ybus.re[i][j];
             const Bij = this.Ybus.im[i][j];
             const thetaij = this.delta[i] - this.delta[j];
@@ -496,16 +626,34 @@ class PowerFlowEngine {
     }
 
     /**
-     * Calculate ∂Qi/∂δj (Jacobian element)
+     * Calculate ∂Q_i/∂θ_j (Jacobian J_Qθ element)
      *
      * @private
+     * @description Computes partial derivative of reactive power w.r.t. voltage angle.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * J_Qθ BLOCK DERIVATION
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * From Q_i = Σ_j |V_i||V_j|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]:
+     *
+     * Diagonal (i = j):
+     *   ∂Q_i/∂θ_i = P_i - |V_i|²·G_ii                                   ... (26)
+     *
+     *   Expanded: Σ(k≠i) |V_i||V_k|[G_ik·cos(θ_ik) + B_ik·sin(θ_ik)]
+     *
+     * Off-diagonal (i ≠ j):
+     *   ∂Q_i/∂θ_j = -|V_i||V_j|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]       ... (27)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
      * @param {number} i - Row bus index
      * @param {number} j - Column bus index
      * @returns {number} Partial derivative value
      */
     _dQdDelta(i, j) {
         if (i === j) {
-            // Diagonal: ∂Qi/∂δi = Σ(k≠i) Vi*Vk*(Gik*cos(θik) + Bik*sin(θik))
+            // Diagonal: ∂Q_i/∂θ_i = Σ(k≠i) |V_i||V_k|[G_ik·cos(θ_ik) + B_ik·sin(θ_ik)]
+            // This equals P_i - |V_i|²·G_ii
             let sum = 0;
             for (let k = 0; k < this.nBus; k++) {
                 if (k === i) continue;
@@ -516,7 +664,7 @@ class PowerFlowEngine {
             }
             return sum;
         } else {
-            // Off-diagonal: ∂Qi/∂δj = -Vi*Vj*(Gij*cos(θij) + Bij*sin(θij))
+            // Off-diagonal: ∂Q_i/∂θ_j = -|V_i||V_j|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]
             const Gij = this.Ybus.re[i][j];
             const Bij = this.Ybus.im[i][j];
             const thetaij = this.delta[i] - this.delta[j];
@@ -525,16 +673,31 @@ class PowerFlowEngine {
     }
 
     /**
-     * Calculate ∂Qi/∂Vj (Jacobian element)
+     * Calculate ∂Q_i/∂|V_j| (Jacobian J_Q|V| element)
      *
      * @private
+     * @description Computes partial derivative of reactive power w.r.t. voltage magnitude.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * J_Q|V| BLOCK DERIVATION
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Diagonal (i = j):
+     *   ∂Q_i/∂|V_i| = (Q_i - |V_i|²·B_ii) / |V_i|                       ... (28)
+     *
+     *   Expanded: -2|V_i|·B_ii + Σ(k≠i) |V_k|[G_ik·sin(θ_ik) - B_ik·cos(θ_ik)]
+     *
+     * Off-diagonal (i ≠ j):
+     *   ∂Q_i/∂|V_j| = |V_i|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]           ... (29)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
      * @param {number} i - Row bus index
      * @param {number} j - Column bus index
      * @returns {number} Partial derivative value
      */
     _dQdV(i, j) {
         if (i === j) {
-            // Diagonal: ∂Qi/∂Vi = -2*Vi*Bii + Σ(k≠i) Vk*(Gik*sin(θik) - Bik*cos(θik))
+            // Diagonal: ∂Q_i/∂|V_i| = -2|V_i|·B_ii + Σ(k≠i) |V_k|[G_ik·sin(θ_ik) - B_ik·cos(θ_ik)]
             let sum = -2 * this.V[i] * this.Ybus.im[i][i];
             for (let k = 0; k < this.nBus; k++) {
                 if (k === i) continue;
@@ -545,7 +708,7 @@ class PowerFlowEngine {
             }
             return sum;
         } else {
-            // Off-diagonal: ∂Qi/∂Vj = Vi*(Gij*sin(θij) - Bij*cos(θij))
+            // Off-diagonal: ∂Q_i/∂|V_j| = |V_i|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]
             const Gij = this.Ybus.re[i][j];
             const Bij = this.Ybus.im[i][j];
             const thetaij = this.delta[i] - this.delta[j];
@@ -557,10 +720,30 @@ class PowerFlowEngine {
      * Perform one Gauss-Seidel iteration
      *
      * @private
-     * @description Implements the Gauss-Seidel method for power flow:
-     *   Vi^(k+1) = (1/Yii) * [((Pi - jQi)* / Vi*) - Σ(j≠i) Yij*Vj]
+     * @description Implements the Gauss-Seidel method for power flow.
      *
-     * Uses immediate updates (each bus uses latest voltages from previous buses).
+     * ═══════════════════════════════════════════════════════════════════════
+     * GAUSS-SEIDEL METHOD
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Basic iterative update formula derived from power balance:
+     *
+     *   V_i^(k+1) = (1/Y_ii) · [S_i*/V_i*^(k) - Σ(j≠i) Y_ij·V_j^(k+1/k)]
+     *
+     * Expanded form:
+     *   V_i^(k+1) = (1/Y_ii) · [(P_i - jQ_i)/(V_re - jV_im) - Σ Y_ij·V_j]
+     *
+     * Key characteristics:
+     *   - Linear convergence rate: ||e^(k+1)|| ∝ ||e^(k)||
+     *   - Uses immediate updates (Gauss-Seidel ordering)
+     *   - j < i: uses already updated V_j^(k+1)
+     *   - j > i: uses previous iteration V_j^(k)
+     *
+     * Convergence properties:
+     *   - Convergence order: 1 (linear)
+     *   - Typical iterations: 15-50
+     *   - Computational cost: O(n²) per iteration
+     * ═══════════════════════════════════════════════════════════════════════
      *
      * @returns {Object} Iteration results
      * @returns {number} return.maxError - Maximum mismatch (p.u.)
@@ -637,11 +820,34 @@ class PowerFlowEngine {
      * Perform one Fast Decoupled iteration
      *
      * @private
-     * @description Implements the Fast Decoupled XB method:
-     *   1. P-δ subproblem: B' × Δδ = ΔP/V
-     *   2. Q-V subproblem: B'' × ΔV = ΔQ/V
+     * @description Implements the Fast Decoupled XB method.
      *
-     * Assumes weak coupling between P-δ and Q-V relationships.
+     * ═══════════════════════════════════════════════════════════════════════
+     * FAST DECOUPLED (XB) METHOD
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Based on physical assumptions for transmission systems:
+     *   A1: r_ij << x_ij (resistance << reactance)
+     *   A2: |θ_i - θ_j| << 1 (small angle differences)
+     *   A3: |V_i| ≈ 1.0 (near nominal voltage)
+     *   A4: Q_i/|V_i|² << B_ii
+     *
+     * This allows decoupling of P-θ and Q-|V| subproblems:
+     *
+     * P-θ Subproblem (Step 1):                                          ... (37)
+     *   ΔP = -B' · Δθ  →  Δθ = -(B')⁻¹ · (ΔP/|V|)
+     *   Update: θ^(k+1) = θ^(k) + Δθ                                    ... (41)
+     *
+     * Q-|V| Subproblem (Step 2):                                        ... (38)
+     *   ΔQ = -B'' · Δ|V|  →  Δ|V| = -(B'')⁻¹ · (ΔQ/|V|)
+     *   Update: |V|^(k+1) = |V|^(k) + Δ|V|                              ... (44)
+     *
+     * B' and B'' matrices are constant (factored once):
+     *   B'_ij = -1/X_ij, B'_ii = Σ(1/X_ik)                              ... (33-34)
+     *   B''_ij = B'_ij, B''_ii = B'_ii + b_sh,i                         ... (35-36)
+     *
+     * Convergence: 1.6-1.8 order (quasi-quadratic)
+     * ═══════════════════════════════════════════════════════════════════════
      *
      * @returns {Object} Iteration results
      * @returns {number} return.maxError - Maximum mismatch (p.u.)
@@ -714,13 +920,38 @@ class PowerFlowEngine {
      * Solve DC Power Flow
      *
      * @private
-     * @description DC power flow assumptions:
-     *   1. Voltage magnitudes are 1.0 p.u. at all buses
-     *   2. Resistance is negligible (r << x)
-     *   3. Angle differences are small (sin(θ) ≈ θ)
+     * @description Solves the linearized DC power flow equations.
      *
-     * Resulting linear equation: B × δ = P
-     * where B is the susceptance matrix (imaginary part of Ybus)
+     * ═══════════════════════════════════════════════════════════════════════
+     * DC POWER FLOW (Linear Approximation)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Assumptions (from AC power flow equations):
+     *   1. |V_i| = 1.0 p.u. for all buses
+     *   2. r_ij << x_ij (negligible resistance, G_ij ≈ 0)
+     *   3. θ_i - θ_j << 1 rad (small angle differences)
+     *      → sin(θ_ij) ≈ θ_ij
+     *      → cos(θ_ij) ≈ 1
+     *
+     * Linearized Power Equation:
+     *   From: P_i = Σ_j |V_i||V_j|[G_ij·cos(θ_ij) + B_ij·sin(θ_ij)]
+     *   To:   P_i ≈ Σ_j B_ij·(θ_i - θ_j) = Σ_j B_ij·θ_i - Σ_j B_ij·θ_j
+     *
+     * Matrix Form:
+     *   P = B·θ  (linear system, single solution)
+     *
+     * Susceptance Matrix:
+     *   B_ii = Σ(k≠i) (1/X_ik)  [diagonal]
+     *   B_ij = -1/X_ij          [off-diagonal, i ≠ j]
+     *
+     * Branch Flow:
+     *   P_ij = (θ_i - θ_j)/X_ij
+     *
+     * Properties:
+     *   - Non-iterative (direct solution)
+     *   - No reactive power or voltage magnitude info
+     *   - Suitable for: economic dispatch, contingency screening
+     * ═══════════════════════════════════════════════════════════════════════
      *
      * @returns {Object} DC power flow results
      * @returns {boolean} return.converged - Always true for DC

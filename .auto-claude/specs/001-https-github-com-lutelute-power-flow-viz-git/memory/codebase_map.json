@@ -1,0 +1,10 @@
+{
+  "discovered_files": {
+    "power_flow_intuitive_v7.html": {
+      "description": "v7 now aligned with v6_fixed patterns: includes large-scale system generators (generateIEEE30System, generateRandomPowerSystem), getDynamicProblem for unified problem handling, spy plot and network graph visualizations, and adaptive rendering for performance optimization",
+      "category": "pattern",
+      "discovered_at": "2026-01-12T01:26:16.581931+00:00"
+    }
+  },
+  "last_updated": "2026-01-12T01:26:16.581938+00:00"
+}
