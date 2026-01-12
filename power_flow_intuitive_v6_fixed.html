@@ -1009,7 +1009,18 @@
     // ================================================================
     // アルゴリズム実装
     // ================================================================
-    
+
+    /**
+     * Performs one Newton-Raphson iteration step for power flow calculation.
+     *
+     * Uses the Jacobian matrix to compute voltage magnitude and angle corrections.
+     * Applies damping factor (70%) and step limiting for improved convergence stability
+     * in large-scale systems or when starting far from the solution.
+     *
+     * @returns {{error: number, converged: boolean}} Object containing:
+     *   - error: Current power mismatch error (||ΔS||)
+     *   - converged: True if error is below tolerance threshold
+     */
     function newtonStep() {
         const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
@@ -1051,6 +1062,19 @@
         return { error, converged: error < state.tolerance };
     }
 
+    /**
+     * Performs one Gauss-Seidel iteration step for power flow calculation.
+     *
+     * Iteratively solves V_new = (1/Yii) * [S*/V* - Σ(j≠i) Yij*Vj] for each PQ bus.
+     * Uses adaptive relaxation factor (alpha) based on error trend:
+     *   - alpha = 0.5 for normal convergence
+     *   - alpha = 0.2 when error increases (prevents divergence)
+     * Includes stagnation detection after 20 iterations.
+     *
+     * @returns {{error: number, converged: boolean}} Object containing:
+     *   - error: Current power mismatch error (||ΔS||)
+     *   - converged: True if error is below tolerance threshold
+     */
     function gaussSeidelStep() {
         const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
@@ -1128,6 +1152,20 @@
         return { error, converged: error < state.tolerance };
     }
 
+    /**
+     * Performs one gradient descent iteration step for power flow calculation.
+     *
+     * Uses numerical central difference to compute the gradient of the squared error
+     * objective function. Performs backtracking line search (up to 20 steps) to find
+     * the optimal step size along the descent direction.
+     *
+     * Gradient computation: ∂(error²)/∂x using step size h = 1e-5
+     * Line search: Tests step sizes baseStep * 0.5^k for k = 0..19
+     *
+     * @returns {{error: number, converged: boolean}} Object containing:
+     *   - error: Best achieved power mismatch error (||ΔS||)
+     *   - converged: True if error is below tolerance threshold
+     */
     function gradientStep() {
         const prob = getDynamicProblem(state.problem);
         const busIdx = prob.solverBus;
@@ -1180,6 +1218,21 @@
         return { error: bestErr, converged: bestErr < state.tolerance };
     }
 
+    /**
+     * Applies the DC power flow approximation solution.
+     *
+     * DC power flow is a linear approximation that assumes:
+     *   - All voltage magnitudes are 1.0 p.u.
+     *   - Angle differences are small (sin(δ) ≈ δ)
+     *   - Reactive power flows are negligible
+     *
+     * The solution is computed in one step using: δ = P / B
+     * Always returns converged=true as DC method completes in one iteration.
+     *
+     * @returns {{error: number, converged: boolean}} Object containing:
+     *   - error: Mismatch between DC approximation and full AC solution
+     *   - converged: Always true (DC method is single-step)
+     */
     function dcStep() {
         // DC法は1回で解が出る（線形近似）
         const dc = state.dcSolution;
@@ -1202,6 +1255,17 @@
         return { error, converged: true };  // DC法は常に1回で完了
     }
 
+    /**
+     * Dispatches to the appropriate algorithm-specific step function.
+     *
+     * Executes one iteration of the currently selected power flow algorithm:
+     *   - 'newton': Newton-Raphson method (quadratic convergence)
+     *   - 'gauss-seidel': Gauss-Seidel method (linear convergence)
+     *   - 'gradient': Numerical gradient descent
+     *   - 'dc': DC power flow linear approximation
+     *
+     * @returns {{error: number, converged: boolean}} Result from the selected algorithm
+     */
     function doIteration() {
         switch (state.algorithm) {
             case 'newton': return newtonStep();
@@ -1382,6 +1446,21 @@
         document.getElementById('runBtn').disabled = false;
     }
 
+    /**
+     * Executes a single iteration step (step-through animation mode).
+     *
+     * Performs one power flow iteration, updates the visualization, and
+     * runs convergence diagnostics. This function is used for the manual
+     * step-through feature allowing users to observe each iteration.
+     *
+     * Side effects:
+     *   - Updates state.iteration, state.trajectory, state.errorHistory
+     *   - Refreshes all visualization canvases
+     *   - May display convergence or diagnostic messages
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
     async function step() {
         if (state.running) return;
         
