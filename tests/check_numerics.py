@@ -165,6 +165,17 @@ def main():
         check("2倍→約4.2倍の損失", abs((r["f100"] - 100) / (r["f50"] - 50) - 4.23) < 0.1)
         check("限界超え (d=505) で解なし", r["fOver"] is None)
 
+        # ---------- ladder_l1 ----------
+        print("\n■ ラダーL1 (ladder_l1)")
+        page.goto(f"{BASE}/ladder_l1.html")
+        page.wait_for_timeout(400)
+        r = page.evaluate("""() => ({
+            i275: amps(100, 275), loss275: lossMW(100, 275), loss66: lossMW(100, 66), loss66x10: lossMW(100, 660)
+        })""")
+        check("I = P/V (100MW/275kV → 363.6A)", abs(r["i275"] - 363.64) < 0.1, f"I={r['i275']}")
+        check("損失 I²R (275kV → 1.32MW)", abs(r["loss275"] - 1.322) < 0.01, f"loss={r['loss275']}")
+        check("電圧10倍 → 損失1/100", abs(r["loss66"] / r["loss66x10"] - 100) < 0.5)
+
         # ---------- dc_accuracy ----------
         print("\n■ DC潮流精度検証 (dc_accuracy)")
         page.goto(f"{BASE}/dc_accuracy_analysis.html")

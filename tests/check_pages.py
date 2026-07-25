@@ -28,6 +28,7 @@ PAGES = [
     ("はじめに", "getting_started.html"),
     ("講演: Newton-Raphson", "learn_newton.html"),
     ("ラダーL0", "ladder_l0.html"),
+    ("ラダーL1", "ladder_l1.html"),
 ]
 
 

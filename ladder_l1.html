@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L1: 電圧×電流 — 送電線が50万ボルトを使う理由</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪜</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
+    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);line-height:1.75;font-size:15px;}
+  .wrap{max-width:860px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;} .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  .ladder-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--accent);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:24px;margin:0 0 6px;letter-spacing:.02em;}
+  h2{font-family:var(--mincho);font-weight:600;font-size:18px;margin:26px 0 10px;}
+  .lead{color:var(--muted);font-size:14px;max-width:720px;margin-bottom:14px;}
+  .lead b,b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.5px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 118px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:3px;}
+  .prow span:last-child{color:var(--muted);}
+  .eq{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin:10px 0;line-height:1.9;}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12.5px;color:var(--muted);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:6px;}
+  canvas{display:block;width:100%;max-width:820px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .ctrl{display:flex;align-items:center;gap:18px;margin-top:12px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);}
+  input[type=range]{width:min(260px,50vw);accent-color:var(--accent);}
+  select{font-family:var(--mono);font-size:13.5px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--text);}
+  .readout{font-family:var(--mono);font-size:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;margin-top:10px;line-height:2;}
+  .readout b{font-size:16px;}
+  .readout .i{color:var(--upd);} .readout .l{color:var(--neg);} .readout .ok{color:var(--accent);}
+  .note{font-size:12.5px;color:var(--faint);margin-top:6px;}
+  .disc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:10px 0;font-size:14px;color:var(--muted);}
+  .disc .no{display:inline-block;font-family:var(--mono);font-weight:700;color:#fff;background:var(--accent);border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-size:12px;}
+  .limits{background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:16px 0;}
+  .limits-h{font-weight:700;color:var(--warm);margin-bottom:4px;}
+  .quiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0;}
+  .quiz h3{font-size:15px;margin:0 0 8px;font-family:var(--mincho);}
+  .quiz p{font-size:14px;color:var(--muted);margin:6px 0;}
+  .qcheck{display:inline-flex;align-items:center;gap:8px;}
+  .qcheck input[type=text]{width:100px;font-family:var(--mono);font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);}
+  .qcheck button{font-size:13px;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font-weight:600;cursor:pointer;}
+  .qcheck button:hover{background:rgba(31,158,138,0.08);}
+  .qmark{font-size:16px;min-width:5em;}
+  .nextbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:18px;font-size:14px;}
+  .nextbox a{color:var(--accent);font-weight:600;}
+  .foot{font-size:12px;color:var(--faint);margin-top:20px;} .foot a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="ladder_l0.html">🪜 L0へ戻る</a>
+    <a href="getting_started.html">🚪 はじめに(L3)</a>
+  </div>
+  <div class="ladder-tag">🪜 学習ラダー L1 — 前提: 比例・オームの法則（中学理科）</div>
+  <h1>電圧×電流 — 送電線が50万ボルトを使う理由</h1>
+  <div class="lead">
+    家のコンセントは100ボルト。なのに山を越えていく送電線は<b>50万ボルト</b>——5000倍です。
+    なぜそんな途方もない電圧を使うのか。答えは<a href="ladder_l0.html">L0</a>で見た「うしなう」を
+    減らす工夫にあります。このページでは中学理科の <b>V=IR</b> と <b>P=VI</b> の2本だけで、
+    その理由を自分で計算して突き止めます。
+  </div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>「電圧を上げると損失が激減する」は送電網の設計全体を貫く原理だから。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>電力 P=V×I。同じPなら<b>Vを上げるほどIが減り</b>、損失 I²R は<b>2乗で</b>減る。</span></div>
+    <div class="prow"><span class="pq">L0との接続</span><span>L0の「うしなう」の正体がここで判明する: それは電流の2乗×線の抵抗（I²R）だった。</span></div>
+  </div>
+
+  <div class="eq">P = V × I　　（電力 = 電圧 × 電流）<br>損失 = I² × R<sub>線</sub>　　（線で熱になる分 = 電流の2乗 × 線の抵抗）
+    <span class="read">読み：同じ電力Pを送るのに、電圧Vと電流Iの組み合わせは自由に選べる（100=100×1 でも 100=10×10 でもよい）。
+    しかし損失は<b>Iだけ</b>で決まる——だからIを小さくできる組み合わせ、つまり高い電圧が勝つ。</span>
+  </div>
+
+  <h2>実験: 同じ電力を、違う電圧で送ってみる</h2>
+  <div class="stage">
+    <canvas id="cv" width="820" height="300"></canvas>
+    <div class="ctrl">
+      <label>送る電力 P: <b id="pLabel" style="font-family:var(--mono)">100</b> MW</label>
+      <input type="range" id="power" min="10" max="200" step="5" value="100">
+      <label>送電電圧 V:
+        <select id="volt">
+          <option value="6.6">6.6 kV（配電レベル）</option>
+          <option value="66">66 kV</option>
+          <option value="154">154 kV</option>
+          <option value="275" selected>275 kV</option>
+          <option value="500">500 kV（基幹送電）</option>
+        </select>
+      </label>
+    </div>
+    <div class="readout" id="readout"></div>
+    <p class="note">線路の抵抗は R=10Ω（数十km級の送電線の目安）で固定。棒グラフは全電圧での損失を同時比較しています。</p>
+  </div>
+
+  <h2>この実験からわかる3つのこと</h2>
+  <div class="disc"><span class="no">1</span><b>同じ電力でも、電圧と電流の組は選べる。</b>
+    P=V×I なので、100 MW は「275 kV × 364 A」でも「66 kV × 1515 A」でも送れる。
+    送る電力は同じなのに、線を流れる電流は4倍以上違う——ここが工夫の入口です。</div>
+  <div class="disc"><span class="no">2</span><b>損失を決めるのは電流だけ。しかも2乗で効く。</b>
+    損失 = I²R。電流が1/10になれば損失は1/100。実測: 66 kV では 23.0 MW 失うのに、
+    その10倍の660 kV なら 0.23 MW——きっかり<b>100分の1</b>です。
+    L0で「使う量2倍→うしなう約4倍」だった理由も、これ（電流2倍→損失4倍）でした。</div>
+  <div class="disc"><span class="no">3</span><b>低い電圧では、そもそも送れない。</b>
+    電圧を 6.6 kV にしてみてください。損失が2296 MW——送りたい100 MWの<b>23倍</b>を途中で失う計算になり、
+    物理的に破綻します。遠くへ大電力を送るには昇圧が<b>必須</b>。
+    発電所を出てすぐ変圧器で数十万Vに上げ、街の近くで段階的に下げる——送電網の背骨はこの論理でできています。</div>
+
+  <div class="limits">
+    <div class="limits-h">⚠ 正直な注意 — この模型が単純化していること</div>
+    ①実際の送電は<b>三相交流</b>で、ここでの計算は本質を保った単相の模型です。
+    ②「V=IR」のVに注意: <b>送電電圧</b>（大地との間の電圧）と、<b>線の抵抗で失われる電圧</b>（I×R線）は別物です。
+    このページのRに掛かっているのは後者。③電圧は上げるほど得ですが、変圧器・がいし・鉄塔が大きく高価になるため、
+    実際は送る距離と電力に応じて 66/154/275/500 kV などの<b>電圧階級</b>から選びます。無限に上げない理由はコストです。
+  </div>
+
+  <h2>昇級課題 — 3問正解でL2へ</h2>
+  <div class="quiz">
+    <h3>課題1（P=VI を使う）</h3>
+    <p>100 MW（=100,000,000 W）を 100 kV（=100,000 V）で送るとき、電流は何アンペア？</p>
+    <span class="qcheck"><input type="text" id="q1" inputmode="numeric"> <span>A</span>
+      <button onclick="checkNum('q1',1000,1)">判定</button><span class="qmark" id="q1m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題2（損失=I²R を使う）</h3>
+    <p>その電流 1000 A が R=10 Ω の線を流れるとき、損失は何MW？（1 MW = 1,000,000 W）</p>
+    <span class="qcheck"><input type="text" id="q2" inputmode="numeric"> <span>MW</span>
+      <button onclick="checkNum('q2',10,0.2)">判定</button><span class="qmark" id="q2m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題3（2乗の目）</h3>
+    <p>送る電力はそのまま、電圧だけを10倍にしました。損失は何分の1になる？</p>
+    <span class="qcheck"><span>　</span><input type="text" id="q3" inputmode="numeric"> <span>分の1</span>
+      <button onclick="checkNum('q3',100,1)">判定</button><span class="qmark" id="q3m"></span></span>
+  </div>
+
+  <div class="nextbox" id="nextbox">🔒 3問正解すると、次のレベルへの道が開きます。</div>
+
+  <p class="foot">
+    このページの数値はすべて I=P/V と 損失=I²R の実計算です（例: 100MW・275kV → I=363.6A → 損失1.32MW）。
+    <a href="index.html#ladder">ラダーの全体像</a> ／ 前の段: <a href="ladder_l0.html">L0 つくる=つかう+うしなう</a>
+  </p>
+</div>
+
+<script>
+"use strict";
+// ============================================================
+// 実計算: I = P/V, 損失 = I²R  (R=10Ω固定)
+// ============================================================
+const RLINE=10;
+const VOLTS=[6.6,66,154,275,500];
+let P_MW=100, VkV=275;
+function amps(P_MW,VkV){ return P_MW*1e6/(VkV*1e3); }
+function lossMW(P_MW,VkV){ const I=amps(P_MW,VkV); return I*I*RLINE/1e6; }
+
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CW=820, CH=300;
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+function draw(){
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,CW,CH);
+
+  // --- 左: 送電の絵 (電流の太さを可視化) ---
+  const I=amps(P_MW,VkV), loss=lossMW(P_MW,VkV);
+  const gx=70,tx=350,y=84;
+  ctx.fillStyle=getCSS('--accent');ctx.fillRect(gx-30,y-26,60,52);
+  ctx.fillStyle='#fff';ctx.font='700 12px '+getCSS('--gothic');ctx.textAlign='center';
+  ctx.fillText('発電所',gx,y+4);
+  ctx.fillStyle=getCSS('--upd');ctx.fillRect(tx-26,y-26,52,52);
+  ctx.fillStyle='#fff';ctx.fillText('街',tx,y+4);
+  const w=Math.min(46,Math.max(2,I/60));
+  ctx.strokeStyle=loss>P_MW?'rgba(207,79,95,0.7)':'rgba(31,158,138,0.55)';
+  ctx.lineWidth=w;
+  ctx.beginPath();ctx.moveTo(gx+34,y);ctx.lineTo(tx-30,y);ctx.stroke();
+  ctx.fillStyle=getCSS('--muted');ctx.font='11.5px '+getCSS('--mono');
+  ctx.fillText('I = '+Math.round(I).toLocaleString()+' A（線の太さ=電流）',(gx+tx)/2,y-w/2-12);
+  ctx.fillStyle=loss>P_MW?getCSS('--neg'):getCSS('--muted');
+  ctx.fillText('損失 '+loss.toFixed(2)+' MW',(gx+tx)/2,y+w/2+20);
+
+  // V=IRの補足
+  ctx.fillStyle=getCSS('--faint');ctx.font='11px '+getCSS('--gothic');
+  ctx.fillText('電圧 '+VkV+' kV で送電中',(gx+tx)/2,y+w/2+38);
+
+  // --- 右: 全電圧での損失比較 (対数棒グラフ・実計算) ---
+  const bx0=430,bw=64,by0=250,bh=190;
+  ctx.fillStyle=getCSS('--text');ctx.font='700 12px '+getCSS('--gothic');ctx.textAlign='left';
+  ctx.fillText('同じ '+P_MW+' MW を送ったときの損失（対数目盛）',bx0,34);
+  VOLTS.forEach((v,i)=>{
+    const l=lossMW(P_MW,v);
+    // 対数スケール: 0.01MW〜10000MW を bh にマップ
+    const h=Math.max(4,(Math.log10(l)+2)/6*bh);
+    const x=bx0+i*bw+8;
+    const over=l>P_MW;
+    ctx.fillStyle=v===VkV?(over?getCSS('--neg'):getCSS('--accent')):(over?'rgba(207,79,95,0.45)':'rgba(31,158,138,0.35)');
+    ctx.fillRect(x,by0-h,bw-22,h);
+    ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';
+    ctx.fillText(v+'kV',x+(bw-22)/2,by0+16);
+    ctx.fillStyle=over?getCSS('--neg'):getCSS('--text');
+    ctx.font='700 10px '+getCSS('--mono');
+    ctx.fillText(l>=100?Math.round(l)+'':l.toFixed(l>=10?1:2),x+(bw-22)/2,by0-h-6);
+  });
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--gothic');ctx.textAlign='left';
+  ctx.fillText('（単位: MW。赤=送る電力より損失が大きい=物理的に破綻）',bx0,by0+34);
+  // 送る電力の基準線
+  const refH=Math.max(4,(Math.log10(P_MW)+2)/6*bh);
+  ctx.strokeStyle=getCSS('--warm');ctx.setLineDash([5,4]);ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.moveTo(bx0,by0-refH);ctx.lineTo(bx0+VOLTS.length*bw-8,by0-refH);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=getCSS('--warm');ctx.font='10px '+getCSS('--mono');
+  ctx.fillText('送る電力 '+P_MW+' MW の線',bx0,by0-refH-6);
+}
+
+function updateReadout(){
+  const I=amps(P_MW,VkV), loss=lossMW(P_MW,VkV), pct=loss/P_MW*100;
+  document.getElementById('pLabel').textContent=P_MW;
+  const el=document.getElementById('readout');
+  const verdict=loss>P_MW
+    ?'<span class="l">⚠ 損失が送る電力を超えました。この電圧では物理的に送れません。</span>'
+    :(pct<2?'<span class="ok">✓ 実用水準（損失'+pct.toFixed(2)+'%）</span>':'<span style="color:var(--warm)">損失 '+pct.toFixed(1)+'% — まだ大きい</span>');
+  el.innerHTML='P = V × I:　<b>'+P_MW+'</b> MW = '+VkV+' kV × <b class="i">'+Math.round(I).toLocaleString()+'</b> A<br>'+
+    '損失 = I²R:　<b class="l">'+loss.toFixed(2)+'</b> MW = ('+Math.round(I).toLocaleString()+' A)² × '+RLINE+' Ω<br>'+verdict;
+}
+
+document.getElementById('power').addEventListener('input',e=>{P_MW=+e.target.value;updateReadout();draw();});
+document.getElementById('volt').addEventListener('change',e=>{VkV=+e.target.value;updateReadout();draw();});
+updateReadout();draw();
+
+// ============================================================
+// 昇級課題
+// ============================================================
+const quizState={q1:false,q2:false,q3:false};
+function checkNum(id,ans,tol){
+  const v=parseFloat(document.getElementById(id).value.replace(/,/g,''));
+  const ok=isFinite(v)&&Math.abs(v-ans)<=tol;
+  document.getElementById(id+'m').textContent=ok?'✅ 正解':'❌ もう一度';
+  quizState[id]=ok;
+  if(quizState.q1&&quizState.q2&&quizState.q3){
+    document.getElementById('nextbox').innerHTML='🎉 <b>L1 修了。</b>あなたは「高圧送電の理由」を計算で説明できるようになりました。'+
+      '次は <b>L2: 回る矢印と2つの電力</b> — 交流の電圧・電流を「回る矢印」で捉え直すと、'+
+      '電力にPとQの2種類があることが見えてきます。'+
+      '<br>→ <a href="ladder_l2.html">L2へ進む（準備中の場合はメインページのラダーを確認）</a>　'+
+      '／　<a href="ladder_l0.html">L0を復習する</a>';
+  }
+}
+</script>
+</body>
+</html>
