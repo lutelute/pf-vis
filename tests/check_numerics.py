@@ -154,6 +154,17 @@ def main():
         check("スライド16枚", r["slides"] == 16, f"slides={r['slides']}")
         check("GS参照解も収束", r["gsConv"])
 
+        # ---------- ladder_l0 (学習ラダー) ----------
+        print("\n■ ラダーL0 (ladder_l0)")
+        page.goto(f"{BASE}/ladder_l0.html")
+        page.wait_for_timeout(400)
+        r = page.evaluate("""() => ({
+            f100: solveFlow(100), f50: solveFlow(50), fOver: solveFlow(505)
+        })""")
+        check("損失の厳密解 (d=100 → f=105.57)", abs(r["f100"] - 105.573) < 0.01, f"f={r['f100']}")
+        check("2倍→約4.2倍の損失", abs((r["f100"] - 100) / (r["f50"] - 50) - 4.23) < 0.1)
+        check("限界超え (d=505) で解なし", r["fOver"] is None)
+
         # ---------- dc_accuracy ----------
         print("\n■ DC潮流精度検証 (dc_accuracy)")
         page.goto(f"{BASE}/dc_accuracy_analysis.html")

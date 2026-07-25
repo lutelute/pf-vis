@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L0: 電気はためられない — つくる・つかう・うしなうの釣り合い</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪜</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
+    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);line-height:1.75;font-size:15px;}
+  .wrap{max-width:860px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;} .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  .ladder-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--accent);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:24px;margin:0 0 6px;letter-spacing:.02em;}
+  h2{font-family:var(--mincho);font-weight:600;font-size:18px;margin:26px 0 10px;}
+  .lead{color:var(--muted);font-size:14px;max-width:720px;margin-bottom:14px;}
+  .lead b,b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.5px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 118px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:3px;}
+  .prow span:last-child{color:var(--muted);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:6px;}
+  canvas{display:block;width:100%;max-width:820px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .ctrl{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap;}
+  .ctrl label{font-size:13.5px;color:var(--muted);}
+  input[type=range]{width:min(340px,60vw);accent-color:var(--accent);}
+  .readout{font-family:var(--mono);font-size:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;margin-top:10px;line-height:2;}
+  .readout b{font-size:16px;}
+  .readout .g{color:var(--accent);} .readout .d{color:var(--upd);} .readout .l{color:var(--neg);}
+  .note{font-size:12.5px;color:var(--faint);margin-top:6px;}
+  .disc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:10px 0;font-size:14px;color:var(--muted);}
+  .disc .no{display:inline-block;font-family:var(--mono);font-weight:700;color:#fff;background:var(--accent);border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-size:12px;}
+  .limits{background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:16px 0;}
+  .limits-h{font-weight:700;color:var(--warm);margin-bottom:4px;}
+  .quiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0;}
+  .quiz h3{font-size:15px;margin:0 0 8px;font-family:var(--mincho);}
+  .quiz p{font-size:14px;color:var(--muted);margin:6px 0;}
+  .qcheck{display:inline-flex;align-items:center;gap:8px;}
+  .qcheck input[type=text]{width:90px;font-family:var(--mono);font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);}
+  .qcheck button{font-size:13px;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font-weight:600;cursor:pointer;}
+  .qcheck button:hover{background:rgba(31,158,138,0.08);}
+  .qmark{font-size:18px;min-width:1.3em;}
+  .quiz label.opt{display:block;font-size:14px;color:var(--muted);padding:4px 0;cursor:pointer;}
+  .nextbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:18px;font-size:14px;}
+  .nextbox a{color:var(--accent);font-weight:600;}
+  .foot{font-size:12px;color:var(--faint);margin-top:20px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="getting_started.html">🚪 はじめに</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="ladder-tag">🪜 学習ラダー L0 — 前提: たし算とかけ算だけ</div>
+  <h1>電気はためられない — つくる・つかう・うしなうの釣り合い</h1>
+  <div class="lead">
+    スマホの電池とちがって、発電所の電気は<b>大量にためておくことができません</b>。
+    だから発電所は、いまこの瞬間に町で使われている量を、いまこの瞬間に作っています。
+    しかも、送る途中で少しだけ熱になって失われる。この
+    <b>「つくる ＝ つかう ＋ うしなう」</b>という釣り合いこそ、電力網のいちばん深いルールです。
+    このページの数字は、かんたんに見えてぜんぶ本物の計算です。
+  </div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>電力網のすべての計算（大学や研究所でやるものも）は、この釣り合いの上に建っているから。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>電気は<b>作った瞬間に使う</b>。釣り合いを保つのが電力網の仕事。</span></div>
+    <div class="prow"><span class="pq">どこへつながる?</span><span>このルールは、大学レベルでは「電力収支の検算」、研究レベルでは「解が存在する条件」と呼ばれる。<b>同じ一つの物理</b>です。</span></div>
+  </div>
+
+  <h2>実験: 町の使う量を動かしてみる</h2>
+  <div class="stage">
+    <canvas id="cv" width="820" height="300"></canvas>
+    <div class="ctrl">
+      <label>町で<b>つかう</b>電力: <b id="dLabel" style="font-family:var(--mono)">100</b> MW</label>
+      <input type="range" id="demand" min="10" max="480" step="5" value="100">
+    </div>
+    <div class="readout" id="readout"></div>
+    <p class="note">MW（メガワット）は電力の単位。100 MW はだいたい3万世帯ぶんの電力です。</p>
+  </div>
+
+  <h2>この実験からわかる3つのこと</h2>
+  <div class="disc"><span class="no">1</span><b>釣り合いは一瞬も休まない。</b>
+    スライダーを動かした瞬間に「つくる」の数字も変わりました。現実の発電所も同じで、
+    町の消費が変わるたびに出力を追いかけて調整しています。電気がためられない以上、これ以外に方法がないのです。</div>
+  <div class="disc"><span class="no">2</span><b>つかう量を2倍にすると、うしなう量は約4倍になる。</b>
+    50 MW と 100 MW で「うしなう」を見比べてください（1.3 MW → 5.6 MW）。2倍ではなく約4倍。
+    失われる量は流れの<b>2乗</b>に比例するからです（かけ算で確かめられます: 2×2=4）。
+    正確には4倍より少し多い——失う分まで<b>余計に</b>流さないといけないから。ここに気づけたら鋭い。</div>
+  <div class="disc"><span class="no">3</span><b>送れる量には限界がある。</b>
+    スライダーを右端（480 MW）まで動かすと「うしなう」が急に大きくなります。この線ではこれ以上
+    どうがんばっても送れない量（この模型では500 MW）が存在する。
+    この「限界」は、大学院レベルで<b>電圧崩壊</b>という名前で再登場します（L5）。</div>
+
+  <div class="limits">
+    <div class="limits-h">⚠ たとえの限界 — 水と電気はここが違う</div>
+    このページの絵は「山の水路」のように描きましたが、電気は水と違って
+    ①ほぼ<b>光の速さ</b>で伝わる（ためるダムがない）、②行き先を<b>自分では選ばない</b>（つながった網全体で瞬時に配分が決まる）、
+    ③失われる熱は<b>流れの2乗</b>で増える。たとえは入口として便利ですが、②と③は水のイメージからはみ出します。
+    はみ出した部分こそ、この先のレベルで学ぶ中身です。
+  </div>
+
+  <h2>昇級課題 — 3問正解でL1へ</h2>
+  <div class="quiz">
+    <h3>課題1（たし算）</h3>
+    <p>発電所が 103 MW つくっていて、町が 100 MW つかっているとき、途中でうしなっているのは何MW？</p>
+    <span class="qcheck"><input type="text" id="q1" inputmode="numeric"> <span>MW</span>
+      <button onclick="checkNum('q1',3,0.01)">判定</button><span class="qmark" id="q1m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題2（かけ算の目）</h3>
+    <p>つかう量を 50 MW から 100 MW に（2倍に）したら、うしなう量は約何倍になった？ 上の実験の数字で確かめて答えてください。</p>
+    <span class="qcheck"><input type="text" id="q2" inputmode="numeric"> <span>倍くらい</span>
+      <button onclick="checkNum('q2',4,0.6)">判定</button><span class="qmark" id="q2m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題3（考える）</h3>
+    <p>夜になって、町の消費が急に半分になりました。発電所はどうするべき？</p>
+    <label class="opt"><input type="radio" name="q3" value="a"> そのまま作り続ける（余った電気は消える）</label>
+    <label class="opt"><input type="radio" name="q3" value="b"> すぐに作る量を減らして釣り合わせる</label>
+    <label class="opt"><input type="radio" name="q3" value="c"> 余った電気を全部ためておく</label>
+    <span class="qcheck"><button onclick="checkQ3()">判定</button><span class="qmark" id="q3m"></span></span>
+    <p class="note" id="q3note"></p>
+  </div>
+
+  <div class="nextbox" id="nextbox">
+    🔒 3問正解すると、次のレベルへの道が開きます。
+  </div>
+
+  <p class="foot">
+    このページの「うしなう」は飾りの数字ではなく、方程式 r·f² − f + d = 0（f=送る量, d=つかう量, r=0.0005/MW）の
+    厳密解 f = (1 − √(1 − 4rd)) / 2r から計算しています。√の中が負になる d > 500 MW では解が存在しない——
+    それが「限界」の正体です。ラダーの全体像は<a href="index.html#ladder" style="color:var(--accent)">メインページ</a>へ。
+  </p>
+</div>
+
+<script>
+"use strict";
+// ============================================================
+// 実計算: 1本の送電線で町へ送る
+//   送る量 f は f = d + loss, loss = r·f² を満たす
+//   → r·f² − f + d = 0 の厳密解 f = (1 − √(1−4rd)) / (2r)
+// ============================================================
+const R=0.0005;             // 損失係数 (1/MW)
+function solveFlow(d){
+  const disc=1-4*R*d;
+  if(disc<0) return null;   // 解なし = この線では送れない
+  return (1-Math.sqrt(disc))/(2*R);
+}
+let demand=100;
+
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CW=820, CH=300;
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const prefersReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let animT=0;
+
+function draw(){
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,CW,CH);
+  const f=solveFlow(demand), loss=f===null?null:f-demand;
+
+  // --- 発電所 (左) ---
+  const gx=95,gy=120;
+  ctx.fillStyle=getCSS('--accent');
+  ctx.fillRect(gx-38,gy-8,76,58);
+  ctx.beginPath();ctx.moveTo(gx-38,gy-8);ctx.lineTo(gx,gy-42);ctx.lineTo(gx+38,gy-8);ctx.closePath();ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 13px '+getCSS('--gothic');ctx.textAlign='center';
+  ctx.fillText('発電所',gx,gy+26);
+  ctx.fillStyle=getCSS('--accent');ctx.font='700 15px '+getCSS('--mono');
+  ctx.fillText('つくる '+(f===null?'—':f.toFixed(1))+' MW',gx+8,gy+82);
+
+  // --- 町 (右) ---
+  const tx=715,ty=132;
+  const houses=Math.max(1,Math.round(demand/40));
+  ctx.fillStyle=getCSS('--upd');
+  for(let i=0;i<Math.min(houses,12);i++){
+    const hx=tx-52+(i%4)*32, hy=ty-12-Math.floor(i/4)*30;
+    ctx.fillRect(hx,hy,22,16);
+    ctx.beginPath();ctx.moveTo(hx-3,hy);ctx.lineTo(hx+11,hy-10);ctx.lineTo(hx+25,hy);ctx.closePath();ctx.fill();
+  }
+  ctx.fillStyle=getCSS('--upd');ctx.font='700 13px '+getCSS('--gothic');
+  ctx.fillText('町',tx,ty+36);
+  ctx.font='700 15px '+getCSS('--mono');
+  ctx.fillText('つかう '+demand.toFixed(0)+' MW',tx-10,ty+58);
+
+  // --- 送電線 ---
+  const y=136, x1=gx+52, x2=tx-72;
+  const width=f===null?26:Math.max(3,f/22);
+  ctx.strokeStyle='rgba(31,158,138,0.55)';ctx.lineWidth=width;
+  ctx.beginPath();ctx.moveTo(x1,y);ctx.lineTo(x2,y);ctx.stroke();
+  // 流れの粒
+  if(f!==null){
+    ctx.fillStyle=getCSS('--accent');
+    const n=6;
+    for(let i=0;i<n;i++){
+      const t=((animT+i/n)%1);
+      ctx.beginPath();ctx.arc(x1+(x2-x1)*t,y,Math.min(6,3+width/8),0,7);ctx.fill();
+    }
+  }
+  ctx.fillStyle=getCSS('--faint');ctx.font='12px '+getCSS('--gothic');
+  ctx.fillText('送電線（送る量 '+(f===null?'—':f.toFixed(1))+' MW）',(x1+x2)/2,y-22);
+
+  // --- うしなう (熱・下向き) ---
+  if(f!==null){
+    const lx=(x1+x2)/2;
+    ctx.strokeStyle=getCSS('--neg');ctx.lineWidth=Math.max(2,loss*1.4);
+    ctx.beginPath();ctx.moveTo(lx,y+width/2);ctx.lineTo(lx,y+58);ctx.stroke();
+    ctx.fillStyle=getCSS('--neg');
+    ctx.beginPath();ctx.moveTo(lx,y+70);ctx.lineTo(lx-7,y+56);ctx.lineTo(lx+7,y+56);ctx.closePath();ctx.fill();
+    ctx.font='700 14px '+getCSS('--mono');ctx.fillText('うしなう '+loss.toFixed(1)+' MW（熱）',lx,y+92);
+  }else{
+    ctx.fillStyle=getCSS('--neg');ctx.font='700 15px '+getCSS('--gothic');
+    ctx.fillText('⚠ この線では、これ以上送れません（限界を超えた）',(x1+x2)/2,y+70);
+  }
+
+  // --- 右下: つかう量→うしなう量の実カーブ ---
+  const px0=470,py0=288,pw=310,ph=64;
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(px0,py0-ph,pw,ph);
+  ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--gothic');ctx.textAlign='left';
+  ctx.fillText('つかう量（→）とうしなう量（↑）の関係。まっすぐではなく反り上がる',px0,py0-ph-6);
+  ctx.strokeStyle=getCSS('--neg');ctx.lineWidth=2;ctx.beginPath();
+  let first=true;
+  for(let d=10;d<=495;d+=5){
+    const ff=solveFlow(d); if(ff===null)break;
+    const ll=ff-d;
+    const X=px0+(d/500)*pw, Y=py0-Math.min(ph-2,(ll/60)*ph);
+    first?ctx.moveTo(X,Y):ctx.lineTo(X,Y);first=false;
+  }
+  ctx.stroke();
+  if(f!==null){
+    ctx.fillStyle=getCSS('--neg');
+    ctx.beginPath();ctx.arc(px0+(demand/500)*pw,py0-Math.min(ph-2,(loss/60)*ph),4.5,0,7);ctx.fill();
+  }
+  ctx.textAlign='center';
+}
+
+function updateReadout(){
+  const f=solveFlow(demand), el=document.getElementById('readout');
+  document.getElementById('dLabel').textContent=demand.toFixed(0);
+  if(f===null){
+    el.innerHTML='<b class="l">解なし</b> — つかう量が多すぎて、この送電線では釣り合いが取れません。これが「限界」です。';
+    return;
+  }
+  const loss=f-demand;
+  el.innerHTML='<span class="g">つくる <b>'+f.toFixed(1)+'</b> MW</span> ＝ '+
+    '<span class="d">つかう <b>'+demand.toFixed(0)+'</b> MW</span> ＋ '+
+    '<span class="l">うしなう <b>'+loss.toFixed(1)+'</b> MW</span>'+
+    '<span style="color:var(--faint)">　（検算: '+demand.toFixed(0)+' + '+loss.toFixed(1)+' = '+f.toFixed(1)+'）</span>';
+}
+
+document.getElementById('demand').addEventListener('input',e=>{
+  demand=+e.target.value;updateReadout();draw();
+});
+
+// アニメーション（reduced-motionでは静止画）
+function loop(){if(!prefersReduced){animT=(animT+0.006)%1;}draw();requestAnimationFrame(loop);}
+updateReadout();
+if(prefersReduced){draw();}else{loop();}
+
+// ============================================================
+// 昇級課題
+// ============================================================
+const quizState={q1:false,q2:false,q3:false};
+function mark(id,ok){document.getElementById(id+'m').textContent=ok?'✅ 正解':'❌ もう一度';
+  quizState[id]=ok;updateNext();}
+function checkNum(id,ans,tol){
+  const v=parseFloat(document.getElementById(id).value);
+  mark(id,isFinite(v)&&Math.abs(v-ans)<=tol);
+}
+function checkQ3(){
+  const sel=document.querySelector('input[name=q3]:checked');
+  const ok=!!sel&&sel.value==='b';
+  mark('q3',ok);
+  document.getElementById('q3note').textContent=ok
+    ?'そのとおり。現実の電力会社は消費の変化を常に予測しながら、発電所の出力を刻々と調整しています。'
+    :(sel?'ヒント: 電気は大量にはためられず、余った電気が勝手に消えることもありません（網が不安定になります）。':'どれか1つ選んでください。');
+}
+function updateNext(){
+  const all=quizState.q1&&quizState.q2&&quizState.q3;
+  const nb=document.getElementById('nextbox');
+  if(all){
+    nb.innerHTML='🎉 <b>L0 修了。</b>あなたはもう電力網の一番深いルールを持っています。次は <b>L1: 電圧×電流</b> — '+
+      'なぜ送電線は何十万ボルトもの高い電圧を使うのか、その答えが「うしなう量を減らす工夫」だと分かります。'+
+      '<br>→ <a href="ladder_l1.html">L1へ進む（準備中の場合はメインページのラダーを確認）</a>　'+
+      '／　先を急ぐ人は <a href="getting_started.html">L3の入口「はじめに」</a> へ。';
+  }
+}
+</script>
+</body>
+</html>

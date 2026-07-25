@@ -27,6 +27,7 @@ PAGES = [
     ("演習問題", "exercises.html"),
     ("はじめに", "getting_started.html"),
     ("講演: Newton-Raphson", "learn_newton.html"),
+    ("ラダーL0", "ladder_l0.html"),
 ]
 
 
