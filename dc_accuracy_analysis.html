@@ -306,9 +306,9 @@
                                 <th>Type</th>
                                 <th class="num">Q_load</th>
                                 <th class="num">Q_gen</th>
-                                <th class="num">Q_calc</th>
-                                <th class="num">Q_mismatch</th>
-                                <th class="num">&#916;V due to Q</th>
+                                <th class="num">Q_inj (解)</th>
+                                <th class="num">|Q_inj|</th>
+                                <th class="num">|1&#8722;V| 電圧偏差</th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -629,6 +629,10 @@
 
         const busResults = [];
         const qResults = [];
+        // 解かれたAC注入(p.u.)と有効なP誤差サンプル数
+        const acInjP = engineAC._calcPowerInjection().P;
+        let nPErr = 0;
+
 
         for (let i = 0; i < nBus; i++) {
             const acBus = acBusResults[i];
@@ -647,11 +651,12 @@
             sumVErr += vErr;
             maxVErr = Math.max(maxVErr, vErr);
 
-            // Active power error
-            const Pac = acBus.Pgen - acBus.Pload;
+            // Active power error: 解かれたAC注入と比較する
+            // (acBus.Pgen はケースデータの指定値であり、スラック母線の実注入とは異なる)
+            const Pac = acInjP[i] * baseMVA;
             const Pdc = dcPower[i] * baseMVA;
             const pErr = Math.abs(Pac) > 0.1 ? Math.abs(Pdc - Pac) / Math.abs(Pac) * 100 : 0;
-            sumPErr += pErr;
+            if (Math.abs(Pac) > 0.1) { sumPErr += pErr; nPErr++; }
             maxPErr = Math.max(maxPErr, pErr);
 
             busResults.push({
@@ -666,33 +671,29 @@
                 pErr: pErr.toFixed(1)
             });
 
-            // Reactive power analysis
+            // 無効電力の分析: DCが無視している「Q注入」と、その結果生じる
+            // 「電圧の1.0からの偏差」を並べる (ミスマッチはAC収束済みなら定義上ほぼ0で無意味)
             const Qload = acBus.Qload;
             const Qgen = acBus.Qgen;
-            const Qcalc = calculateQcalc(engineAC, i) * baseMVA;
-            const Qmismatch = Qgen - Qload - Qcalc;
+            const Qinj = calculateQcalc(engineAC, i) * baseMVA;  // 解かれたQ注入
 
-            // Estimate voltage deviation due to Q
-            const Bii = Math.abs(engineAC.Ybus.im[i][i]);
-            const dVdueToQ = Bii > 0.1 ? Math.abs(Qmismatch / baseMVA) / Bii : 0;
-
-            sumQMismatch += Math.abs(Qmismatch);
-            maxQMismatch = Math.max(maxQMismatch, Math.abs(Qmismatch));
+            sumQMismatch += Math.abs(Qinj);
+            maxQMismatch = Math.max(maxQMismatch, Math.abs(Qinj));
 
             qResults.push({
                 bus: i + 1,
                 type,
                 Qload: Qload.toFixed(1),
                 Qgen: Qgen.toFixed(1),
-                Qcalc: Qcalc.toFixed(1),
-                Qmismatch: Qmismatch.toFixed(2),
-                dVdueToQ: dVdueToQ.toFixed(4)
+                Qcalc: Qinj.toFixed(1),
+                Qmismatch: Math.abs(Qinj).toFixed(2),
+                dVdueToQ: vErr.toFixed(4)
             });
         }
 
         // Display metrics
         const avgDeltaErr = sumDeltaErr / nBus;
-        const avgPErr = sumPErr / nBus;
+        const avgPErr = nPErr > 0 ? sumPErr / nPErr : 0;
         const avgVErr = sumVErr / nBus;
         const avgQMismatch = sumQMismatch / nBus;
 
@@ -734,7 +735,7 @@
             </div>
             <div class="metric">
                 <div class="metric-value">${(sumQMismatch).toFixed(0)}</div>
-                <div class="metric-label">Total Q Flow (Mvar)</div>
+                <div class="metric-label">Total |Q| Injection (Mvar)</div>
             </div>
             <div class="metric ${maxVErr < 0.05 ? 'good' : maxVErr < 0.1 ? 'warn' : 'bad'}">
                 <div class="metric-value">${(maxVErr * 100).toFixed(1)}%</div>
@@ -849,22 +850,22 @@
         log(`Voltage deviation (V=1.0 assumption): avg ${(avgVErr*100).toFixed(1)}%, max ${(maxVErr*100).toFixed(1)}%`, avgVErr < 0.03 ? 'success' : 'warning');
 
         log('\n=== DC Assumptions & Error Sources ===', 'info');
-        log('1. sin(theta) ~ theta: Error increases with larger angles', 'info');
-        log(`   Max angle diff: ${maxDeltaErr.toFixed(1)}deg -> sin error: ${(Math.sin(maxDeltaErr*Math.PI/180) - maxDeltaErr*Math.PI/180).toFixed(4)}`, 'info');
+        log('1. sin(theta) ~ theta: 線形化誤差は「線路両端の位相角差」が大きいほど増える', 'info');
         log('2. V = 1.0 p.u. assumption: Ignores PV bus voltage setpoints', 'info');
         log(`   Voltage range: ${Math.min(...engineAC.V).toFixed(3)} ~ ${Math.max(...engineAC.V).toFixed(3)} p.u.`, 'info');
         log('3. Reactive power ignored: Q-V relationship not reflected', 'info');
-        log(`   Total Q flow: ${sumQMismatch.toFixed(0)} Mvar`, 'info');
+        log(`   Total |Q| injection: ${sumQMismatch.toFixed(0)} Mvar`, 'info');
         log('4. Resistance ignored: Cannot calculate losses', 'info');
 
-        // Reactive power impact
+        // 無効電力の影響: Q注入が大きい系統ほど電圧が1.0から離れ、
+        // 「|V|=1.0」というDC仮定の誤差要因になる
         log('\n=== Reactive Power Impact ===', 'info');
         const highQBuses = qResults.filter(r => Math.abs(parseFloat(r.Qmismatch)) > 10);
         if (highQBuses.length > 0) {
-            log(`High Q flow buses (|Q|>10Mvar): ${highQBuses.map(r => r.bus).join(', ')}`, 'warning');
-            log('DC method tends to have larger errors at these buses', 'warning');
+            log(`Q注入の大きい母線 (|Q|>10Mvar): ${highQBuses.map(r => r.bus).join(', ')}`, 'warning');
+            log('Qが大きい系統は電圧偏差|1-V|も大きくなりやすく、DCの|V|=1.0仮定の誤差要因になる', 'warning');
         } else {
-            log('No high Q flow buses - DC method relatively accurate', 'success');
+            log('Q注入の大きい母線なし - |V|=1.0仮定が比較的よく成り立つ系統', 'success');
         }
     }
 

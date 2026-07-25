@@ -1,66 +1,52 @@
-# Archived Files
+# アーカイブ済みファイル
 
-This directory contains deprecated versions of the Power Flow Visualization tools.
-These files are kept for historical reference but should **NOT** be used for new work.
+このディレクトリには、可視化ツールの旧バージョンを保存しています。
+歴史的参照のために残していますが、**新規の利用や改修には使わないでください**。
 
-## Recommended Current Versions
+## 現行版（こちらを使ってください）
 
-Use these files instead:
+| 現行ファイル | 説明 |
+|--------------|------|
+| `../power_flow_intuitive_v6_fixed.html` | **推奨** — 収束過程直感的理解ツールの安定版（バグ修正・JSDoc完備） |
 
-| Current File | Description |
-|--------------|-------------|
-| `power_flow_intuitive_v6_fixed.html` | **Recommended** - Standard intuitive visualizer with bug fixes and JSDoc documentation |
-| `power_flow_intuitive_v7.html` | Large-scale system support with Y-matrix spy plot and network graph visualization |
+## アーカイブ一覧
 
-## Archived Files
-
-### power_flow_intuitive.html (Original)
-- **Status**: Deprecated
-- **Reason**: Superseded by v6_fixed with enhanced precision tracking, adaptive step size, and detailed trajectory visualization
-- **Original Features**: Basic Newton-Raphson, Gauss-Seidel, and gradient descent visualization
+### power_flow_intuitive.html（初版）
+- **理由**: v6_fixed に置き換え（精度追跡・適応ステップ・軌跡表示が強化された）
+- **当時の機能**: Newton-Raphson法・Gauss-Seidel法・勾配降下法の基本可視化
 
 ### power_flow_intuitive_v3.html
-- **Status**: Deprecated
-- **Reason**: Same code as original, no significant improvements
-- **Original Features**: Same as original version
+- **理由**: 初版とほぼ同一コードで、有意な改善なし
 
 ### power_flow_intuitive_v4.html
-- **Status**: Deprecated
-- **Reason**: Added DC power flow but superseded by more robust implementations
-- **Original Features**: Added DC power flow comparison, true solution computation
+- **理由**: DC潮流比較を追加したが、より堅牢な実装に置き換え
 
 ### power_flow_intuitive_v5.html
-- **Status**: Deprecated
-- **Reason**: Intermediate version, superseded by v6_fixed with better numerical stability
-- **Original Features**: Improved problem definitions, better logging
+- **理由**: 中間バージョン。数値安定性が改善された v6_fixed に置き換え
 
 ### power_flow_intuitive_v6.html
-- **Status**: Deprecated
-- **Reason**: Contains bugs fixed in v6_fixed
-- **Original Features**: Multi-bus problem support, backtracking line search
-- **Note**: Use `power_flow_intuitive_v6_fixed.html` instead
+- **理由**: v6_fixed で修正されたバグを含む
 
-## Why These Files Were Archived
+### power_flow_intuitive_v7.html
+- **理由**: v6_fixed とほぼ同一内容の派生版（機能・対応系統は同じ、コメントが少ない）。
+  重複解消のため 2026-07 にアーカイブ
 
-1. **Code Duplication**: Multiple versions contained nearly identical code with minor variations
-2. **Bug Fixes**: v6_fixed addresses issues found in earlier versions
-3. **Documentation**: Current versions include comprehensive JSDoc documentation
-4. **Consistency**: Archiving helps maintain a cleaner project structure
+### power_flow_process_visualizer.html（v1）
+- **理由**: UI/UX刷新・収束アルゴリズム修正済みの
+  `../power_flow_process_visualizer_v2.html` に置き換え
 
-## Migration Guide
+## アーカイブの方針
 
-If you were using any of these archived files:
+1. **重複排除**: ほぼ同一コードのバージョン違いを1本化する
+2. **バグの隔離**: 既知のバグを含む版を現行から外す
+3. **注意**: アーカイブ内のファイルには既知の不具合（データ誤り・コメント起因の
+   構文エラー等）が残っている場合があります。修正は現行版にのみ適用しています
 
-1. Replace with `power_flow_intuitive_v6_fixed.html` for standard use cases
-2. Use `power_flow_intuitive_v7.html` for large-scale systems (30+ buses)
+## アーカイブ日
 
-The API and UI remain largely compatible - most code changes are internal improvements
-to numerical stability, documentation, and code organization.
-
-## Archive Date
-
-Archived: 2026-01-12
+- 2026-01-12: intuitive v1〜v6, process_visualizer v1
+- 2026-07-25: intuitive v7
 
 ---
 
-*These files are preserved for reference only. They may be removed in future releases.*
+*これらのファイルは参照専用です。将来のリリースで削除される可能性があります。*

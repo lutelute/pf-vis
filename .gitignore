@@ -38,3 +38,16 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+
+# Auto Claude data directory
+.auto-claude/
+.auto-claude-status
+
+# Local work artifacts
+logs/
+.worktrees/
+
+# macOS Finder duplicate files
+* 2.*
+* 2/
+.playwright-mcp/

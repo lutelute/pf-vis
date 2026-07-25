@@ -221,12 +221,12 @@
                     <option value="2bus_heavy">2ノード(重負荷) - やや困難</option>
                     <option value="2bus_critical">2ノード(臨界負荷) - 困難</option>
                     <option value="2bus_voltage_collapse">2ノード(電圧崩壊直前) - 非常に困難</option>
-                    <option value="3bus_unbalanced">3ノード(不平衡負荷) - 困難</option>
-                    <option value="3bus">3ノード系統 - 標準</option>
-                    <option value="30bus_ieee">30ノード系統(IEEE風) - 中規模</option>
-                    <option value="30bus_random">30ノード系統(ランダム) - 中規模</option>
-                    <option value="100bus_random">100ノード系統 - 大規模</option>
-                    <option value="300bus_random">300ノード系統 - 超大規模</option>
+                    <option value="3bus_unbalanced">3ノード(不平衡負荷) - 困難 ※注目母線のみ求解</option>
+                    <option value="3bus">3ノード系統 - 標準 ※注目母線のみ求解</option>
+                    <option value="30bus_ieee">30ノード系統(IEEE風) ※注目母線のみ求解</option>
+                    <option value="30bus_random">30ノード系統(ランダム) ※注目母線のみ求解</option>
+                    <option value="100bus_random">100ノード系統 ※注目母線のみ求解</option>
+                    <option value="300bus_random">300ノード系統 ※注目母線のみ求解</option>
                     <option value="500bus_random">500ノード系統 - 極大規模</option>
                 </select>
             </div>
@@ -445,16 +445,16 @@
         // 対角要素: Yii = Σ(gij + j*bij) = 非対角要素の負の和
         
         function addBranch(i, j, g, b) {
-            // 非対角要素は負の値（-アドミタンス）
+            // b は正のサセプタンス大きさ(≈1/x)。誘導性ラインの直列アドミタンスは y = g - jb
+            // 標準規約: Y_ij = -y = -g + jb, Y_ii += y = g - jb
             Ybus[i][j].re -= g;
-            Ybus[i][j].im -= b;
+            Ybus[i][j].im += b;
             Ybus[j][i].re -= g;
-            Ybus[j][i].im -= b;
-            // 対角要素は正の値（アドミタンスの和）
+            Ybus[j][i].im += b;
             Ybus[i][i].re += g;
-            Ybus[i][i].im += b;
+            Ybus[i][i].im -= b;
             Ybus[j][j].re += g;
-            Ybus[j][j].im += b;
+            Ybus[j][j].im -= b;
         }
         
         // 隣接ノードとの接続（リング構造）
@@ -531,16 +531,16 @@
         // ブランチを追加するヘルパー関数
         function addBranch(i, j, g, b) {
             if (i === j) return;
-            // 非対角要素は負の値
+            // b は正のサセプタンス大きさ(≈1/x)。誘導性ライン: y = g - jb
+            // 標準規約: Y_ij = -y = -g + jb, Y_ii += y = g - jb
             Ybus[i][j].re -= g;
-            Ybus[i][j].im -= b;
+            Ybus[i][j].im += b;
             Ybus[j][i].re -= g;
-            Ybus[j][i].im -= b;
-            // 対角要素は正の値
+            Ybus[j][i].im += b;
             Ybus[i][i].re += g;
-            Ybus[i][i].im += b;
+            Ybus[i][i].im -= b;
             Ybus[j][j].re += g;
-            Ybus[j][j].im += b;
+            Ybus[j][j].im -= b;
         }
         
         // 基本リング構造（全バスが接続されることを保証）
@@ -987,15 +987,15 @@
         let B0 = 0;
         for (let j = 0; j < n; j++) {
             if (j !== busIdx && prob.buses[j].type === 'Slack') {
-                // 非対角要素は負の値で格納されているので、符号反転
-                B0 = -prob.Ybus[busIdx][j].im;
+                // 標準規約では誘導性ラインの非対角虚部は +1/x → そのままDCのB(リンク)になる
+                B0 = prob.Ybus[busIdx][j].im;
                 break;
             }
         }
         
-        // B0が見つからない場合は対角要素を使用
+        // B0が見つからない場合は対角要素から復元 (対角虚部は -Σ1/x + シャント)
         if (Math.abs(B0) < 1e-10) {
-            B0 = Bii;
+            B0 = -Bii;
         }
         
         const Pspec = prob.buses[busIdx].Pspec || 0;
@@ -1014,8 +1014,8 @@
      * Performs one Newton-Raphson iteration step for power flow calculation.
      *
      * Uses the Jacobian matrix to compute voltage magnitude and angle corrections.
-     * Applies damping factor (70%) and step limiting for improved convergence stability
-     * in large-scale systems or when starting far from the solution.
+     * Takes a full Newton step by default (quadratic convergence); falls back to
+     * backtracking (halving the step) only when the mismatch would increase.
      *
      * @returns {{error: number, converged: boolean}} Object containing:
      *   - error: Current power mismatch error (||ΔS||)
@@ -1036,27 +1036,21 @@
         let dDelta = (J.J22 * m.deltaP - J.J12 * m.deltaQ) / det;
         let dV = (-J.J21 * m.deltaP + J.J11 * m.deltaQ) / det;
         
-        // ダンピング係数（収束過程を見やすくするため制限を加える）
-        // 大規模系統や初期点が遠い場合に効果的
-        const dampingFactor = 0.7;  // 70%のステップに制限
-        dDelta *= dampingFactor;
-        dV *= dampingFactor;
-        
-        // 大きすぎる更新を制限（大規模系統の安定性）
-        const maxStep = 0.15;
-        if (Math.abs(dDelta) > maxStep) {
-            dDelta = Math.sign(dDelta) * maxStep;
+        // フルNewtonステップを基本とし、誤差が悪化した場合のみステップを半分に縮める
+        // （バックトラッキング直線探索）。通常ケースでは2次収束が対数グラフで観察できる。
+        // 常時0.7倍のダンピングは収束を線形化してしまうため廃止した。
+        const err0 = calcError(prob, busIdx, state.V, state.delta);
+        let alpha = 1.0;
+        let newV = state.V, newDelta = state.delta, error = err0;
+        for (let t = 0; t < 4; t++) {
+            newDelta = Math.max(-0.8, Math.min(0.8, state.delta + alpha * dDelta));
+            newV = Math.max(0.6, Math.min(1.4, state.V + alpha * dV));
+            error = calcError(prob, busIdx, newV, newDelta);
+            if (error <= err0 || alpha <= 0.15) break;
+            alpha /= 2;  // 悪化したらステップ半減 (困難ケースの安定化)
         }
-        if (Math.abs(dV) > maxStep) {
-            dV = Math.sign(dV) * maxStep;
-        }
-        
-        state.delta += dDelta;
-        state.V += dV;
-        state.V = Math.max(0.6, Math.min(1.4, state.V));
-        state.delta = Math.max(-0.8, Math.min(0.8, state.delta));
-        
-        const error = calcError(prob, busIdx, state.V, state.delta);
+        state.V = newV;
+        state.delta = newDelta;
         log(`NR[${state.iteration}]: V=${state.V.toFixed(5)}, δ=${(state.delta*180/Math.PI).toFixed(3)}°, err=${error.toExponential(2)}`);
         
         return { error, converged: error < state.tolerance };
@@ -1065,7 +1059,7 @@
     /**
      * Performs one Gauss-Seidel iteration step for power flow calculation.
      *
-     * Iteratively solves V_new = (1/Yii) * [S*/V* - Σ(j≠i) Yij*Vj] for each PQ bus.
+     * Iteratively solves V_new = (1/Yii) * [S* / V* - Σ(j≠i) Yij*Vj] for each PQ bus.
      * Uses adaptive relaxation factor (alpha) based on error trend:
      *   - alpha = 0.5 for normal convergence
      *   - alpha = 0.2 when error increases (prevents divergence)
@@ -1095,12 +1089,13 @@
         const V_im = state.V * Math.sin(state.delta);
         const Vmag2 = state.V * state.V;
         
-        // S* / V (S = P + jQ, S* = P - jQ)
+        // S* / V* (S = P + jQ, S* = P - jQ, 分母は V の共役)
+        // S*/V* = (P - jQ)/(V_re - jV_im) = [(P·V_re + Q·V_im) + j(P·V_im - Q·V_re)] / |V|²
         const Pspec = bus.Pspec || 0;
         const Qspec = bus.Qspec || 0;
         const Sconj_re = Pspec, Sconj_im = -Qspec;
-        const SoV_re = (Sconj_re * V_re + Sconj_im * V_im) / Vmag2;
-        const SoV_im = (Sconj_im * V_re - Sconj_re * V_im) / Vmag2;
+        const SoV_re = (Sconj_re * V_re - Sconj_im * V_im) / Vmag2;
+        const SoV_im = (Sconj_re * V_im + Sconj_im * V_re) / Vmag2;
         
         // Σ Yij * Vj (j ≠ i)
         let sumYV_re = 0, sumYV_im = 0;
@@ -1144,7 +1139,7 @@
         
         // 停滞検出
         if (Math.abs(error - prevError) < 1e-10 && state.iteration > 20) {
-            log(`GS[${state.iteration}]: 停滞検出 - GS法はこの系統では収束困難`, 'warning');
+            log(`GS[${state.iteration}]: 停滞検出 - 誤差が減らなくなりました(重負荷系統では起こり得ます)`, 'warning');
         } else {
             log(`GS[${state.iteration}]: V=${state.V.toFixed(5)}, δ=${(state.delta*180/Math.PI).toFixed(3)}°, err=${error.toExponential(2)}`);
         }

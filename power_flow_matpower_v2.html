@@ -604,7 +604,7 @@
 
             <div class="viz-card">
                 <div class="viz-header">
-                    <div class="viz-title">🧮 ヤコビアン行列（スパース構造）</div>
+                    <div class="viz-title">🧮 Ybus接続構造（ヤコビアンの非零パターンの由来）</div>
                 </div>
                 <div class="viz-body">
                     <canvas id="jacobianCanvas"></canvas>
@@ -666,7 +666,7 @@ MATPOWER準拠の潮流計算を実行します：
                     <p>
                         MATPOWER <code>newtonpf.m</code> 準拠:<br>
                         ヤコビアン: <code>dSbus_dV.m</code><br>
-                        更新: [Δδ; ΔV] = -J⁻¹[ΔP; ΔQ]<br>
+                        更新: [Δδ; ΔV] = J⁻¹[ΔP; ΔQ]（ΔP = P_spec − P_calc）<br>
                         収束判定: max(|ΔP|, |ΔQ|) &lt; ε
                     </p>
                 </div>

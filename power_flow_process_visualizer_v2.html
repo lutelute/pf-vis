@@ -616,6 +616,26 @@
         .container {
             margin-top: 60px;
         }
+    
+        /* ===== 数値行列表示 ===== */
+        .matrix-scroll { overflow: auto; max-height: 360px; }
+        table.num-matrix { border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 10px; margin: 4px auto; }
+        table.num-matrix th { color: #8b949e; font-weight: 500; padding: 2px 5px; background: #161b22; position: sticky; }
+        table.num-matrix thead th { top: 0; z-index: 1; }
+        table.num-matrix tbody th { left: 0; text-align: right; }
+        table.num-matrix td { padding: 2px 5px; text-align: right; cursor: pointer; border: 1px solid #21262d; color: #e6edf3; min-width: 40px; }
+        table.num-matrix td:hover { outline: 1px solid #58a6ff; }
+        table.num-matrix td.blk-boundary-left, table.num-matrix th.blk-boundary-left { border-left: 2px solid #8b949e; }
+        table.num-matrix tr.blk-boundary-top td, table.num-matrix tr.blk-boundary-top th { border-top: 2px solid #8b949e; }
+        table.num-matrix td.selected { outline: 2px solid #f0883e; }
+        .cell-interpretation { margin-top: 8px; padding: 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; font-size: 12px; line-height: 1.7; color: #c9d1d9; }
+        .cell-interpretation .ci-formula { font-family: 'JetBrains Mono', monospace; color: #79c0ff; display: block; margin: 4px 0; white-space: pre-wrap; }
+        .cell-interpretation .ci-meaning { color: #7ee787; }
+        .mismatch-table { border-collapse: collapse; font-size: 11px; font-family: 'JetBrains Mono', monospace; margin: 6px 0; }
+        .mismatch-table th, .mismatch-table td { padding: 2px 8px; text-align: right; border-bottom: 1px solid #21262d; }
+        .mismatch-table th { color: #8b949e; }
+        .mismatch-table td.neg { color: #ffa198; }
+        .mismatch-table td.pos { color: #7ee787; }
     </style>
 </head>
 <body>
@@ -700,10 +720,9 @@
             </div>
 
             <div class="panel-section">
-                <h3>ヤコビアン行列 (スパース構造)</h3>
-                <div class="matrix-container">
-                    <canvas id="jacobianCanvas"></canvas>
-                </div>
+                <h3 id="matrixPanelTitle">ヤコビアン行列 J（実数値）</h3>
+                <div class="matrix-container matrix-scroll" id="jacobianNumeric"></div>
+                <div class="cell-interpretation" id="cellInterpretation">行列のセルをクリックすると、その数値が「どの式から・どう計算されたか」と「物理的に何を意味するか」を表示します。</div>
             </div>
 
             <div class="panel-section bus-table-container">
@@ -809,22 +828,22 @@
                     { from: 0, to: 3, r: 0, x: 0.0576, b: 0 },
                     { from: 1, to: 6, r: 0, x: 0.0625, b: 0 },
                     { from: 2, to: 8, r: 0, x: 0.0586, b: 0 },
-                    { from: 3, to: 4, r: 0.01, x: 0.085, b: 0.088 },
-                    { from: 3, to: 5, r: 0.017, x: 0.092, b: 0.079 },
-                    { from: 4, to: 6, r: 0.032, x: 0.161, b: 0.153 },
-                    { from: 5, to: 8, r: 0.039, x: 0.17, b: 0.179 },
-                    { from: 6, to: 7, r: 0.0085, x: 0.072, b: 0.0745 },
-                    { from: 7, to: 8, r: 0.0119, x: 0.1008, b: 0.1045 }
+                    { from: 3, to: 4, r: 0.01, x: 0.085, b: 0.176 },
+                    { from: 3, to: 5, r: 0.017, x: 0.092, b: 0.158 },
+                    { from: 4, to: 6, r: 0.032, x: 0.161, b: 0.306 },
+                    { from: 5, to: 8, r: 0.039, x: 0.17, b: 0.358 },
+                    { from: 6, to: 7, r: 0.0085, x: 0.072, b: 0.149 },
+                    { from: 7, to: 8, r: 0.0119, x: 0.1008, b: 0.209 }
                 ]
             },
             '14bus': {
                 buses: [
                     { id: 0, name: 'Bus 1', type: 'Slack', V: 1.06, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
-                    { id: 1, name: 'Bus 2', type: 'PV', V: 1.045, delta: 0, P: 0.4, Q: 0, Pspec: 0.4, Qspec: 0 },
-                    { id: 2, name: 'Bus 3', type: 'PV', V: 1.01, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
+                    { id: 1, name: 'Bus 2', type: 'PV', V: 1.045, delta: 0, P: 0.183, Q: 0, Pspec: 0.183, Qspec: 0 },  // 発電0.4 - 負荷0.217
+                    { id: 2, name: 'Bus 3', type: 'PV', V: 1.01, delta: 0, P: -0.942, Q: 0, Pspec: -0.942, Qspec: 0 },  // 同期調相機 + 負荷0.942
                     { id: 3, name: 'Bus 4', type: 'PQ', V: 1.0, delta: 0, P: -0.478, Q: -0.039, Pspec: -0.478, Qspec: -0.039 },
                     { id: 4, name: 'Bus 5', type: 'PQ', V: 1.0, delta: 0, P: -0.076, Q: -0.016, Pspec: -0.076, Qspec: -0.016 },
-                    { id: 5, name: 'Bus 6', type: 'PV', V: 1.07, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
+                    { id: 5, name: 'Bus 6', type: 'PV', V: 1.07, delta: 0, P: -0.112, Q: 0, Pspec: -0.112, Qspec: 0 },  // 同期調相機 + 負荷0.112
                     { id: 6, name: 'Bus 7', type: 'PQ', V: 1.0, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
                     { id: 7, name: 'Bus 8', type: 'PV', V: 1.09, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
                     { id: 8, name: 'Bus 9', type: 'PQ', V: 1.0, delta: 0, P: -0.295, Q: -0.166, Pspec: -0.295, Qspec: -0.166 },
@@ -842,14 +861,14 @@
                     { from: 1, to: 4, r: 0.05695, x: 0.17388, b: 0.0346 },
                     { from: 2, to: 3, r: 0.06701, x: 0.17103, b: 0.0128 },
                     { from: 3, to: 4, r: 0.01335, x: 0.04211, b: 0 },
-                    { from: 3, to: 6, r: 0, x: 0.20912, b: 0 },
-                    { from: 3, to: 8, r: 0, x: 0.55618, b: 0 },
-                    { from: 4, to: 5, r: 0, x: 0.25202, b: 0 },
+                    { from: 3, to: 6, r: 0, x: 0.20912, b: 0, tap: 0.978 },
+                    { from: 3, to: 8, r: 0, x: 0.55618, b: 0, tap: 0.969 },
+                    { from: 4, to: 5, r: 0, x: 0.25202, b: 0, tap: 0.932 },
                     { from: 5, to: 10, r: 0.09498, x: 0.19890, b: 0 },
                     { from: 5, to: 11, r: 0.12291, x: 0.25581, b: 0 },
                     { from: 5, to: 12, r: 0.06615, x: 0.13027, b: 0 },
                     { from: 6, to: 7, r: 0, x: 0.17615, b: 0 },
-                    { from: 6, to: 8, r: 0.11001, x: 0.20640, b: 0 },
+                    { from: 6, to: 8, r: 0, x: 0.11001, b: 0 },
                     { from: 8, to: 9, r: 0.03181, x: 0.08450, b: 0 },
                     { from: 8, to: 13, r: 0.12711, x: 0.27038, b: 0 },
                     { from: 9, to: 10, r: 0.08205, x: 0.19207, b: 0 },
@@ -861,13 +880,13 @@
                 // IEEE 30 Bus System
                 buses: [
                     { id: 0, name: 'Bus 1', type: 'Slack', V: 1.06, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
-                    { id: 1, name: 'Bus 2', type: 'PV', V: 1.043, delta: 0, P: 0.4, Q: 0, Pspec: 0.4, Qspec: 0 },
+                    { id: 1, name: 'Bus 2', type: 'PV', V: 1.043, delta: 0, P: 0.183, Q: 0, Pspec: 0.183, Qspec: 0 },  // 発電0.4 - 負荷0.217
                     { id: 2, name: 'Bus 3', type: 'PQ', V: 1.0, delta: 0, P: -0.024, Q: -0.012, Pspec: -0.024, Qspec: -0.012 },
                     { id: 3, name: 'Bus 4', type: 'PQ', V: 1.0, delta: 0, P: -0.076, Q: -0.016, Pspec: -0.076, Qspec: -0.016 },
-                    { id: 4, name: 'Bus 5', type: 'PV', V: 1.01, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
+                    { id: 4, name: 'Bus 5', type: 'PV', V: 1.01, delta: 0, P: -0.942, Q: 0, Pspec: -0.942, Qspec: 0 },  // 負荷0.942
                     { id: 5, name: 'Bus 6', type: 'PQ', V: 1.0, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
                     { id: 6, name: 'Bus 7', type: 'PQ', V: 1.0, delta: 0, P: -0.228, Q: -0.109, Pspec: -0.228, Qspec: -0.109 },
-                    { id: 7, name: 'Bus 8', type: 'PV', V: 1.01, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
+                    { id: 7, name: 'Bus 8', type: 'PV', V: 1.01, delta: 0, P: -0.30, Q: 0, Pspec: -0.30, Qspec: 0 },  // 負荷0.30
                     { id: 8, name: 'Bus 9', type: 'PQ', V: 1.0, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
                     { id: 9, name: 'Bus 10', type: 'PQ', V: 1.0, delta: 0, P: -0.058, Q: -0.02, Pspec: -0.058, Qspec: -0.02 },
                     { id: 10, name: 'Bus 11', type: 'PV', V: 1.082, delta: 0, P: 0, Q: 0, Pspec: 0, Qspec: 0 },
@@ -893,7 +912,7 @@
                 ],
                 branches: [
                     { from: 0, to: 1, r: 0.0192, x: 0.0575, b: 0.0528 },
-                    { from: 0, to: 2, r: 0.0452, x: 0.1652, b: 0.0408 },
+                    { from: 0, to: 2, r: 0.0452, x: 0.1852, b: 0.0408 },
                     { from: 1, to: 3, r: 0.057, x: 0.1737, b: 0.0368 },
                     { from: 2, to: 3, r: 0.0132, x: 0.0379, b: 0.0084 },
                     { from: 1, to: 4, r: 0.0472, x: 0.1983, b: 0.0418 },
@@ -902,11 +921,11 @@
                     { from: 4, to: 6, r: 0.046, x: 0.116, b: 0.0204 },
                     { from: 5, to: 6, r: 0.0267, x: 0.082, b: 0.017 },
                     { from: 5, to: 7, r: 0.012, x: 0.042, b: 0.009 },
-                    { from: 5, to: 8, r: 0, x: 0.208, b: 0 },
-                    { from: 5, to: 9, r: 0, x: 0.556, b: 0 },
+                    { from: 5, to: 8, r: 0, x: 0.208, b: 0, tap: 0.978 },
+                    { from: 5, to: 9, r: 0, x: 0.556, b: 0, tap: 0.969 },
                     { from: 8, to: 10, r: 0, x: 0.208, b: 0 },
                     { from: 8, to: 9, r: 0, x: 0.11, b: 0 },
-                    { from: 3, to: 11, r: 0, x: 0.256, b: 0 },
+                    { from: 3, to: 11, r: 0, x: 0.256, b: 0, tap: 0.932 },
                     { from: 11, to: 12, r: 0, x: 0.14, b: 0 },
                     { from: 11, to: 13, r: 0.1231, x: 0.2559, b: 0 },
                     { from: 11, to: 14, r: 0.0662, x: 0.1304, b: 0 },
@@ -927,11 +946,11 @@
                     { from: 23, to: 24, r: 0.1885, x: 0.3292, b: 0 },
                     { from: 24, to: 25, r: 0.2544, x: 0.38, b: 0 },
                     { from: 24, to: 26, r: 0.1093, x: 0.2087, b: 0 },
-                    { from: 27, to: 26, r: 0, x: 0.396, b: 0 },
+                    { from: 27, to: 26, r: 0, x: 0.396, b: 0, tap: 0.968 },
                     { from: 26, to: 28, r: 0.2198, x: 0.4153, b: 0 },
                     { from: 26, to: 29, r: 0.3202, x: 0.6027, b: 0 },
                     { from: 28, to: 29, r: 0.2399, x: 0.4533, b: 0 },
-                    { from: 7, to: 27, r: 0, x: 0.2, b: 0 },
+                    { from: 7, to: 27, r: 0.0636, x: 0.2, b: 0.0428 },
                     { from: 5, to: 27, r: 0.0169, x: 0.0599, b: 0.013 }
                 ]
             }
@@ -1075,15 +1094,18 @@
                     bLine = -x / denom;
                 }
 
-                // Off-diagonal
-                state.Ybus[from][to].re -= g;
-                state.Ybus[from][to].im -= bLine;
-                state.Ybus[to][from].re -= g;
-                state.Ybus[to][from].im -= bLine;
+                // 変圧器タップ (MATPOWER規約: from側にタップ)
+                const tap = branch.tap || 1;
 
-                // Diagonal
-                state.Ybus[from][from].re += g;
-                state.Ybus[from][from].im += bLine + b / 2;
+                // Off-diagonal: Y_ft = -y/τ
+                state.Ybus[from][to].re -= g / tap;
+                state.Ybus[from][to].im -= bLine / tap;
+                state.Ybus[to][from].re -= g / tap;
+                state.Ybus[to][from].im -= bLine / tap;
+
+                // Diagonal: from側 (y + jB_c/2)/τ², to側 y + jB_c/2
+                state.Ybus[from][from].re += g / (tap * tap);
+                state.Ybus[from][from].im += (bLine + b / 2) / (tap * tap);
                 state.Ybus[to][to].re += g;
                 state.Ybus[to][to].im += bLine + b / 2;
             });
@@ -1154,8 +1176,8 @@
                 drawBusNode(ctx, bus, pos, mismatch);
             });
 
-            // Draw Jacobian
-            drawJacobian();
+            // Draw Jacobian (FD/DCがB行列を表示している間は上書きしない)
+            if (state.matrixMode !== 'custom') drawJacobian();
         }
 
         /**
@@ -1286,50 +1308,150 @@
          * corresponding color; zero entries appear as dark background.
          */
         function drawJacobian() {
-            const canvas = document.getElementById('jacobianCanvas');
-            const ctx = canvas.getContext('2d');
-            const rect = canvas.parentElement.getBoundingClientRect();
+            const jac = buildFullJacobian();
+            state.lastJacobian = jac;
+            const { J, nonSlackBuses, pqBuses, nNonSlack } = jac;
+            const rowLabels = [
+                ...nonSlackBuses.map(i => `ΔP${i + 1}`),
+                ...pqBuses.map(i => `ΔQ${i + 1}`)
+            ];
+            const colLabels = [
+                ...nonSlackBuses.map(i => `δ${i + 1}`),
+                ...pqBuses.map(i => `V${i + 1}`)
+            ];
+            const title = document.getElementById('matrixPanelTitle');
+            if (title) title.textContent = `ヤコビアン行列 J（実数値, ${J.length}×${J.length}）`;
+            const ci = document.getElementById('cellInterpretation');
+            if (ci) {
+                ci.innerHTML = '行列のセルをクリックすると、その数値が「どの式から・どう計算されたか」と「物理的に何を意味するか」を表示します。';
+            }
+            renderMatrixTable('jacobianNumeric', J, {
+                rowLabels, colLabels,
+                blockBoundary: nNonSlack,
+                onCellClick: explainJacobianCell
+            });
+        }
 
-            canvas.width = rect.width - 20;
-            canvas.height = 100;
+        /** 値の短い表示形式 */
+        function fmtVal(v) {
+            if (!isFinite(v)) return '∞';
+            const a = Math.abs(v);
+            if (a >= 100) return v.toFixed(0);
+            if (a >= 10) return v.toFixed(1);
+            if (a !== 0 && a < 0.005) return v.toExponential(0);
+            return v.toFixed(2);
+        }
 
-            ctx.fillStyle = '#21262d';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        /** 符号と大きさを背景色に変換 (正=青, 負=赤, 濃さ=|値|) */
+        function heatColor(v, maxAbs) {
+            if (v === 0 || maxAbs === 0) return '#161b22';
+            const t = Math.min(1, Math.abs(v) / maxAbs);
+            const alpha = 0.10 + 0.55 * Math.sqrt(t);
+            return v > 0 ? `rgba(56,139,253,${alpha})` : `rgba(248,81,73,${alpha})`;
+        }
 
-            const n = state.buses.length;
-            const cellSize = Math.min(canvas.width / (2 * n), canvas.height / (2 * n), 12);
-            const offsetX = (canvas.width - 2 * n * cellSize) / 2;
-            const offsetY = (canvas.height - 2 * n * cellSize) / 2;
-
-            // Draw Jacobian structure
-            for (let i = 0; i < n; i++) {
-                for (let j = 0; j < n; j++) {
-                    const hasConnection = state.Ybus[i][j].re !== 0 || state.Ybus[i][j].im !== 0 || i === j;
-                    
-                    // J11 (dP/dδ)
-                    ctx.fillStyle = hasConnection ? '#58a6ff' : '#161b22';
-                    ctx.fillRect(offsetX + j * cellSize, offsetY + i * cellSize, cellSize - 1, cellSize - 1);
-
-                    // J12 (dP/dV)
-                    ctx.fillStyle = hasConnection ? '#3fb950' : '#161b22';
-                    ctx.fillRect(offsetX + (n + j) * cellSize, offsetY + i * cellSize, cellSize - 1, cellSize - 1);
-
-                    // J21 (dQ/dδ)
-                    ctx.fillStyle = hasConnection ? '#d29922' : '#161b22';
-                    ctx.fillRect(offsetX + j * cellSize, offsetY + (n + i) * cellSize, cellSize - 1, cellSize - 1);
-
-                    // J22 (dQ/dV)
-                    ctx.fillStyle = hasConnection ? '#a371f7' : '#161b22';
-                    ctx.fillRect(offsetX + (n + j) * cellSize, offsetY + (n + i) * cellSize, cellSize - 1, cellSize - 1);
+        /**
+         * 汎用の数値行列テーブル描画。
+         * 各セルに実数値を表示し、ヒートマップ色で大きさ・符号を示す。
+         * opts: { rowLabels, colLabels, blockBoundary, onCellClick(r,c) }
+         */
+        function renderMatrixTable(containerId, M, opts = {}) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            const nR = M.length, nC = nR > 0 ? M[0].length : 0;
+            let maxAbs = 0;
+            for (const row of M) for (const v of row) maxAbs = Math.max(maxAbs, Math.abs(v));
+            const showText = nR <= 16;
+            let html = '<table class="num-matrix"><thead><tr><th></th>';
+            for (let c = 0; c < nC; c++) {
+                const bl = opts.blockBoundary === c ? ' class="blk-boundary-left"' : '';
+                html += `<th${bl}>${opts.colLabels ? opts.colLabels[c] : c}</th>`;
+            }
+            html += '</tr></thead><tbody>';
+            for (let r = 0; r < nR; r++) {
+                const bt = opts.blockBoundary === r ? ' class="blk-boundary-top"' : '';
+                html += `<tr${bt}><th>${opts.rowLabels ? opts.rowLabels[r] : r}</th>`;
+                for (let c = 0; c < nC; c++) {
+                    const v = M[r][c];
+                    const cls = opts.blockBoundary === c ? ' class="blk-boundary-left"' : '';
+                    const style = `background:${heatColor(v, maxAbs)};` + (showText ? '' : 'min-width:10px;height:10px;padding:1px;font-size:0;');
+                    html += `<td${cls} style="${style}" data-r="${r}" data-c="${c}" title="${v.toExponential(3)}">${showText ? fmtVal(v) : ''}</td>`;
                 }
+                html += '</tr>';
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            if (opts.onCellClick) {
+                container.querySelectorAll('td').forEach(td => {
+                    td.addEventListener('click', () => {
+                        container.querySelectorAll('td.selected').forEach(x => x.classList.remove('selected'));
+                        td.classList.add('selected');
+                        opts.onCellClick(parseInt(td.dataset.r), parseInt(td.dataset.c));
+                    });
+                });
+            }
+        }
+
+        /**
+         * ヤコビアン要素の「計算式・代入値・物理的意味」を表示する。
+         * 教材の核: 行列の数値が現実の系統で何を意味するかを接続する。
+         */
+        function explainJacobianCell(r, c) {
+            const jac = state.lastJacobian;
+            if (!jac) return;
+            const { J, nonSlackBuses, pqBuses, nNonSlack } = jac;
+            const v = J[r][c];
+            const isProw = r < nNonSlack;
+            const isDcol = c < nNonSlack;
+            const i = isProw ? nonSlackBuses[r] : pqBuses[r - nNonSlack];
+            const j = isDcol ? nonSlackBuses[c] : pqBuses[c - nNonSlack];
+            const bi = state.buses[i], bj = state.buses[j];
+            const Vi = bi.V, Vj = bj.V;
+            const th = bi.delta - bj.delta;
+            const G = state.Ybus[i][j].re, B = state.Ybus[i][j].im;
+            const num = (x, d = 3) => Number(x).toFixed(d);
+            const perDegMW = (v * Math.PI / 180 * 100);
+            let formula = '', plug = '', meaning = '';
+
+            if (isProw && isDcol) {
+                if (i === j) {
+                    const { Q } = calculatePQ(i);
+                    formula = `∂P${i + 1}/∂δ${i + 1} = −Q${i + 1} − V${i + 1}² · B${i + 1}${i + 1}`;
+                    plug = `= −(${num(Q)}) − (${num(Vi)})² × (${num(state.Ybus[i][i].im)}) = ${num(v)}`;
+                    meaning = `母線${i + 1}自身の角度に対する感度（対角要素）。母線${i + 1}の位相角を1°進めると注入有効電力は約 ${perDegMW.toFixed(1)} MW 増える。この値が大きいほど「堅い」母線で、Newton法は安定に収束しやすい。`;
+                } else if (v === 0) {
+                    formula = `∂P${i + 1}/∂δ${j + 1} = V·V·(G·sinθ − B·cosθ)`;
+                    plug = `= 0 （Y${i + 1}${j + 1} = 0）`;
+                    meaning = `母線${i + 1}と母線${j + 1}は直接接続されていないため 0。ヤコビアンが疎行列（スパース）になる理由がこれ。実系統では大半のセルが0になる。`;
+                } else {
+                    formula = `∂P${i + 1}/∂δ${j + 1} = V${i + 1}·V${j + 1}·(G${i + 1}${j + 1}·sinθ − B${i + 1}${j + 1}·cosθ)`;
+                    plug = `= ${num(Vi)} × ${num(Vj)} × (${num(G)}×sin(${num(th)}) − (${num(B)})×cos(${num(th)})) = ${num(v)}`;
+                    meaning = `母線${j + 1}の位相角が1°進むと、母線${i + 1}の注入有効電力は約 ${perDegMW.toFixed(1)} MW 変化する。「角度差が有効電力を運ぶ」という送電の基本原理がこの項に現れている。`;
+                }
+            } else if (isProw && !isDcol) {
+                formula = i === j
+                    ? `∂P${i + 1}/∂V${i + 1} = P${i + 1}/V${i + 1} + V${i + 1}·G${i + 1}${i + 1}`
+                    : `∂P${i + 1}/∂V${j + 1} = V${i + 1}·(G${i + 1}${j + 1}·cosθ + B${i + 1}${j + 1}·sinθ)`;
+                plug = `= ${num(v)}`;
+                meaning = `母線${j + 1}の電圧が 0.01 p.u. 上がっても母線${i + 1}の有効電力は約 ${(v * 0.01 * 100).toFixed(2)} MW しか変わらない。左の∂P/∂δブロックと比べて小さい＝「Pは電圧にあまり反応しない」。これがFast Decoupled法でこのブロックを丸ごと無視できる根拠。`;
+            } else if (!isProw && isDcol) {
+                formula = i === j
+                    ? `∂Q${i + 1}/∂δ${i + 1} = P${i + 1} − V${i + 1}²·G${i + 1}${i + 1}`
+                    : `∂Q${i + 1}/∂δ${j + 1} = −V${i + 1}·V${j + 1}·(G${i + 1}${j + 1}·cosθ + B${i + 1}${j + 1}·sinθ)`;
+                plug = `= ${num(v)}`;
+                meaning = `角度変化が無効電力に与える影響。右下の∂Q/∂Vブロックと比べて小さい＝「Qは角度にあまり反応しない」。∂P/∂Vと合わせて、P-δ / Q-V を独立に解ける（分離できる）ことの数値的証拠。`;
+            } else {
+                formula = i === j
+                    ? `∂Q${i + 1}/∂V${i + 1} = Q${i + 1}/V${i + 1} − V${i + 1}·B${i + 1}${i + 1}`
+                    : `∂Q${i + 1}/∂V${j + 1} = V${i + 1}·(G${i + 1}${j + 1}·sinθ − B${i + 1}${j + 1}·cosθ)`;
+                plug = `= ${num(v)}`;
+                meaning = `母線${j + 1}の電圧が 0.01 p.u. 上がると母線${i + 1}の無効電力注入は約 ${(v * 0.01 * 100).toFixed(1)} MVAr 変化する。「電圧は無効電力で決まる」という電圧制御の基本が、このブロックの大きさに現れている。`;
             }
 
-            // Labels
-            ctx.fillStyle = '#8b949e';
-            ctx.font = '9px JetBrains Mono';
-            ctx.textAlign = 'center';
-            ctx.fillText('∂P/∂δ', offsetX + n * cellSize / 2, offsetY - 5);
-            ctx.fillText('∂P/∂V', offsetX + n * cellSize * 1.5, offsetY - 5);
+            document.getElementById('cellInterpretation').innerHTML =
+                `<strong>J[${r + 1}][${c + 1}] = ${num(v)}</strong> ｜ 行: 母線${i + 1}の${isProw ? '有効電力P' : '無効電力Q'} ／ 列: 母線${j + 1}の${isDcol ? '位相角δ' : '電圧V'}` +
+                `<span class="ci-formula">${formula}\n${plug}</span>` +
+                `<span class="ci-meaning">${meaning}</span>`;
         }
 
         // ================================================================
@@ -1775,22 +1897,20 @@
             const nPQ = pqBuses.length;
             
             // B' matrix for P-delta subproblem (size: nNonSlack x nNonSlack)
-            // B'_ij = -B_ij (off-diagonal), B'_ii = sum of B_ik for all k connected to i
+            // XB方式: B'は枝の直列リアクタンスのみ (1/x) から構築する。
+            // 抵抗・線路充電・シャントは含めない（含めると収束が劣化する）。
             const Bp = Array(nNonSlack).fill(null).map(() => Array(nNonSlack).fill(0));
-            
-            for (let ii = 0; ii < nNonSlack; ii++) {
-                const i = nonSlackBuses[ii];
-                for (let jj = 0; jj < nNonSlack; jj++) {
-                    const j = nonSlackBuses[jj];
-                    if (i === j) {
-                        // Diagonal: sum of susceptances
-                        Bp[ii][jj] = -state.Ybus[i][i].im;
-                    } else {
-                        // Off-diagonal: negative of susceptance
-                        Bp[ii][jj] = -state.Ybus[i][j].im;
-                    }
-                }
-            }
+            const idxNS = {};
+            nonSlackBuses.forEach((b, k) => { idxNS[b] = k; });
+            state.branches.forEach(br => {
+                let x = br.x;
+                if (Math.abs(x) < 1e-8) x = 1e-6;
+                const bb = 1 / x;
+                const fi = idxNS[br.from], ti = idxNS[br.to];
+                if (fi !== undefined) Bp[fi][fi] += bb;
+                if (ti !== undefined) Bp[ti][ti] += bb;
+                if (fi !== undefined && ti !== undefined) { Bp[fi][ti] -= bb; Bp[ti][fi] -= bb; }
+            });
             
             // B'' matrix for Q-V subproblem (size: nPQ x nPQ)
             const Bpp = Array(nPQ).fill(null).map(() => Array(nPQ).fill(0));
@@ -1830,16 +1950,31 @@
          * @returns {Promise<void>}
          */
         async function runNewtonRaphson() {
+            state.matrixMode = 'J';
             // Step 1: Calculate mismatches
             await animateStep('mismatch', 'ミスマッチ ΔP, ΔQ 計算中...');
             
             const n = state.buses.length;
             
-            updateEquationDisplay(`ミスマッチ計算:
-<span class="eq-variable">ΔP_i</span> = P_spec - Σ|V_i||V_j||Y_ij|cos(θ_ij - δ_i + δ_j)
-<span class="eq-variable">ΔQ_i</span> = Q_spec - Σ|V_i||V_j||Y_ij|sin(θ_ij - δ_i + δ_j)
-
-最大誤差: ${getMaxMismatch().toExponential(3)}`);
+            let mmRows = '';
+            let worst = { bus: -1, val: 0, kind: 'P' };
+            for (let bi = 0; bi < n; bi++) {
+                const bus = state.buses[bi];
+                if (bus.type === 'Slack') continue;
+                const { P, Q } = calculatePQ(bi);
+                const dP = bus.Pspec - P;
+                const dQ = bus.type === 'PQ' ? bus.Qspec - Q : null;
+                if (Math.abs(dP) > Math.abs(worst.val)) worst = { bus: bi, val: dP, kind: 'P' };
+                if (dQ !== null && Math.abs(dQ) > Math.abs(worst.val)) worst = { bus: bi, val: dQ, kind: 'Q' };
+                mmRows += `<tr><td>母線${bi + 1}</td>` +
+                    `<td>${bus.Pspec.toFixed(3)}</td><td>${P.toFixed(3)}</td>` +
+                    `<td class="${dP < 0 ? 'neg' : 'pos'}">${dP >= 0 ? '+' : ''}${dP.toFixed(3)} (${(dP * 100).toFixed(1)} MW)</td>` +
+                    `<td>${dQ === null ? '—' : `${dQ >= 0 ? '+' : ''}${dQ.toFixed(3)} (${(dQ * 100).toFixed(1)} MVAr)`}</td></tr>`;
+            }
+            updateEquationDisplay(`ミスマッチ = 指定値 − 現在の解での計算値　<span class="eq-variable">ΔP = P_spec − P_calc(V, δ)</span>
+<table class="mismatch-table"><tr><th>母線</th><th>P指定</th><th>P計算</th><th>ΔP p.u. (MW)</th><th>ΔQ p.u. (MVAr)</th></tr>${mmRows}</table>
+<span class="eq-highlight">解釈:</span> 最大のずれは母線${worst.bus + 1}の${worst.kind === 'P' ? '有効電力' : '無効電力'}で ${(worst.val * 100).toFixed(1)} ${worst.kind === 'P' ? 'MW' : 'MVAr'}（100 MVA基準）。
+この表のズレを全母線で許容誤差以下にするのが潮流計算のゴール。最大誤差: ${getMaxMismatch().toExponential(3)}`);
 
             await delay(800 / state.speed);
 
@@ -1849,11 +1984,22 @@
             const { J, mismatch, nonSlackBuses, pqBuses, nNonSlack, nPQ } = buildFullJacobian();
             const dimJ = nNonSlack + nPQ;
             
-            updateEquationDisplay(`ヤコビアン行列:
-J = [<span class="eq-variable">∂P/∂δ</span>  <span class="eq-variable">∂P/∂V</span>]
-    [<span class="eq-variable">∂Q/∂δ</span>  <span class="eq-variable">∂Q/∂V</span>]
+            const blkMean = (r0, r1, c0, c1) => {
+                let sum = 0, cnt = 0;
+                for (let r = r0; r < r1; r++) for (let cc = c0; cc < c1; cc++) { sum += Math.abs(J[r][cc]); cnt++; }
+                return cnt ? sum / cnt : 0;
+            };
+            const mH = blkMean(0, nNonSlack, 0, nNonSlack);
+            const mN = blkMean(0, nNonSlack, nNonSlack, dimJ);
+            const mM = blkMean(nNonSlack, dimJ, 0, nNonSlack);
+            const mL = blkMean(nNonSlack, dimJ, nNonSlack, dimJ);
+            updateEquationDisplay(`ヤコビアン J = [<span class="eq-variable">∂P/∂δ</span>  <span class="eq-variable">∂P/∂V</span>; <span class="eq-variable">∂Q/∂δ</span>  <span class="eq-variable">∂Q/∂V</span>]（${dimJ}×${dimJ}）
+右パネルに<span class="eq-highlight">実数値</span>を表示中。セルをクリックすると計算式と物理的な意味を表示。
 
-サイズ: ${dimJ} × ${dimJ} (非Slackバス)`);
+ブロック平均 |要素|:　∂P/∂δ = ${mH.toFixed(2)}　∂P/∂V = ${mN.toFixed(2)}
+　　　　　　　　　　　∂Q/∂δ = ${mM.toFixed(2)}　∂Q/∂V = ${mL.toFixed(2)}
+<span class="eq-highlight">解釈:</span> 対角ブロック（∂P/∂δ, ∂Q/∂V）が非対角より大きい
+→「Pは角度に、Qは電圧に強く効く」。Fast Decoupled法はこの性質を利用して非対角を無視する。`);
 
             drawJacobian();
             await delay(600 / state.speed);
@@ -1871,6 +2017,26 @@ Gauss消去法 (部分ピボット選択) を使用...`);
             
             // Solve the linear system
             const dx = solveLinearSystem(J, mismatch);
+
+            // 解いた修正量を実数値で表示（rad→度への換算と解釈付き）
+            let corrRows = '';
+            let worstIdx = 0;
+            for (let k = 0; k < dx.length; k++) if (Math.abs(dx[k]) > Math.abs(dx[worstIdx])) worstIdx = k;
+            for (let ii = 0; ii < nNonSlack; ii++) {
+                const bi = nonSlackBuses[ii];
+                corrRows += `<tr><td>Δδ${bi + 1}</td><td>${dx[ii].toFixed(5)} rad</td><td>${(dx[ii] * 180 / Math.PI).toFixed(3)}°</td></tr>`;
+            }
+            for (let jj = 0; jj < nPQ; jj++) {
+                const bj = pqBuses[jj];
+                corrRows += `<tr><td>ΔV${bj + 1}</td><td>${dx[nNonSlack + jj].toFixed(5)} p.u.</td><td>—</td></tr>`;
+            }
+            const wIsAngle = worstIdx < nNonSlack;
+            const wBus = wIsAngle ? nonSlackBuses[worstIdx] : pqBuses[worstIdx - nNonSlack];
+            updateEquationDisplay(`J·Δx = [ΔP; ΔQ] をLU分解で解いた修正量 Δx:
+<table class="mismatch-table"><tr><th>変数</th><th>修正量</th><th>換算</th></tr>${corrRows}</table>
+<span class="eq-highlight">解釈:</span> 最大の修正は${wIsAngle ? `母線${wBus + 1}の位相角 ${(dx[worstIdx] * 180 / Math.PI).toFixed(3)}°` : `母線${wBus + 1}の電圧 ${dx[worstIdx].toFixed(4)} p.u.`}。
+ミスマッチの大きい母線ほど大きく動かされる。反復が進むと修正量が急減する（2次収束の現れ）。`);
+            await delay(700 / state.speed);
 
             // Step 4: Update state variables
             await animateStep('update', '状態変数を更新中...');
@@ -2041,16 +2207,27 @@ V_${i+1}^(k+1) = 1/Y_${i+1}${i+1} × [
          * @returns {Promise<void>}
          */
         async function runFastDecoupled() {
+            state.matrixMode = 'custom';
             const n = state.buses.length;
             const { Bp, Bpp, nonSlackBuses, pqBuses, nNonSlack, nPQ } = buildBMatrices();
 
             // P-delta subproblem
             await animateStep('mismatch', 'P-δ サブ問題...');
             
-            updateEquationDisplay(`Fast Decoupled法:
+            const titleEl = document.getElementById('matrixPanelTitle');
+            if (titleEl) titleEl.textContent = `B′行列（1/x のみで構築, ${nNonSlack}×${nNonSlack}）`;
+            renderMatrixTable('jacobianNumeric', Bp, {
+                rowLabels: nonSlackBuses.map(i => `ΔP${i + 1}`),
+                colLabels: nonSlackBuses.map(i => `δ${i + 1}`)
+            });
+            document.getElementById('cellInterpretation').innerHTML =
+                'B′はヤコビアンの ∂P/∂δ ブロックを「枝リアクタンスの逆数 1/x」だけで近似した<strong>定数行列</strong>。' +
+                '対角 = 接続枝の 1/x の合計、非対角 = −1/x。電圧や角度に依存しないため毎反復の再構築が不要 — これがFast Decoupled法の速さの源。';
+
+            updateEquationDisplay(`Fast Decoupled法 (P-δ サブ問題):
 <span class="eq-variable">B'</span> × Δδ = ΔP/V
 
-B'行列で位相角を更新...`);
+右パネルにB′の実数値を表示中。ヤコビアンと違い、この行列は反復中ずっと同じ。`);
 
             await delay(500 / state.speed);
 
@@ -2085,10 +2262,22 @@ B'行列で位相角を更新...`);
             // Q-V subproblem
             await animateStep('update', 'Q-V サブ問題...');
             
-            updateEquationDisplay(`Fast Decoupled法:
+            if (nPQ > 0) {
+                const titleEl2 = document.getElementById('matrixPanelTitle');
+                if (titleEl2) titleEl2.textContent = `B″行列（-Im(Ybus), ${nPQ}×${nPQ}）`;
+                renderMatrixTable('jacobianNumeric', Bpp, {
+                    rowLabels: pqBuses.map(i => `ΔQ${i + 1}`),
+                    colLabels: pqBuses.map(i => `V${i + 1}`)
+                });
+                document.getElementById('cellInterpretation').innerHTML =
+                    'B″はQ-V問題用の定数行列。こちらは線路充電・シャントを含む -Im(Ybus) から作る' +
+                    '（無効電力の収支にはシャントが直接効くため）。B′と使い分けるのがXB方式。';
+            }
+
+            updateEquationDisplay(`Fast Decoupled法 (Q-V サブ問題):
 <span class="eq-variable">B"</span> × ΔV = ΔQ/V
 
-B"行列で電圧を更新...`);
+右パネルにB″の実数値を表示中。`);
 
             // Calculate Q mismatches for PQ buses
             const deltaQ = [];
@@ -2137,6 +2326,7 @@ B"行列で電圧を更新...`);
          * @returns {Promise<void>}
          */
         async function runDCPowerFlow() {
+            state.matrixMode = 'custom';
             await animateStep('init', 'DC潮流計算 (線形)...');
 
             updateEquationDisplay(`DC潮流計算:
@@ -2151,32 +2341,54 @@ B"行列で電圧を更新...`);
             await animateStep('solve', '線形方程式を解く...');
 
             const n = state.buses.length;
-            
-            // Simple DC power flow update
-            for (let i = 0; i < n; i++) {
-                const bus = state.buses[i];
-                if (bus.type === 'Slack') continue;
-                
-                let sumB = 0;
-                for (let j = 0; j < n; j++) {
-                    if (i === j) continue;
-                    sumB += state.Ybus[i][j].im * state.buses[j].delta;
-                }
-                
-                bus.delta = (bus.Pspec - sumB) / state.Ybus[i][i].im;
-                bus.V = 1.0; // DC assumes flat voltage
-            }
+
+            // B行列を枝リアクタンス 1/x のみから構築し、縮約系 Bθ = P を直接解く
+            const nonSlack = [];
+            for (let i = 0; i < n; i++) if (state.buses[i].type !== 'Slack') nonSlack.push(i);
+            const idxNS = {};
+            nonSlack.forEach((b, k) => { idxNS[b] = k; });
+            const Bdc = Array(nonSlack.length).fill(null).map(() => Array(nonSlack.length).fill(0));
+            state.branches.forEach(br => {
+                let x = br.x;
+                if (Math.abs(x) < 1e-8) x = 1e-6;
+                const bb = 1 / x;
+                const fi = idxNS[br.from], ti = idxNS[br.to];
+                if (fi !== undefined) Bdc[fi][fi] += bb;
+                if (ti !== undefined) Bdc[ti][ti] += bb;
+                if (fi !== undefined && ti !== undefined) { Bdc[fi][ti] -= bb; Bdc[ti][fi] -= bb; }
+            });
+            const Pvec = nonSlack.map(i => state.buses[i].Pspec);
+
+            const titleEl = document.getElementById('matrixPanelTitle');
+            if (titleEl) titleEl.textContent = `DC潮流のB行列（1/x のみ, ${nonSlack.length}×${nonSlack.length}）`;
+            renderMatrixTable('jacobianNumeric', Bdc, {
+                rowLabels: nonSlack.map(i => `P${i + 1}`),
+                colLabels: nonSlack.map(i => `θ${i + 1}`)
+            });
+            document.getElementById('cellInterpretation').innerHTML =
+                'DC潮流のB行列。対角 = 接続枝の 1/x の合計、非対角 = −1/x。' +
+                '<strong>B[i][j]×(θi−θj) が枝潮流</strong>そのもの。この線形方程式 Bθ = P を1回解くだけで全角度が決まる。';
+
+            // 線形方程式を直接解く（反復ではない — これがDC潮流が1回で終わる理由）
+            const theta = solveLinearSystem(Bdc, Pvec);
+            nonSlack.forEach((i, k) => {
+                state.buses[i].delta = theta[k];
+                state.buses[i].V = 1.0; // DC仮定
+            });
 
             await animateStep('update', '解の計算完了');
-            
-            updateEquationDisplay(`DC潮流計算完了:
-全ノードの位相角 δ を計算
 
-注: 電圧は 1.0 p.u. と仮定
-    無効電力 Q は計算されない`);
+            let thRows = '';
+            nonSlack.forEach((i, k) => {
+                thRows += `<tr><td>θ${i + 1}</td><td>${theta[k].toFixed(5)} rad</td><td>${(theta[k] * 180 / Math.PI).toFixed(3)}°</td></tr>`;
+            });
+            updateEquationDisplay(`DC潮流: Bθ = P を直接求解（反復なし）
+<table class="mismatch-table"><tr><th>変数</th><th>解</th><th>度</th></tr>${thRows}</table>
+<span class="eq-highlight">解釈:</span> 発電が多い母線ほど角度が進み（正）、負荷が多い母線ほど遅れる（負）。
+角度差 × (1/x) が枝を流れる有効電力。|V|=1.0固定・Q無視のため誤差はあるが、1回の求解で済む。`);
 
             // DC power flow converges in 1 iteration
-            state.convergenceHistory.push(state.tolerance / 10);
+            // DCは線形方程式の直接解なので反復誤差は存在しない (履歴に偽値は入れない)
             updateConvergenceChart();
             drawNetwork();
             updateBusTable();
@@ -2563,6 +2775,7 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             state.iteration = 0;
             state.convergenceHistory = [];
             state.currentStep = null;
+            state.matrixMode = 'J';
 
             // Reset buses to initial state
             const networkId = document.getElementById('networkSelect').value;

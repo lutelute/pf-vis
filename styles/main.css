@@ -199,6 +199,84 @@ body {
     border: 1px solid var(--border);
 }
 
+/* Learning Path Section */
+.learning-path {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    margin-bottom: 40px;
+}
+
+.path-intro {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+}
+
+.path-steps {
+    list-style: none;
+    counter-reset: path-step;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.path-steps li {
+    counter-increment: path-step;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    position: relative;
+}
+
+.path-steps li::before {
+    content: counter(path-step);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+    align-self: center;
+}
+
+.path-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    color: var(--accent-cyan);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.path-steps a {
+    color: var(--text-primary);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px dashed var(--accent-blue);
+}
+
+.path-steps a:hover {
+    color: var(--accent-blue);
+}
+
+.path-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
 /* Documentation Section */
 .documentation {
     background: var(--bg-card);

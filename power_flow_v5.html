@@ -336,7 +336,7 @@
             </div>
             <div class="matpower-badge">
                 <span>📚</span>
-                <span>MATPOWER 7.1 準拠 | 8アルゴリズム統合</span>
+                <span>MATPOWERデータ形式準拠 | 8アルゴリズム統合（Q制限は未考慮）</span>
             </div>
         </div>
     </header>
@@ -352,8 +352,8 @@
                             <option value="case9" selected>IEEE 9-bus</option>
                             <option value="case14">IEEE 14-bus</option>
                             <option value="case30">IEEE 30-bus</option>
-                            <option value="case57">IEEE 57-bus</option>
-                            <option value="case118">IEEE 118-bus</option>
+                            <option value="case57">57母線 合成系統 (IEEE57風)</option>
+                            <option value="case118">118母線 合成系統 (トポロジのみIEEE風)</option>
                         </optgroup>
                         <optgroup label="ランダム生成">
                             <option value="random30">ランダム 30-bus</option>
@@ -496,14 +496,14 @@
 // Algorithm Definitions
 // ============================================================
 const ALGOS = {
-    nr: { name: 'Newton-Raphson', short: 'NR', color: '#3b82f6', desc: '最も高速。雅各法。黄金標準。', matpower: 'newtonpf.m', complexity: 'O(n³)', convergence: '2次' },
-    fdxb: { name: 'Fast Decoupled XB', short: 'FDXB', color: '#10b981', desc: 'P-δ/Q-V分離近似。高速。', matpower: 'fdpf.m', complexity: 'O(n³)', convergence: '線形' },
-    fdbx: { name: 'Fast Decoupled BX', short: 'FDBX', color: '#14b8a6', desc: 'FDXBの変種。BX順序。', matpower: 'fdpf.m', complexity: 'O(n³)', convergence: '線形' },
+    nr: { name: 'Newton-Raphson', short: 'NR', color: '#3b82f6', desc: 'ヤコビアン行列による2次収束。事実上の標準。', matpower: 'newtonpf.m', complexity: 'O(n³)', convergence: '2次' },
+    fdxb: { name: 'Fast Decoupled XB', short: 'FDXB', color: '#10b981', desc: 'P-δ/Q-V分離近似。B行列は定数で高速。', matpower: 'fdpf.m', complexity: 'O(n²)*', convergence: '線形(高速)' },
+    fdbx: { name: 'Fast Decoupled BX', short: 'FDBX', color: '#14b8a6', desc: 'FDXBの変種。Q-V更新を先に行う。', matpower: 'fdpf.m', complexity: 'O(n²)*', convergence: '線形(高速)' },
     gs: { name: 'Gauss-Seidel', short: 'GS', color: '#f59e0b', desc: '逐次更新。メモリ効率良。収束遅い。', matpower: 'gausspf.m', complexity: 'O(n²)', convergence: '線形' },
     gj: { name: 'Gauss-Jacobi', short: 'GJ', color: '#eab308', desc: '一斉更新。並列化可能。GSより遅い。', matpower: '-', complexity: 'O(n²)', convergence: '線形' },
     dc: { name: 'DC Power Flow', short: 'DC', color: '#8b5cf6', desc: '線形近似。P-δのみ。1回で解。', matpower: 'dcpf.m', complexity: 'O(n²)', convergence: '1回' },
     lm: { name: 'Levenberg-Marquardt', short: 'LM', color: '#ec4899', desc: 'NRにダンピング追加。収束性改善。', matpower: '-', complexity: 'O(n³)', convergence: '超線形' },
-    helm: { name: 'Holomorphic Embedding', short: 'HELM', color: '#6366f1', desc: '複素解析的手法。収束保証あり。', matpower: '-', complexity: 'O(n³)', convergence: '保証' }
+    rnr: { name: 'Relaxed Newton', short: 'RNR', color: '#6366f1', desc: '更新量を80%に緩和したNR。難収束時の安定化。', matpower: '-', complexity: 'O(n³)', convergence: '2次(減速)' }
 };
 
 // ============================================================
@@ -522,9 +522,9 @@ CASES.case5 = {
 // IEEE 9-bus (WSCC)
 CASES.case9 = {
     name: 'IEEE 9-bus', baseMVA: 100,
-    bus: [[1,3,0,0,0,0,1,1.04,0,16.5,1,1.1,0.9],[2,2,0,0,0,0,1,1.025,0,18,1,1.1,0.9],[3,2,0,0,0,0,1,1.025,0,13.8,1,1.1,0.9],[4,1,0,0,0,0,1,1,0,230,1,1.1,0.9],[5,1,125,50,0,0,1,1,0,230,1,1.1,0.9],[6,1,90,30,0,0,1,1,0,230,1,1.1,0.9],[7,1,0,0,0,0,1,1,0,230,1,1.1,0.9],[8,1,100,35,0,0,1,1,0,230,1,1.1,0.9],[9,1,0,0,0,0,1,1,0,230,1,1.1,0.9]],
+    bus: [[1,3,0,0,0,0,1,1.04,0,16.5,1,1.1,0.9],[2,2,0,0,0,0,1,1.025,0,18,1,1.1,0.9],[3,2,0,0,0,0,1,1.025,0,13.8,1,1.1,0.9],[4,1,0,0,0,0,1,1,0,345,1,1.1,0.9],[5,1,90,30,0,0,1,1,0,345,1,1.1,0.9],[6,1,0,0,0,0,1,1,0,345,1,1.1,0.9],[7,1,100,35,0,0,1,1,0,345,1,1.1,0.9],[8,1,0,0,0,0,1,1,0,345,1,1.1,0.9],[9,1,125,50,0,0,1,1,0,345,1,1.1,0.9]],
     gen: [[1,71.64,27.05,300,-300,1.04,100,1,250,10],[2,163,6.65,300,-300,1.025,100,1,300,10],[3,85,-10.86,300,-300,1.025,100,1,270,10]],
-    branch: [[1,4,0.0001,0.0576,0,250,250,250,0,0,1],[4,5,0.017,0.092,0.158,250,250,250,0,0,1],[5,6,0.039,0.17,0.358,150,150,150,0,0,1],[3,6,0.0001,0.0586,0,300,300,300,0,0,1],[6,7,0.0119,0.1008,0.209,150,150,150,0,0,1],[7,8,0.0085,0.072,0.149,250,250,250,0,0,1],[8,2,0.0001,0.0625,0,250,250,250,0,0,1],[8,9,0.032,0.161,0.306,250,250,250,0,0,1],[9,4,0.01,0.085,0.176,250,250,250,0,0,1]]
+    branch: [[1,4,0,0.0576,0,250,250,250,0,0,1],[4,5,0.017,0.092,0.158,250,250,250,0,0,1],[5,6,0.039,0.17,0.358,150,150,150,0,0,1],[3,6,0,0.0586,0,300,300,300,0,0,1],[6,7,0.0119,0.1008,0.209,150,150,150,0,0,1],[7,8,0.0085,0.072,0.149,250,250,250,0,0,1],[8,2,0,0.0625,0,250,250,250,0,0,1],[8,9,0.032,0.161,0.306,250,250,250,0,0,1],[9,4,0.01,0.085,0.176,250,250,250,0,0,1]]
 };
 
 // IEEE 14-bus
@@ -532,7 +532,7 @@ CASES.case14 = {
     name: 'IEEE 14-bus', baseMVA: 100,
     bus: [[1,3,0,0,0,0,1,1.06,0,0,1,1.06,0.94],[2,2,21.7,12.7,0,0,1,1.045,0,0,1,1.06,0.94],[3,2,94.2,19,0,0,1,1.01,0,0,1,1.06,0.94],[4,1,47.8,-3.9,0,0,1,1,0,0,1,1.06,0.94],[5,1,7.6,1.6,0,0,1,1,0,0,1,1.06,0.94],[6,2,11.2,7.5,0,0,1,1.07,0,0,1,1.06,0.94],[7,1,0,0,0,0,1,1,0,0,1,1.06,0.94],[8,2,0,0,0,0,1,1.09,0,0,1,1.06,0.94],[9,1,29.5,16.6,0,19,1,1,0,0,1,1.06,0.94],[10,1,9,5.8,0,0,1,1,0,0,1,1.06,0.94],[11,1,3.5,1.8,0,0,1,1,0,0,1,1.06,0.94],[12,1,6.1,1.6,0,0,1,1,0,0,1,1.06,0.94],[13,1,13.5,5.8,0,0,1,1,0,0,1,1.06,0.94],[14,1,14.9,5,0,0,1,1,0,0,1,1.06,0.94]],
     gen: [[1,232.4,-16.9,10,0,1.06,100,1,332.4,0],[2,40,42.4,50,-40,1.045,100,1,140,0],[3,0,23.4,40,0,1.01,100,1,100,0],[6,0,12.2,24,-6,1.07,100,1,100,0],[8,0,17.4,24,-6,1.09,100,1,100,0]],
-    branch: [[1,2,0.01938,0.05917,0.0528,472,472,472,0,0,1],[1,5,0.05403,0.22304,0.0492,128,128,128,0,0,1],[2,3,0.04699,0.19797,0.0438,145,145,145,0,0,1],[2,4,0.05811,0.17632,0.034,132,132,132,0,0,1],[2,5,0.05695,0.17388,0.0346,136,136,136,0,0,1],[3,4,0.06701,0.17103,0.0128,65,65,65,0,0,1],[4,5,0.01335,0.04211,0,0,0,0,0,0,1],[4,7,0.0001,0.20912,0,0,0,0,0.978,0,1],[4,9,0.0001,0.55618,0,0,0,0,0.969,0,1],[5,6,0.0001,0.25202,0,0,0,0,0.932,0,1],[6,11,0.09498,0.1989,0,0,0,0,0,0,1],[6,12,0.12291,0.25581,0,0,0,0,0,0,1],[6,13,0.06615,0.13027,0,0,0,0,0,0,1],[7,8,0.0001,0.17615,0,0,0,0,0,0,1],[7,9,0.11001,0.2064,0,0,0,0,0,0,1],[9,10,0.03181,0.0845,0,0,0,0,0,0,1],[9,14,0.12711,0.27038,0,0,0,0,0,0,1],[10,11,0.08205,0.19207,0,0,0,0,0,0,1],[12,13,0.22092,0.19988,0,0,0,0,0,0,1],[13,14,0.17093,0.34802,0,0,0,0,0,0,1]]
+    branch: [[1,2,0.01938,0.05917,0.0528,472,472,472,0,0,1],[1,5,0.05403,0.22304,0.0492,128,128,128,0,0,1],[2,3,0.04699,0.19797,0.0438,145,145,145,0,0,1],[2,4,0.05811,0.17632,0.034,132,132,132,0,0,1],[2,5,0.05695,0.17388,0.0346,136,136,136,0,0,1],[3,4,0.06701,0.17103,0.0128,65,65,65,0,0,1],[4,5,0.01335,0.04211,0,0,0,0,0,0,1],[4,7,0.0001,0.20912,0,0,0,0,0.978,0,1],[4,9,0.0001,0.55618,0,0,0,0,0.969,0,1],[5,6,0.0001,0.25202,0,0,0,0,0.932,0,1],[6,11,0.09498,0.1989,0,0,0,0,0,0,1],[6,12,0.12291,0.25581,0,0,0,0,0,0,1],[6,13,0.06615,0.13027,0,0,0,0,0,0,1],[7,8,0.0001,0.17615,0,0,0,0,0,0,1],[7,9,0,0.11001,0,0,0,0,0,0,1],[9,10,0.03181,0.0845,0,0,0,0,0,0,1],[9,14,0.12711,0.27038,0,0,0,0,0,0,1],[10,11,0.08205,0.19207,0,0,0,0,0,0,1],[12,13,0.22092,0.19988,0,0,0,0,0,0,1],[13,14,0.17093,0.34802,0,0,0,0,0,0,1]]
 };
 
 // IEEE 30-bus
@@ -543,10 +543,12 @@ CASES.case30 = {
     branch: [[1,2,0.0192,0.0575,0.0528,130,130,130,0,0,1],[1,3,0.0452,0.1852,0.0408,130,130,130,0,0,1],[2,4,0.057,0.1737,0.0368,65,65,65,0,0,1],[3,4,0.0132,0.0379,0.0084,130,130,130,0,0,1],[2,5,0.0472,0.1983,0.0418,130,130,130,0,0,1],[2,6,0.0581,0.1763,0.0374,65,65,65,0,0,1],[4,6,0.0119,0.0414,0.009,90,90,90,0,0,1],[5,7,0.046,0.116,0.0204,70,70,70,0,0,1],[6,7,0.0267,0.082,0.017,130,130,130,0,0,1],[6,8,0.012,0.042,0.009,32,32,32,0,0,1],[6,9,0.0001,0.208,0,65,65,65,0.978,0,1],[6,10,0.0001,0.556,0,32,32,32,0.969,0,1],[9,11,0.0001,0.208,0,65,65,65,0,0,1],[9,10,0.0001,0.11,0,65,65,65,0,0,1],[4,12,0.0001,0.256,0,65,65,65,0.932,0,1],[12,13,0.0001,0.14,0,65,65,65,0,0,1],[12,14,0.1231,0.2559,0,32,32,32,0,0,1],[12,15,0.0662,0.1304,0,32,32,32,0,0,1],[12,16,0.0945,0.1987,0,32,32,32,0,0,1],[14,15,0.221,0.1997,0,16,16,16,0,0,1],[16,17,0.0524,0.1923,0,16,16,16,0,0,1],[15,18,0.1073,0.2185,0,16,16,16,0,0,1],[18,19,0.0639,0.1292,0,16,16,16,0,0,1],[19,20,0.034,0.068,0,32,32,32,0,0,1],[10,20,0.0936,0.209,0,32,32,32,0,0,1],[10,17,0.0324,0.0845,0,32,32,32,0,0,1],[10,21,0.0348,0.0749,0,32,32,32,0,0,1],[10,22,0.0727,0.1499,0,32,32,32,0,0,1],[21,22,0.0116,0.0236,0,32,32,32,0,0,1],[15,23,0.1,0.202,0,16,16,16,0,0,1],[22,24,0.115,0.179,0,16,16,16,0,0,1],[23,24,0.132,0.27,0,16,16,16,0,0,1],[24,25,0.1885,0.3292,0,16,16,16,0,0,1],[25,26,0.2544,0.38,0,16,16,16,0,0,1],[25,27,0.1093,0.2087,0,16,16,16,0,0,1],[28,27,0.0001,0.396,0,65,65,65,0.968,0,1],[27,29,0.2198,0.4153,0,16,16,16,0,0,1],[27,30,0.3202,0.6027,0,16,16,16,0,0,1],[29,30,0.2399,0.4533,0,16,16,16,0,0,1],[8,28,0.0636,0.2,0.0428,32,32,32,0,0,1],[6,28,0.0169,0.0599,0.013,32,32,32,0,0,1]]
 };
 
-// IEEE 57-bus (simplified but realistic)
+// 57母線 合成系統: 有効負荷パターンと線路インピーダンスはIEEE 57を参考にしているが、
+// 無効負荷(P×0.3)・変圧器タップ(未設定)は簡略化した合成データ。IEEE公表値とは一致しない。
 CASES.case57 = generateIEEE57();
 
-// IEEE 118-bus (simplified but realistic)
+// 118母線 合成系統: 母線接続トポロジのみIEEE 118を参考。線路定数・負荷・発電は
+// 乱数生成の合成データであり、IEEE 118の公表値とは無関係。大規模系統の挙動体験用。
 CASES.case118 = generateIEEE118();
 
 function generateIEEE57() {
@@ -612,7 +614,7 @@ function generateIEEE57() {
         }
     }
     
-    return { name: 'IEEE 57-bus', baseMVA, bus: buses, gen: gens, branch: branches };
+    return { name: '57-bus Synthetic (IEEE57風)', baseMVA, bus: buses, gen: gens, branch: branches };
 }
 
 function generateIEEE118() {
@@ -701,7 +703,7 @@ function generateIEEE118() {
         }
     }
     
-    return { name: 'IEEE 118-bus', baseMVA, bus: buses, gen: gens, branch: branches };
+    return { name: '118-bus Synthetic (トポロジのみIEEE風)', baseMVA, bus: buses, gen: gens, branch: branches };
 }
 
 // ============================================================
@@ -837,6 +839,7 @@ class PowerFlowEngine {
         this.iteration = 0;
         this.converged = false;
         this.diverged = false;
+        this.stalled = false;
         this.errorHistory = [];
         this.maxError = Infinity;
         this.initialize();
@@ -909,7 +912,7 @@ class PowerFlowEngine {
             
             // Diagonal elements
             this.Ybus.re[f][f] += g / (tap * tap);
-            this.Ybus.im[f][f] += bSeries / (tap * tap) + b / 2;
+            this.Ybus.im[f][f] += (bSeries + b / 2) / (tap * tap);
             this.Ybus.re[t][t] += g;
             this.Ybus.im[t][t] += bSeries + b / 2;
         }
@@ -1111,7 +1114,7 @@ class PowerFlowEngine {
         
         // P-delta subproblem
         if (dP.length > 0) {
-            const Bp = this.buildBMatrix(dP.map(d => d.bus));
+            const Bp = this.buildBPrime(dP.map(d => d.bus));
             const fp = dP.map(d => d.value / this.V[d.bus]);
             const dDelta = this.solveLU(Bp, fp);
             if (dDelta && dDelta.every(v => isFinite(v))) {
@@ -1157,7 +1160,7 @@ class PowerFlowEngine {
         
         // P-delta second
         if (dP.length > 0) {
-            const Bp = this.buildBMatrix(dP.map(d => d.bus));
+            const Bp = this.buildBPrime(dP.map(d => d.bus));
             const fp = dP.map(d => d.value / this.V[d.bus]);
             const dDelta = this.solveLU(Bp, fp);
             if (dDelta && dDelta.every(v => isFinite(v))) {
@@ -1179,7 +1182,8 @@ class PowerFlowEngine {
             if (i === this.slackBus) continue;
             
             const Ps = this.Pgen[i] - this.busData[i][2] / this.baseMVA;
-            const Qs = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : 0;
+            // PV bus: Q is a dependent variable — use the injection implied by current V
+            const Qs = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : this.calcQInjectionAt(i);
             
             let sumYV_re = 0, sumYV_im = 0;
             for (let j = 0; j < this.nBus; j++) {
@@ -1229,7 +1233,7 @@ class PowerFlowEngine {
             if (i !== this.slackBus) buses.push(i);
         }
         
-        const B = this.buildBMatrix(buses);
+        const B = this.buildBPrime(buses, true);
         const P = buses.map(i => this.Pgen[i] - this.busData[i][2] / this.baseMVA);
         
         const theta = this.solveLU(B, P);
@@ -1239,6 +1243,9 @@ class PowerFlowEngine {
                 this.delta[buses[i]] = theta[i];
             }
         }
+        
+        // DC仮定: 全母線 |V| = 1.0
+        for (let i = 0; i < this.nBus; i++) this.V[i] = 1.0;
         
         this.converged = true;
         return { maxError: 0 };
@@ -1252,14 +1259,24 @@ class PowerFlowEngine {
         
         const J = this.buildJacobian(dP, dQ);
         const f = [...dP.map(d => d.value), ...dQ.map(d => d.value)];
-        
-        // Add damping
-        const lambda = 0.01;
+
+        // Levenberg-Marquardt: solve (JᵀJ + μI) dx = Jᵀf  (fixed μ for simplicity)
+        const mu = 0.01;
+        const N = Array(n).fill(null).map(() => Array(n).fill(0));
+        const rhs = new Array(n).fill(0);
         for (let i = 0; i < n; i++) {
-            J[i][i] += lambda;
+            for (let j = 0; j < n; j++) {
+                let sum = 0;
+                for (let k = 0; k < n; k++) sum += J[k][i] * J[k][j];
+                N[i][j] = sum;
+            }
+            N[i][i] += mu;
+            let sumf = 0;
+            for (let k = 0; k < n; k++) sumf += J[k][i] * f[k];
+            rhs[i] = sumf;
         }
-        
-        const dx = this.solveLU(J, f);
+
+        const dx = this.solveLU(N, rhs);
         
         if (!dx || dx.some(v => !isFinite(v))) {
             return { maxError: Infinity };
@@ -1292,7 +1309,8 @@ class PowerFlowEngine {
             if (i === this.slackBus) continue;
             
             const Pspec = this.Pgen[i] - this.busData[i][2] / this.baseMVA;
-            const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : 0;
+            // PV bus: Q is a dependent variable — use the injection implied by current V
+            const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : this.calcQInjectionAt(i);
             
             let sumYV_re = 0, sumYV_im = 0;
             for (let j = 0; j < this.nBus; j++) {
@@ -1337,11 +1355,10 @@ class PowerFlowEngine {
         return { maxError: Math.max(maxP, maxQ) };
     }
 
-    helmStep() {
-        // HELM (simplified Holomorphic Embedding)
+    rnrStep() {
+        // Relaxed Newton-Raphson: full NR step scaled by a relaxation factor
         const { dP, dQ } = this.calcMismatch();
-        
-        // Use NR-like update with relaxation for stability
+
         const f = [...dP.map(d => d.value), ...dQ.map(d => d.value)];
         if (f.length === 0) return { maxError: 0 };
         
@@ -1360,6 +1377,41 @@ class PowerFlowEngine {
         const maxP = dP.length > 0 ? Math.max(...dP.map(d => Math.abs(d.value))) : 0;
         const maxQ = dQ.length > 0 ? Math.max(...dQ.map(d => Math.abs(d.value))) : 0;
         return { maxError: Math.max(maxP, maxQ) };
+    }
+
+    // B' matrix from series reactance only (used for P-θ subproblem and DC power flow)
+    buildBPrime(buses, useTap = false) {
+        const idx = new Map(buses.map((b, k) => [b, k]));
+        const n = buses.length;
+        const B = Array(n).fill(null).map(() => Array(n).fill(0));
+        for (const branch of this.branchData) {
+            const from = branch[0] - 1;
+            const to = branch[1] - 1;
+            let x = branch[3];
+            if (Math.abs(x) < 1e-8) x = 1e-6;
+            const tap = branch[8] || 1;
+            const tapRatio = (useTap && tap !== 0) ? tap : 1;
+            const bBranch = 1 / (x * tapRatio);
+            const fi = idx.get(from);
+            const ti = idx.get(to);
+            if (fi !== undefined) B[fi][fi] += bBranch;
+            if (ti !== undefined) B[ti][ti] += bBranch;
+            if (fi !== undefined && ti !== undefined) {
+                B[fi][ti] -= bBranch;
+                B[ti][fi] -= bBranch;
+            }
+        }
+        return B;
+    }
+
+    // Reactive power injection implied by the current voltage estimate (for PV buses in GS/GJ)
+    calcQInjectionAt(i) {
+        let Q = 0;
+        for (let j = 0; j < this.nBus; j++) {
+            const th = this.delta[i] - this.delta[j];
+            Q += this.V[i] * this.V[j] * (this.Ybus.re[i][j] * Math.sin(th) - this.Ybus.im[i][j] * Math.cos(th));
+        }
+        return Q;
     }
 
     buildBMatrix(buses) {
@@ -1446,7 +1498,7 @@ class PowerFlowEngine {
             case 'gj': result = this.gjStep(); break;
             case 'dc': result = this.dcStep(); break;
             case 'lm': result = this.lmStep(); break;
-            case 'helm': result = this.helmStep(); break;
+            case 'rnr': result = this.rnrStep(); break;
             default: result = this.nrStep();
         }
         
@@ -1627,15 +1679,17 @@ async function runAll() {
         
         for (const algo of selectedAlgos) {
             const e = engines[algo];
-            if (e.converged || e.diverged || e.iteration >= maxIter) continue;
+            if (e.converged || e.diverged || e.stalled || e.iteration >= maxIter) continue;
             
             allDone = false;
             const result = e.runIteration(algo);
             
             if (result.maxError < tol) {
                 e.converged = true;
-            } else if (e.iteration >= maxIter || !isFinite(result.maxError)) {
-                e.diverged = true;
+            } else if (!isFinite(result.maxError)) {
+                e.diverged = true;           // 数値的発散
+            } else if (e.iteration >= maxIter) {
+                e.stalled = true;            // 反復上限到達(未収束)
             }
         }
         
@@ -1663,6 +1717,7 @@ function updateResults() {
         let status = 'waiting', statusText = '待機';
         if (e.converged) { status = 'converged'; statusText = '収束'; }
         else if (e.diverged) { status = 'diverged'; statusText = '発散'; }
+        else if (e.stalled) { status = 'diverged'; statusText = '上限到達(未収束)'; }
         else if (e.iteration > 0) { status = 'running'; statusText = '実行中'; }
         
         container.innerHTML += `
@@ -1700,6 +1755,7 @@ function updateResults() {
         let statusText = '待機中';
         if (engine.converged) { status = 'converged'; statusText = '✓ 収束'; }
         else if (engine.diverged) { status = 'diverged'; statusText = '✗ 発散'; }
+        else if (engine.stalled) { status = 'diverged'; statusText = '△ 上限到達(未収束)'; }
         else if (engine.iteration > 0) { status = 'running'; statusText = '⏳ 実行中'; }
         
         results.push({
@@ -1956,7 +2012,7 @@ function drawIterationBar() {
         ctx.fillStyle = '#94a3b8';
         ctx.font = '8px JetBrains Mono';
         ctx.fillText(ALGOS[a].short, x + barW / 2, h - pad.bottom + 10);
-        ctx.fillText(e.converged ? '✓' : e.diverged ? '✗' : '', x + barW / 2, h - pad.bottom + 18);
+        ctx.fillText(e.converged ? '✓' : e.diverged ? '✗' : e.stalled ? '△' : '', x + barW / 2, h - pad.bottom + 18);
     });
 }
 

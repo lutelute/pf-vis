@@ -40,7 +40,7 @@ $S_i = P_i + jQ_i = V_i \cdot I_i^*$
 $I_i = \sum_{j=1}^n Y_{ij} V_j$
 
 したがって、複素電力は：
-$S_i = V_i \left(\sum_{j=1}^n Y_{ij} V_j\right)^* = V_i^* \sum_{j=1}^n Y_{ij}^* V_j^*$
+$S_i = V_i \left(\sum_{j=1}^n Y_{ij} V_j\right)^* = V_i \sum_{j=1}^n Y_{ij}^* V_j^*$
 
 **Step 3: 実部・虚部分離**
 
@@ -48,7 +48,9 @@ $V_i = |V_i|e^{j\theta_i}$、$Y_{ij} = G_{ij} + jB_{ij}$ として：
 
 $P_i = \text{Re}[S_i] = \text{Re}\left[V_i^* \sum_{j=1}^n Y_{ij} V_j\right] = P_{Gi} - P_{Di}$ ... (1)
 
-$Q_i = \text{Im}[S_i] = \text{Im}\left[V_i^* \sum_{j=1}^n Y_{ij} V_j\right] = Q_{Gi} - Q_{Di}$ ... (2)
+$Q_i = \text{Im}[S_i] = -\text{Im}\left[V_i^* \sum_{j=1}^n Y_{ij} V_j\right] = Q_{Gi} - Q_{Di}$ ... (2)
+
+（$V_i^*\sum Y_{ij}V_j = S_i^*$ なので虚部の符号が反転する点に注意）
 
 #### 極座標形式への展開
 
@@ -56,11 +58,11 @@ $Q_i = \text{Im}[S_i] = \text{Im}\left[V_i^* \sum_{j=1}^n Y_{ij} V_j\right] = Q_
 
 **導出過程：**
 
-$P_i = \sum_{j=1}^n |V_i||V_j||Y_{ij}|\cos(\theta_{ij} - \theta_i + \theta_j)$ ... (3)
+$P_i = \sum_{j=1}^n |V_i||V_j||Y_{ij}|\cos(\theta_i - \theta_j - \theta_{ij})$ ... (3)
 
 $= \sum_{j=1}^n |V_i||V_j|[G_{ij}\cos(\theta_i - \theta_j) + B_{ij}\sin(\theta_i - \theta_j)]$ ... (4)
 
-$Q_i = \sum_{j=1}^n |V_i||V_j||Y_{ij}|\sin(\theta_{ij} - \theta_i + \theta_j)$ ... (5)
+$Q_i = \sum_{j=1}^n |V_i||V_j||Y_{ij}|\sin(\theta_i - \theta_j - \theta_{ij})$ ... (5)
 
 $= \sum_{j=1}^n |V_i||V_j|[G_{ij}\sin(\theta_i - \theta_j) - B_{ij}\cos(\theta_i - \theta_j)]$ ... (6)
 
@@ -110,9 +112,11 @@ $[\Delta\mathbf{P}; \Delta\mathbf{Q}] = [\frac{\partial \mathbf{P}}{\partial \bo
 ### 1.3 潮流方程式の極座標表現
 
 ```
-P_i = ∑_{j=1}^n |V_i||V_j||Y_{ij}|cos(θ_{ij} - θ_i + θ_j)
-Q_i = ∑_{j=1}^n |V_i||V_j||Y_{ij}|sin(θ_{ij} - θ_i + θ_j)
+P_i =  ∑_{j=1}^n |V_i||V_j||Y_{ij}|cos(θ_i - θ_j - θ_{ij})
+Q_i =  ∑_{j=1}^n |V_i||V_j||Y_{ij}|sin(θ_i - θ_j - θ_{ij})
 ```
+
+ここで θ_{ij} は Y_{ij} = |Y_{ij}|∠θ_{ij} の偏角である。
 
 簡略表記：
 ```
@@ -168,7 +172,9 @@ $\mathbf{f}(\mathbf{x}) = [\Delta\mathbf{P}; \Delta\mathbf{Q}] = [\mathbf{P}_{sp
 
 **Newton更新式：**
 
-$[\Delta\boldsymbol{\theta}^{(k)}; \Delta|\mathbf{V}|^{(k)}] = -[\mathbf{J}_{P\theta}, \mathbf{J}_{P|V|}; \mathbf{J}_{Q\theta}, \mathbf{J}_{Q|V|}]^{-1} [\Delta\mathbf{P}^{(k)}; \Delta\mathbf{Q}^{(k)}]$ ... (18)
+$[\Delta\boldsymbol{\theta}^{(k)}; \Delta|\mathbf{V}|^{(k)}] = [\mathbf{J}_{P\theta}, \mathbf{J}_{P|V|}; \mathbf{J}_{Q\theta}, \mathbf{J}_{Q|V|}]^{-1} [\Delta\mathbf{P}^{(k)}; \Delta\mathbf{Q}^{(k)}]$ ... (18)
+
+（$\mathbf{J}$ は計算値 $P_{calc}, Q_{calc}$ の偏微分として定義しているため、$\Delta\mathbf{P} = \mathbf{P}_{spec} - \mathbf{P}_{calc}$ との組合せでは符号は正になる点に注意）
 
 ### 2.2 Jacobian行列の厳密導出
 
@@ -196,7 +202,7 @@ $\frac{\partial P_i}{\partial \theta_j} = |V_i||V_j|[G_{ij}\sin(\theta_i - \thet
 
 **対角要素：**
 
-$\frac{\partial P_i}{\partial |V_i|} = \frac{1}{|V_i|} \sum_{j=1}^n |V_j|[G_{ij}\cos(\theta_i - \theta_j) + B_{ij}\sin(\theta_i - \theta_j)]$ ... (23)
+$\frac{\partial P_i}{\partial |V_i|} = 2|V_i|G_{ii} + \sum_{j \neq i} |V_j|[G_{ij}\cos(\theta_i - \theta_j) + B_{ij}\sin(\theta_i - \theta_j)]$ ... (23)
 
 式(4)を用いると：
 
@@ -242,7 +248,10 @@ LU分解：$O(n^3)$
    e) 変数更新: x^(k+1) = x^(k) + Δx^(k)
 ```
 
-### 2.4 実装例（JavaScript）
+### 2.4 実装例（擬似コード）
+
+> 注: 以下は概念を示す擬似コードです（`Complex` 型・`Math.arg` 等は説明用の架空API）。
+> 動作する実装は `scripts/power_flow_engine.js` を参照してください。
 
 ```javascript
 function newtonRaphsonPowerFlow(Ybus, Pbus, Qbus, V0) {
@@ -353,7 +362,9 @@ $\frac{\partial P_i}{\partial |V_j|} \approx B_{ij}(\theta_i - \theta_j) \approx
 
 近似により、Jacobian行列は以下のように分離される：
 
-$\mathbf{J} \approx [-\mathbf{B}', \mathbf{0}; \mathbf{0}, -\mathbf{B}'']$ ... (32)
+$\mathbf{J} \approx [\mathbf{B}', \mathbf{0}; \mathbf{0}, \mathbf{B}'']$ ... (32)
+
+（$\mathbf{B}'$ を式(33)(34)のように対角正で定義する場合。$|V| \approx 1$ とした）
 
 ここで：
 - $\mathbf{B}'$: P-θ カップリング行列
@@ -381,11 +392,11 @@ $B''_{ij} = B'_{ij}$ ... (36)
 
 **P-θ 部分問題：**
 
-$\Delta\mathbf{P} = -\mathbf{B}' \Delta\boldsymbol{\theta} \quad \Rightarrow \quad \Delta\boldsymbol{\theta} = -(\mathbf{B}')^{-1} \frac{\Delta\mathbf{P}}{|\mathbf{V}|}$ ... (37)
+$\frac{\Delta\mathbf{P}}{|\mathbf{V}|} = \mathbf{B}' \Delta\boldsymbol{\theta} \quad \Rightarrow \quad \Delta\boldsymbol{\theta} = (\mathbf{B}')^{-1} \frac{\Delta\mathbf{P}}{|\mathbf{V}|}$ ... (37)
 
 **Q-|V| 部分問題：**
 
-$\Delta\mathbf{Q} = -\mathbf{B}'' \Delta|\mathbf{V}| \quad \Rightarrow \quad \Delta|\mathbf{V}| = -(\mathbf{B}'')^{-1} \frac{\Delta\mathbf{Q}}{|\mathbf{V}|}$ ... (38)
+$\frac{\Delta\mathbf{Q}}{|\mathbf{V}|} = \mathbf{B}'' \Delta|\mathbf{V}| \quad \Rightarrow \quad \Delta|\mathbf{V}| = (\mathbf{B}'')^{-1} \frac{\Delta\mathbf{Q}}{|\mathbf{V}|}$ ... (38)
 
 ### 3.4 XB方式アルゴリズム
 
@@ -399,7 +410,7 @@ $\Delta\mathbf{Q} = -\mathbf{B}'' \Delta|\mathbf{V}| \quad \Rightarrow \quad \De
 
 $\Delta\mathbf{P}^{(k)} = \mathbf{P}_{spec} - \mathbf{P}_{calc}(\boldsymbol{\theta}^{(k)}, |\mathbf{V}|^{(k)})$ ... (39)
 
-$\Delta\boldsymbol{\theta}^{(k)} = -(\mathbf{L}_1 \mathbf{U}_1)^{-1} \frac{\Delta\mathbf{P}^{(k)}}{|\mathbf{V}|^{(k)}}$ ... (40)
+$\Delta\boldsymbol{\theta}^{(k)} = (\mathbf{L}_1 \mathbf{U}_1)^{-1} \frac{\Delta\mathbf{P}^{(k)}}{|\mathbf{V}|^{(k)}}$ ... (40)
 
 $\boldsymbol{\theta}^{(k+1)} = \boldsymbol{\theta}^{(k)} + \Delta\boldsymbol{\theta}^{(k)}$ ... (41)
 
@@ -407,7 +418,7 @@ $\boldsymbol{\theta}^{(k+1)} = \boldsymbol{\theta}^{(k)} + \Delta\boldsymbol{\th
 
 $\Delta\mathbf{Q}^{(k)} = \mathbf{Q}_{spec} - \mathbf{Q}_{calc}(\boldsymbol{\theta}^{(k+1)}, |\mathbf{V}|^{(k)})$ ... (42)
 
-$\Delta|\mathbf{V}|^{(k)} = -(\mathbf{L}_2 \mathbf{U}_2)^{-1} \frac{\Delta\mathbf{Q}^{(k)}}{|\mathbf{V}|^{(k)}}$ ... (43)
+$\Delta|\mathbf{V}|^{(k)} = (\mathbf{L}_2 \mathbf{U}_2)^{-1} \frac{\Delta\mathbf{Q}^{(k)}}{|\mathbf{V}|^{(k)}}$ ... (43)
 
 $|\mathbf{V}|^{(k+1)} = |\mathbf{V}|^{(k)} + \Delta|\mathbf{V}|^{(k)}$ ... (44)
 
@@ -415,42 +426,9 @@ $|\mathbf{V}|^{(k+1)} = |\mathbf{V}|^{(k)} + \Delta|\mathbf{V}|^{(k)}$ ... (44)
 
 $\max(||\Delta\mathbf{P}^{(k)}||_\infty, ||\Delta\mathbf{Q}^{(k)}||_\infty) < \varepsilon$ ... (45)
 
-### 3.3 B'およびB''行列
+### 3.5 実装例（擬似コード）
 
-#### B'行列（P-θ用）
-```
-B'_{ii} = ∑_{j≠i} X_{ij}^(-1)
-B'_{ij} = -X_{ij}^(-1)  (i ≠ j)
-```
-
-#### B''行列（Q-|V|用）  
-```
-B''_{ii} = B'_{ii} + B_{shi}
-B''_{ij} = B'_{ij}
-```
-
-### 3.4 アルゴリズム（XB方式）
-
-```
-1. 初期化・前処理
-   - B', B''行列構築
-   - LU分解: [L₁U₁] = B', [L₂U₂] = B''
-
-2. 反復計算 k = 0, 1, 2, ...
-   a) P-θ サブ問題
-      - ΔP^(k) = P_spec - P_calc^(k)
-      - Δθ^(k) = (B')^(-1) (ΔP^(k) / |V|^(k))
-      - θ^(k+1) = θ^(k) + Δθ^(k)
-      
-   b) Q-|V| サブ問題  
-      - ΔQ^(k) = Q_spec - Q_calc^(k)
-      - Δ|V|^(k) = (B'')^(-1) (ΔQ^(k) / |V|^(k))
-      - |V|^(k+1) = |V|^(k) + Δ|V|^(k)
-      
-   c) 収束判定
-```
-
-### 3.5 実装例
+> 注: 概念を示す擬似コードです。動作する実装は `scripts/power_flow_engine.js` の `_solveFastDecoupledStep` を参照。
 
 ```javascript
 function fastDecoupledPowerFlow(Ybus, Pbus, Qbus, V0) {
@@ -506,10 +484,10 @@ function fastDecoupledPowerFlow(Ybus, Pbus, Qbus, V0) {
 
 ### 3.6 収束特性
 
-- **収束次数**: 1.6-1.8次（準二次収束）
-- **反復回数**: 通常 5-12回
-- **計算量**: 2×O(n³/2) per iteration
-- **メモリ効率**: B', B''は定数行列
+- **収束次数**: 線形（B行列固定の不動点反復）。ただし収束率が小さく実用上は高速
+- **反復回数**: 通常 5-25回（本リポジトリのIEEE 14実測: 8回）
+- **計算量**: 初回のみLU分解 O(n³)、以降は前進後退代入 O(n²)/反復
+- **メモリ効率**: B', B''は定数行列（再構築不要）
 
 ---
 
@@ -538,8 +516,11 @@ V_i^(k+1) = (1/Y_{ii}) [S_i*/V_i* - ∑_{j≠i} Y_{ij}V_j^(k+1/k)]
      if (母線iがPQ母線) then
        V_i^(k+1) = (1/Y_{ii})[S_i*/V_i* - ∑_{j≠i} Y_{ij}V_j^(k+1/k)]
      else if (母線iがPV母線) then
+       // PV母線ではQは未知量。現在の電圧推定から求める:
+       Q_i^(k) = -Im{ (V_i^(k))* ∑_j Y_{ij}V_j^(k+1/k) }
+       S_i* = P_i^spec - jQ_i^(k)
        V_temp = (1/Y_{ii})[S_i*/V_i* - ∑_{j≠i} Y_{ij}V_j^(k+1/k)]
-       V_i^(k+1) = |V_i|^spec × (V_temp/|V_temp|)
+       V_i^(k+1) = |V_i|^spec × (V_temp/|V_temp|)   // 大きさは指定値に固定
    収束判定
 ```
 
@@ -551,7 +532,7 @@ V_i^(k+1) = (1-ω)V_i^(k) + ω·V_i^new
 ```
 ここで、`ω`は緩和係数（通常 1.0 < ω < 2.0）
 
-### 4.4 実装例
+### 4.4 実装例（擬似コード）
 
 ```javascript
 function gaussSeidelPowerFlow(Ybus, busData, V0) {
@@ -664,7 +645,7 @@ B_{ij} = -1/X_{ij}  (i ≠ j)
 5. 送電線潮流計算: P_{ij} = (θ_i - θ_j)/X_{ij}
 ```
 
-### 5.4 実装例
+### 5.4 実装例（参考実装）
 
 ```javascript
 function dcPowerFlow(branchData, busData) {
@@ -748,7 +729,7 @@ function buildBMatrix(branchData, nbus) {
 Newton法の収束性改善：
 
 ```
-x^(k+1) = x^(k) - [J^T J + μI]^(-1) J^T f(x^(k))
+x^(k+1) = x^(k) + [J^T J + μI]^(-1) J^T f(x^(k)),   f = [ΔP; ΔQ] = spec - calc
 ```
 
 - `μ`: 制御パラメータ（大→Gauss法、小→Newton法）
@@ -875,15 +856,17 @@ $\kappa(\mathbf{B}') = ||\mathbf{B}'|| \cdot ||(\mathbf{B}')^{-1}||$, $\kappa(\m
 - $\kappa(\mathbf{B}')$, $\kappa(\mathbf{B}'') < 10^3$: 良好な収束  
 - $\kappa(\mathbf{B}')$, $\kappa(\mathbf{B}'') > 10^6$: 収束困難
 
-#### 7.3.2 近似誤差の伝播
+#### 7.3.2 収束率の解析
 
-真のJacobian $\mathbf{J}$ と近似Jacobian $\mathbf{J}_{FD}$ の差：
+高速分離解法は固定行列 $\mathbf{M} = \text{diag}(\mathbf{B}', \mathbf{B}'')$ を用いた
+不動点反復 $\mathbf{x}^{(k+1)} = \mathbf{x}^{(k)} + \mathbf{M}^{-1}\mathbf{f}(\mathbf{x}^{(k)})$ とみなせる。
+その収束は線形で、収束率は反復行列のスペクトル半径で決まる：
 
-$\Delta\mathbf{J} = \mathbf{J} - \mathbf{J}_{FD} = [\mathbf{0}, \mathbf{J}_{P|V|}; \mathbf{J}_{Q\theta}, \mathbf{0}]$ ... (79)
+$\rho\left(\mathbf{I} - \mathbf{M}^{-1}\mathbf{J}(\mathbf{x}^*)\right) < 1$ ... (79)
 
-摂動理論により、収束次数は以下に低下：
-
-$r_{FD} \approx 1 + \frac{\log(||\Delta\mathbf{J}||)}{\log(||\mathbf{f}||)}$ ... (80)
+$\mathbf{M}$ が真のヤコビアン $\mathbf{J}$ に近い（＝分離近似の仮定A1〜A4がよく成り立つ送電系統）ほど
+スペクトル半径が小さくなり、少ない反復数で収束する。R/X比の大きい系統（配電系統など）では
+近似が悪化し、収束が遅くなるか発散する。... (80)
 
 ### 7.4 収束判定基準
 
@@ -1022,8 +1005,8 @@ function newtonRaphsonPF(Ybus, Sbus, V0, tolerance) {
 | 手法 | 単位反復 | 総反復数 | 総計算量 |
 |------|----------|----------|----------|
 | Newton-Raphson | O(n³) | 3-6 | O(n³) |
-| Fast Decoupled | O(n³/2) | 5-12 | O(n³) |  
-| Gauss-Seidel | O(n²) | 20-50 | O(n³) |
+| Fast Decoupled | O(n²)※ | 5-25 | O(n³) |  
+| Gauss-Seidel | O(n²) | 数十〜数百 | O(n³)以上 |
 | DC Power Flow | O(n³) | 1 | O(n³) |
 
 ### 9.2 メモリ使用量
@@ -1031,33 +1014,38 @@ function newtonRaphsonPF(Ybus, Sbus, V0, tolerance) {
 | 手法 | 主要行列 | スパース率 | メモリ量 |
 |------|----------|------------|----------|
 | Newton-Raphson | Jacobian | 90-95% | O(n²) |
-| Fast Decoupled | B', B'' | 95-98% | O(n²/2) |
+| Fast Decoupled | B', B'' | 95-98% | O(n²) |
 | Gauss-Seidel | なし | - | O(n²) |
-| DC Power Flow | B | 95-98% | O(n²/4) |
+| DC Power Flow | B | 95-98% | O(n²) |
 
 ### 9.3 収束性能
 
-#### 典型的なIEEE 14母線系統での結果
+#### IEEE 14母線系統・許容誤差 1e-6 での実測（本リポジトリの共有エンジン）
 
 ```
-手法              反復数  時間[ms]  メモリ[MB]  精度
-Newton-Raphson      4      12.3      2.1       1e-10
-Fast Decoupled      7       8.9      1.6       1e-8  
-Gauss-Seidel       23      15.7      1.2       1e-8
-DC Power Flow       1       1.2      0.8       1e-2
+手法              反復数   最終ミスマッチ    備考
+Newton-Raphson      4      < 1e-6 p.u.     2次収束
+Fast Decoupled XB   8      < 1e-6 p.u.     B'B''固定・準2次
+Gauss-Seidel      170      < 1e-6 p.u.     線形収束(加速なし α=1.0)
+DC Power Flow       1      —               直接解法(電圧・Q情報なし)
 ```
+
+検証方法は `tests/verify_algorithms.mjs` を参照（MATPOWERの公式解と照合）。
 
 ### 9.4 スケーラビリティ
 
-#### 系統規模別性能（Newton-Raphson）
+#### 系統規模と反復数の目安（Newton-Raphson）
 
-| 母線数 | 反復数 | 時間[s] | メモリ[MB] | 備考 |
-|--------|--------|---------|------------|------|
-| 14     | 4      | 0.01    | 2.1        | 小規模 |
-| 57     | 5      | 0.15    | 8.9        | 中規模 |
-| 118    | 6      | 0.45    | 28.4       | 大規模 |
-| 300    | 7      | 2.1     | 156        | 実用規模 |
-| 2383   | 8      | 45      | 1024       | 実系統規模 |
+| 母線数 | 反復数の目安 | 備考 |
+|--------|--------------|------|
+| 14     | 4-5          | 小規模（本リポジトリで実測: 4回） |
+| 57     | 4-6          | 中規模 |
+| 118    | 5-6          | 大規模 |
+| 300    | 5-7          | 実用規模 |
+| 2000+  | 6-10         | 実系統規模（スパース技術が必須） |
+
+NR法の反復数は系統規模にほとんど依存しない（2次収束のため）。
+計算時間はヤコビアンのLU分解が支配し、スパース性の活用が実用上の鍵となる。
 
 ---
 

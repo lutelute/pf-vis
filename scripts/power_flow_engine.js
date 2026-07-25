@@ -265,9 +265,9 @@ class PowerFlowEngine {
             this.Ybus.im[to][from] -= bSeries / tapRatio;
 
             // Diagonal elements (self-admittance with tap ratio and line charging)
-            // From-bus: Y_ii += y/τ² + jB_c/2 (includes tap ratio squared)
+            // From-bus: Y_ii += (y + jB_c/2)/τ² (MATPOWER convention: tap on from side)
             this.Ybus.re[from][from] += g / (tapRatio * tapRatio);
-            this.Ybus.im[from][from] += bSeries / (tapRatio * tapRatio) + b / 2;
+            this.Ybus.im[from][from] += (bSeries + b / 2) / (tapRatio * tapRatio);
             // To-bus: Y_jj += y + jB_c/2 (no tap ratio on receiving end)
             this.Ybus.re[to][to] += g;
             this.Ybus.im[to][to] += bSeries + b / 2;
@@ -477,8 +477,8 @@ class PowerFlowEngine {
      *   - J_Qθ:  m × (n-1)      [PQ buses × non-slack buses]
      *   - J_Q|V|: m × m         [PQ buses × PQ buses]
      *
-     * Newton-Raphson update equation:
-     *   J · [Δθ; Δ|V|] = -[ΔP; ΔQ]                                      ... (18)
+     * Newton-Raphson update equation (with ΔP = P_spec − P_calc):
+     *   J · [Δθ; Δ|V|] = [ΔP; ΔQ]                                       ... (18)
      *
      * The Jacobian enables quadratic convergence: ||e^(k+1)|| ∝ ||e^(k)||²
      * ═══════════════════════════════════════════════════════════════════════
@@ -717,6 +717,28 @@ class PowerFlowEngine {
     }
 
     /**
+     * Calculate the reactive power injection at a single bus
+     *
+     * @private
+     * @description Q_i = Σ_j |V_i||V_j|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]
+     * Used by Gauss-Seidel to estimate Q at PV buses, where Q is a
+     * dependent variable rather than a specified quantity.
+     *
+     * @param {number} i - Bus index (0-based)
+     * @returns {number} Reactive power injection (p.u.)
+     */
+    _calcQInjectionAt(i) {
+        let Q = 0;
+        for (let j = 0; j < this.nBus; j++) {
+            const Gij = this.Ybus.re[i][j];
+            const Bij = this.Ybus.im[i][j];
+            const thetaij = this.delta[i] - this.delta[j];
+            Q += this.V[i] * this.V[j] * (Gij * Math.sin(thetaij) - Bij * Math.cos(thetaij));
+        }
+        return Q;
+    }
+
+    /**
      * Perform one Gauss-Seidel iteration
      *
      * @private
@@ -728,7 +750,7 @@ class PowerFlowEngine {
      *
      * Basic iterative update formula derived from power balance:
      *
-     *   V_i^(k+1) = (1/Y_ii) · [S_i*/V_i*^(k) - Σ(j≠i) Y_ij·V_j^(k+1/k)]
+     *   V_i^(k+1) = (1/Y_ii) · [S_i* / V_i*^(k) - Σ(j≠i) Y_ij·V_j^(k+1/k)]
      *
      * Expanded form:
      *   V_i^(k+1) = (1/Y_ii) · [(P_i - jQ_i)/(V_re - jV_im) - Σ Y_ij·V_j]
@@ -758,7 +780,16 @@ class PowerFlowEngine {
             const Pload = this.busData[i][2] / this.baseMVA;
             const Qload = this.busData[i][3] / this.baseMVA;
             const Pspec = this.Pgen[i] - Pload;
-            const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - Qload) : 0;
+            let Qspec;
+            if (this.pqBuses.includes(i)) {
+                Qspec = this.Qgen[i] - Qload;
+            } else {
+                // PV bus: Q is not specified. Use the reactive power injection
+                // implied by the current voltage estimate:
+                //   Q_i = Σ_j |V_i||V_j|[G_ij·sin(θ_ij) - B_ij·cos(θ_ij)]
+                // The voltage magnitude itself is held at the setpoint below.
+                Qspec = this._calcQInjectionAt(i);
+            }
 
             // Calculate Σ(j≠i) Yij*Vj in rectangular form
             let sumYV_re = 0, sumYV_im = 0;
@@ -793,8 +824,9 @@ class PowerFlowEngine {
             const newVmag = Math.sqrt(newV_re * newV_re + newV_im * newV_im);
             const newVang = Math.atan2(newV_im, newV_re);
 
-            // Apply update with acceleration factor
-            const alpha = 1.0;
+            // Apply update with acceleration factor (1.0 = pure Gauss-Seidel;
+            // 1.4-1.6 is the classical accelerated range, cf. Stagg & El-Abiad)
+            const alpha = this._gsAlpha ?? 1.0;
             this.delta[i] = this.delta[i] + alpha * (newVang - this.delta[i]);
 
             // Only update magnitude for PQ buses
@@ -834,17 +866,18 @@ class PowerFlowEngine {
      *
      * This allows decoupling of P-θ and Q-|V| subproblems:
      *
-     * P-θ Subproblem (Step 1):                                          ... (37)
-     *   ΔP = -B' · Δθ  →  Δθ = -(B')⁻¹ · (ΔP/|V|)
+     * P-θ Subproblem (Step 1, with ΔP = P_spec − P_calc):               ... (37)
+     *   B' · Δθ = ΔP/|V|
      *   Update: θ^(k+1) = θ^(k) + Δθ                                    ... (41)
      *
      * Q-|V| Subproblem (Step 2):                                        ... (38)
-     *   ΔQ = -B'' · Δ|V|  →  Δ|V| = -(B'')⁻¹ · (ΔQ/|V|)
+     *   B'' · Δ|V| = ΔQ/|V|
      *   Update: |V|^(k+1) = |V|^(k) + Δ|V|                              ... (44)
      *
-     * B' and B'' matrices are constant (factored once):
-     *   B'_ij = -1/X_ij, B'_ii = Σ(1/X_ik)                              ... (33-34)
-     *   B''_ij = B'_ij, B''_ii = B'_ii + b_sh,i                         ... (35-36)
+     * B' and B'' matrices are constant (XB scheme, Stott & Alsac 1974):
+     *   B'  : built from series reactance only (r, shunts, taps ignored)
+     *         B'_ij = -1/X_ij, B'_ii = Σ(1/X_ik)                        ... (33-34)
+     *   B'' : -Im(Ybus) restricted to PQ buses (shunts/charging included) (35-36)
      *
      * Convergence: 1.6-1.8 order (quasi-quadratic)
      * ═══════════════════════════════════════════════════════════════════════
@@ -859,7 +892,7 @@ class PowerFlowEngine {
 
         // P-δ subproblem: B' × Δδ = ΔP/V
         if (deltaP.length > 0) {
-            const Bp = this._buildBMatrix(deltaP.map(d => d.bus));
+            const Bp = this._buildBPrime(deltaP.map(d => d.bus));
             const fp = deltaP.map(d => d.value / this.V[d.bus]);
             const dDelta = this._solveLU(Bp, fp);
 
@@ -897,11 +930,57 @@ class PowerFlowEngine {
     }
 
     /**
-     * Build B matrix for Fast Decoupled method
+     * Build the B' matrix (also used as the DC power flow B matrix)
      *
      * @private
+     * @description Constructs the susceptance matrix from series reactance
+     * only, ignoring resistance, line charging, and bus shunts:
+     *   B_ij = -1/X_ij (i ≠ j),  B_ii = Σ_k 1/X_ik
+     * With useTap = true, each branch susceptance becomes 1/(X·τ)
+     * (MATPOWER makeBdc convention) for exact DC power flow results.
+     *
+     * @param {Array<number>} buses - Bus indices (0-based) to include (non-slack)
+     * @param {boolean} [useTap=false] - Divide branch susceptance by tap ratio
+     * @returns {Array<Array<number>>} Reduced B matrix
+     */
+    _buildBPrime(buses, useTap = false) {
+        const idx = new Map(buses.map((b, k) => [b, k]));
+        const n = buses.length;
+        const B = Array(n).fill(null).map(() => Array(n).fill(0));
+
+        for (const branch of this.branchData) {
+            const from = branch[0] - 1;
+            const to = branch[1] - 1;
+            let x = branch[3];
+            if (Math.abs(x) < 1e-8) x = 1e-6;
+
+            const tap = branch[8] || 1;
+            const tapRatio = (useTap && tap !== 0) ? tap : 1;
+            const bBranch = 1 / (x * tapRatio);
+
+            const fi = idx.get(from);
+            const ti = idx.get(to);
+            if (fi !== undefined) B[fi][fi] += bBranch;
+            if (ti !== undefined) B[ti][ti] += bBranch;
+            if (fi !== undefined && ti !== undefined) {
+                B[fi][ti] -= bBranch;
+                B[ti][fi] -= bBranch;
+            }
+        }
+
+        return B;
+    }
+
+    /**
+     * Build the B'' matrix for the Fast Decoupled Q-|V| subproblem
+     *
+     * @private
+     * @description B'' = -Im(Ybus) restricted to the given (PQ) buses.
+     * Unlike B', this includes line charging and bus shunt susceptances,
+     * which directly affect the reactive power balance.
+     *
      * @param {Array<number>} buses - List of bus indices to include
-     * @returns {Array<Array<number>>} B matrix (imaginary part of Ybus)
+     * @returns {Array<Array<number>>} B'' matrix
      */
     _buildBMatrix(buses) {
         const n = buses.length;
@@ -966,19 +1045,17 @@ class PowerFlowEngine {
         }
 
         const n = buses.length;
-        const B = Array(n).fill(null).map(() => Array(n).fill(0));
         const P = new Array(n).fill(0);
 
-        // Populate B matrix and P vector
+        // B matrix from series reactance only (1/(X·τ) per branch):
+        // shunts and line charging must NOT appear in the DC formulation
+        const B = this._buildBPrime(buses, true);
+
+        // Populate P injection vector
         for (let i = 0; i < n; i++) {
             const bi = buses[i];
             const Pload = this.busData[bi][2] / this.baseMVA;
             P[i] = this.Pgen[bi] - Pload;
-
-            for (let j = 0; j < n; j++) {
-                const bj = buses[j];
-                B[i][j] = -this.Ybus.im[bi][bj];
-            }
         }
 
         // Solve B × δ = P
@@ -1150,8 +1227,12 @@ class PowerFlowEngine {
         const {
             algorithm = 'nr',
             tolerance = 1e-6,
-            maxIterations = 100
+            maxIterations = 100,
+            acceleration = 1.0
         } = options;
+
+        // Acceleration factor for Gauss-Seidel (ignored by other methods)
+        this._gsAlpha = acceleration;
 
         // Handle DC power flow separately (non-iterative)
         if (algorithm === 'dc') {
@@ -1344,7 +1425,7 @@ class PowerFlowEngine {
             // Power from i to j
             const Pij = Vi * Vi * g / (tapRatio * tapRatio) -
                        Vi * Vj * (g * Math.cos(thetaij) + bSeries * Math.sin(thetaij)) / tapRatio;
-            const Qij = -Vi * Vi * (bSeries / (tapRatio * tapRatio) + b / 2) -
+            const Qij = -Vi * Vi * (bSeries + b / 2) / (tapRatio * tapRatio) -
                         Vi * Vj * (g * Math.sin(thetaij) - bSeries * Math.cos(thetaij)) / tapRatio;
 
             // Power from j to i

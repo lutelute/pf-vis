@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Power Flow Visualization Project</title>
+    <title>潮流計算 可視化教材 | Power Flow Visualization</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
@@ -22,21 +23,93 @@
         </header>
 
         <main>
+            <section class="learning-path" aria-label="推奨学習パス">
+                <h2 class="doc-title">&#127891; 推奨学習パス</h2>
+                <p class="path-intro">初学者は上から順に進むと、潮流計算の直感 → アルゴリズムの中身 → 手法比較 → 実務水準の解析、と段階的に理解できます。</p>
+                <ol class="path-steps">
+                    <li>
+                        <span class="path-badge">入門</span>
+                        <a href="power_flow_intuitive_v6_fixed.html">収束過程の直感的理解</a>
+                        <span class="path-desc">— 潮流計算は「非線形方程式の反復解法」。解に近づく様子を複素電圧平面で体感する</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">基礎</span>
+                        <a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>
+                        <span class="path-desc">— Newton-Raphson法の1反復（ミスマッチ計算 → ヤコビアン → 修正量）を式と数値で追う</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">比較</span>
+                        <a href="power_flow_compare.html">アルゴリズム同時比較</a>
+                        <span class="path-desc">— NR・Gauss-Seidel・高速分離・DCを同一系統で同時実行し、収束次数の違いを見る</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">実践</span>
+                        <a href="power_flow_matpower_v2.html">MATPOWER準拠実装</a>
+                        <span class="path-desc">— 実務標準のMATPOWERデータ形式（bus/gen/branch）で IEEE標準系統を解く</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">発展</span>
+                        <a href="power_flow_v5.html">統合分析スイート</a>
+                        <span class="path-desc">— 8手法（LM法・連続潮流・HELM等の発展手法を含む）の性能を横断分析する</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">応用</span>
+                        <a href="dc_accuracy_analysis.html">DC潮流の精度検証</a>
+                        <span class="path-desc">— 線形近似（DC潮流）はどこまで正確か。AC解と比較して適用限界を定量化する</span>
+                    </li>
+                </ol>
+            </section>
+
             <section class="visualizers" aria-label="可視化ツール一覧">
                 <article class="card" data-animate>
                     <div class="card-header">
-                        <div class="card-icon card-icon--blue" aria-hidden="true">&#128202;</div>
-                        <h2 class="card-title">MATPOWER準拠分析スイート</h2>
+                        <div class="card-icon card-icon--red" aria-hidden="true">&#129504;</div>
+                        <h2 class="card-title">収束過程直感的理解</h2>
                     </div>
-                    <p class="card-description">8アルゴリズム統合・MATPOWER 7.1完全準拠の学術標準潮流計算分析プラットフォーム（統合版）</p>
+                    <p class="card-description">潮流計算の収束過程を視覚的・直感的に理解できる入門用可視化ツール</p>
                     <ul class="card-features">
-                        <li>Newton-Raphson, Gauss-Jacobi, Holomorphic Embedding等8手法</li>
-                        <li>MATPOWER準拠・学術標準比較表・ランキング表示</li>
-                        <li>IEEE標準系統・詳細メトリクス・研究グレード分析</li>
+                        <li>複素電圧平面での収束軌跡表示</li>
+                        <li>誤差面・ベクトル場表示</li>
+                        <li>2〜30ノードの段階的な問題設定</li>
+                        <li>NR法・GS法・勾配降下法・DC法</li>
                     </ul>
                     <div class="card-footer">
-                        <a href="power_flow_v5.html" class="btn btn-primary">統合版起動 &rarr;</a>
-                        <a href="docs/power_flow_v5.md" class="btn btn-secondary">&#128214; 詳細</a>
+                        <a href="power_flow_intuitive_v6_fixed.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/power_flow_intuitive.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--purple" aria-hidden="true">&#128269;</div>
+                        <h2 class="card-title">計算過程ステップ表示</h2>
+                    </div>
+                    <p class="card-description">潮流計算アルゴリズムの各計算ステップを段階的に可視化する教育特化型ツール</p>
+                    <ul class="card-features">
+                        <li>6段階の計算過程表示</li>
+                        <li>ヤコビアン行列・ミスマッチ計算の詳細表示</li>
+                        <li>ステップ実行・自動実行の切替</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="power_flow_process_visualizer_v2.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/power_flow_process_visualizer.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--orange" aria-hidden="true">&#9878;</div>
+                        <h2 class="card-title">アルゴリズム同時比較</h2>
+                    </div>
+                    <p class="card-description">主要4手法を同一系統で同時実行し、収束特性・計算量の違いを並べて理解する比較ツール</p>
+                    <ul class="card-features">
+                        <li>NR / Gauss-Seidel / 高速分離 / DC の同時実行</li>
+                        <li>収束曲線・反復回数の比較チャート</li>
+                        <li>各手法の特徴・計算量の解説付き</li>
+                    </ul>
+                    <div class="card-footer">
+                        <a href="power_flow_compare.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/power_flow_compare.md" class="btn btn-secondary">&#128196; 技術詳細</a>
                     </div>
                 </article>
 
@@ -45,11 +118,11 @@
                         <div class="card-icon card-icon--green" aria-hidden="true">&#127919;</div>
                         <h2 class="card-title">多手法可視化</h2>
                     </div>
-                    <p class="card-description">主要な潮流計算アルゴリズムの動作を直感的に理解できる教育的可視化ツール</p>
+                    <p class="card-description">各潮流計算アルゴリズムを個別に実行し、動作をじっくり観察できる可視化ツール</p>
                     <ul class="card-features">
-                        <li>Newton-Raphson, 高速分離解法, Gauss-Seidel</li>
+                        <li>Newton-Raphson・高速分離・Gauss-Seidel</li>
                         <li>収束曲線・性能分析チャート</li>
-                        <li>インタラクティブパラメータ調整</li>
+                        <li>収束判定値・反復回数のパラメータ調整</li>
                     </ul>
                     <div class="card-footer">
                         <a href="power_flow_visualizer.html" class="btn btn-primary">起動 &rarr;</a>
@@ -59,32 +132,14 @@
 
                 <article class="card" data-animate>
                     <div class="card-header">
-                        <div class="card-icon card-icon--purple" aria-hidden="true">&#128269;</div>
-                        <h2 class="card-title">計算過程ステップ表示</h2>
-                    </div>
-                    <p class="card-description">潮流計算アルゴリズムの各計算ステップを段階的に可視化する教育特化型ツール（v2完全リニューアル版）</p>
-                    <ul class="card-features">
-                        <li>モダンUI/UX・6段階計算過程表示</li>
-                        <li>Jacobian行列・ミスマッチ計算詳細表示</li>
-                        <li>Newton-Raphson法安定性向上</li>
-                        <li>ステップバイステップ学習強化版</li>
-                    </ul>
-                    <div class="card-footer">
-                        <a href="power_flow_process_visualizer_v2.html" class="btn btn-primary">v2起動 &rarr;</a>
-                        <a href="docs/power_flow_process_visualizer.md" class="btn btn-secondary">&#128214; 詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
                         <div class="card-icon card-icon--cyan" aria-hidden="true">&#9881;</div>
                         <h2 class="card-title">MATPOWER準拠実装</h2>
                     </div>
-                    <p class="card-description">電力系統解析の標準ソフトウェアであるMATPOWERとの完全互換性を持つ潮流計算実装</p>
+                    <p class="card-description">電力系統解析の標準ソフトウェアMATPOWERのデータ形式に準拠した潮流計算実装</p>
                     <ul class="card-features">
-                        <li>mpc.bus, mpc.gen, mpc.branch完全対応</li>
-                        <li>IEEE標準系統データ準拠</li>
-                        <li>プロフェッショナル向けツール</li>
+                        <li>mpc.bus / mpc.gen / mpc.branch 形式対応</li>
+                        <li>IEEE標準系統（2/5/9/14/30母線）</li>
+                        <li>共有計算エンジン使用（MATPOWER解と照合検証済み）</li>
                     </ul>
                     <div class="card-footer">
                         <a href="power_flow_matpower_v2.html" class="btn btn-primary">起動 &rarr;</a>
@@ -94,20 +149,18 @@
 
                 <article class="card" data-animate>
                     <div class="card-header">
-                        <div class="card-icon card-icon--red" aria-hidden="true">&#129504;</div>
-                        <h2 class="card-title">収束過程直感的理解</h2>
+                        <div class="card-icon card-icon--blue" aria-hidden="true">&#128202;</div>
+                        <h2 class="card-title">統合分析スイート</h2>
                     </div>
-                    <p class="card-description">潮流計算の収束過程を視覚的・直感的に理解できる教育特化型可視化ツール（v6_fixed最新安定版）</p>
+                    <p class="card-description">基本4手法に加え、発展的手法も含む8アルゴリズムを統合した分析プラットフォーム</p>
                     <ul class="card-features">
-                        <li>複素電圧平面での収束軌跡表示</li>
-                        <li>誤差面3D可視化・ベクトル場表示</li>
-                        <li>v6_fixed: 全問題完全修正・安定動作</li>
-                        <li>段階的アニメーション学習・確実収束</li>
+                        <li>NR・GS・高速分離・DC + LM法・連続潮流・HELM等</li>
+                        <li>手法間の比較表・ランキング表示</li>
+                        <li>IEEE標準系統・詳細メトリクス</li>
                     </ul>
                     <div class="card-footer">
-                        <a href="power_flow_intuitive_v6_fixed.html" class="btn btn-primary">Fixed起動 (推奨) &rarr;</a>
-                        <a href="power_flow_intuitive_v7.html" class="btn btn-secondary">v7起動</a>
-                        <a href="docs/power_flow_intuitive.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                        <a href="power_flow_v5.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/power_flow_v5.md" class="btn btn-secondary">&#128214; 詳細</a>
                     </div>
                 </article>
 
@@ -116,11 +169,11 @@
                         <div class="card-icon card-icon--green" aria-hidden="true">&#128207;</div>
                         <h2 class="card-title">DC潮流精度検証</h2>
                     </div>
-                    <p class="card-description">DC潮流計算の精度特性を定量的に分析し、AC潮流解との比較検証を行う分析ツール</p>
+                    <p class="card-description">DC潮流計算（線形近似）の精度特性を定量的に分析し、AC潮流解と比較検証する分析ツール</p>
                     <ul class="card-features">
-                        <li>DC近似妥当性評価・適用限界把握</li>
-                        <li>無効電力影響の定量化</li>
-                        <li>系統条件別精度特性分析</li>
+                        <li>DC近似の妥当性評価・適用限界の把握</li>
+                        <li>無効電力・電圧変動の影響の定量化</li>
+                        <li>系統条件別の精度特性分析</li>
                     </ul>
                     <div class="card-footer">
                         <a href="dc_accuracy_analysis.html" class="btn btn-primary">起動 &rarr;</a>
@@ -146,25 +199,11 @@
                             <br><small>潮流計算手法詳解</small>
                         </div>
                     </a>
-                    <a href="docs/power_flow_v5.md" class="doc-link">
-                        <span aria-hidden="true">&#128202;</span>
-                        <div>
-                            <strong>統合版文書</strong>
-                            <br><small>MATPOWER準拠分析</small>
-                        </div>
-                    </a>
-                    <a href="docs/power_flow_process_visualizer.md" class="doc-link">
-                        <span aria-hidden="true">&#127919;</span>
-                        <div>
-                            <strong>プロセス可視化</strong>
-                            <br><small>計算過程ステップ表示</small>
-                        </div>
-                    </a>
                     <a href="docs/" class="doc-link">
                         <span aria-hidden="true">&#128214;</span>
                         <div>
                             <strong>全文書一覧</strong>
-                            <br><small>詳細文書・ソース</small>
+                            <br><small>各ツールの詳細文書</small>
                         </div>
                     </a>
                 </div>
@@ -174,24 +213,23 @@
                 <h2 class="doc-title">&#128193; ファイル構成</h2>
                 <div class="file-info">
                     <div class="file-category">
-                        <h3>共通モジュール</h3>
+                        <h3>共有モジュール</h3>
                         <ul>
-                            <li><code>scripts/ieee_cases.js</code> - IEEE標準系統データ (2/5/9/14/30バス)</li>
+                            <li><code>scripts/ieee_cases.js</code> - IEEE標準系統データ (2/5/9/14/30母線・MATPOWER準拠)</li>
                             <li><code>scripts/power_flow_engine.js</code> - 潮流計算エンジン (NR, GS, FDLF, DC)</li>
-                            <li><code>scripts/power_flow_utils.js</code> - 行列演算・収束追跡ユーティリティ</li>
+                            <li><code>scripts/power_flow_utils.js</code> - 行列演算・複素数演算ユーティリティ</li>
                         </ul>
                     </div>
                     <div class="file-category">
-                        <h3>現行バージョン</h3>
+                        <h3>検証</h3>
                         <ul>
-                            <li><code>power_flow_intuitive_v6_fixed.html</code> - 直感的理解ツール (推奨)</li>
-                            <li><code>power_flow_intuitive_v7.html</code> - 大規模系統対応版</li>
-                            <li><code>power_flow_process_visualizer_v2.html</code> - 計算過程表示</li>
+                            <li><code>tests/verify_algorithms.mjs</code> - MATPOWER基準解との照合テスト (<code>node tests/verify_algorithms.mjs</code>)</li>
+                            <li><code>tests/check_pages.py</code> - 全ページのブラウザ動作確認</li>
                         </ul>
                     </div>
                     <div class="file-category">
                         <h3>アーカイブ</h3>
-                        <p><small>旧バージョンは <a href="archive/">archive/</a> ディレクトリに移動されました。<br>詳細は <a href="archive/README.md">archive/README.md</a> をご覧ください。</small></p>
+                        <p><small>旧バージョンは <a href="archive/">archive/</a> ディレクトリにあります。<br>詳細は <a href="archive/README.md">archive/README.md</a> をご覧ください。</small></p>
                     </div>
                 </div>
             </section>
@@ -200,7 +238,7 @@
         <footer class="footer">
             <p>電力潮流計算アルゴリズムの可視化・教育プラットフォーム</p>
             <p><small>教育目的で開発されました。MATPOWERプロジェクト、IEEE標準系統データに深く感謝いたします。</small></p>
-            <a href="https://github.com/lutelute/power_flow_viz" class="github-link">
+            <a href="https://github.com/lutelute/pf-vis" class="github-link">
                 <span aria-hidden="true">&#11088;</span>
                 GitHub で見る
             </a>

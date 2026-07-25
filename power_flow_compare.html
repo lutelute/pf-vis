@@ -612,7 +612,7 @@
             </div>
             <div class="matpower-badge">
                 <span>📚</span>
-                <span>MATPOWER 7.1 準拠 | IEEE Test Cases</span>
+                <span>MATPOWERデータ形式準拠 | IEEE Test Cases（Q制限は未考慮）</span>
             </div>
         </div>
     </header>
@@ -674,7 +674,7 @@
                             <span class="flow-step-title">1. 初期化</span>
                             <span class="flow-step-icon">📋</span>
                         </div>
-                        <div class="flow-step-desc">V=1.0, δ=0, Ybus構築</div>
+                        <div class="flow-step-desc">V=母線データ初期値, δ=0, Ybus構築</div>
                     </div>
                     <div class="flow-arrow">↓</div>
                     <div class="flow-loop">
@@ -928,14 +928,14 @@
             complexity: 'O(n³)',
             convergence: '超線形'
         },
-        helm: {
-            name: 'Holomorphic Embedding',
-            shortName: 'HELM',
+        rnr: {
+            name: 'Relaxed Newton',
+            shortName: 'RNR',
             color: '#6366f1',
-            desc: '複素解析的手法。収束保証あり。',
+            desc: '更新量を80%に緩和したNR。難収束時の安定化。',
             matpower: '-',
             complexity: 'O(n³)',
-            convergence: '保証'
+            convergence: '2次(減速)'
         }
     };
 
@@ -989,12 +989,12 @@
                 [1, 3, 0, 0, 0, 0, 1, 1.04, 0, 16.5, 1, 1.1, 0.9],
                 [2, 2, 0, 0, 0, 0, 1, 1.025, 0, 18, 1, 1.1, 0.9],
                 [3, 2, 0, 0, 0, 0, 1, 1.025, 0, 13.8, 1, 1.1, 0.9],
-                [4, 1, 0, 0, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [5, 1, 125, 50, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [6, 1, 90, 30, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [7, 1, 0, 0, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [8, 1, 100, 35, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9],
-                [9, 1, 0, 0, 0, 0, 1, 1, 0, 230, 1, 1.1, 0.9]
+                [4, 1, 0, 0, 0, 0, 1, 1, 0, 345, 1, 1.1, 0.9],
+                [5, 1, 90, 30, 0, 0, 1, 1, 0, 345, 1, 1.1, 0.9],
+                [6, 1, 0, 0, 0, 0, 1, 1, 0, 345, 1, 1.1, 0.9],
+                [7, 1, 100, 35, 0, 0, 1, 1, 0, 345, 1, 1.1, 0.9],
+                [8, 1, 0, 0, 0, 0, 1, 1, 0, 345, 1, 1.1, 0.9],
+                [9, 1, 125, 50, 0, 0, 1, 1, 0, 345, 1, 1.1, 0.9]
             ],
             gen: [
                 [1, 71.64, 27.05, 300, -300, 1.04, 100, 1, 250, 10],
@@ -1002,13 +1002,13 @@
                 [3, 85, -10.86, 300, -300, 1.025, 100, 1, 270, 10]
             ],
             branch: [
-                [1, 4, 0.0001, 0.0576, 0, 250, 250, 250, 0, 0, 1],
+                [1, 4, 0, 0.0576, 0, 250, 250, 250, 0, 0, 1],
                 [4, 5, 0.017, 0.092, 0.158, 250, 250, 250, 0, 0, 1],
                 [5, 6, 0.039, 0.17, 0.358, 150, 150, 150, 0, 0, 1],
-                [3, 6, 0.0001, 0.0586, 0, 300, 300, 300, 0, 0, 1],
+                [3, 6, 0, 0.0586, 0, 300, 300, 300, 0, 0, 1],
                 [6, 7, 0.0119, 0.1008, 0.209, 150, 150, 150, 0, 0, 1],
                 [7, 8, 0.0085, 0.072, 0.149, 250, 250, 250, 0, 0, 1],
-                [8, 2, 0.0001, 0.0625, 0, 250, 250, 250, 0, 0, 1],
+                [8, 2, 0, 0.0625, 0, 250, 250, 250, 0, 0, 1],
                 [8, 9, 0.032, 0.161, 0.306, 250, 250, 250, 0, 0, 1],
                 [9, 4, 0.01, 0.085, 0.176, 250, 250, 250, 0, 0, 1]
             ]
@@ -1047,14 +1047,14 @@
                 [2, 5, 0.05695, 0.17388, 0.0346, 136, 136, 136, 0, 0, 1],
                 [3, 4, 0.06701, 0.17103, 0.0128, 65, 65, 65, 0, 0, 1],
                 [4, 5, 0.01335, 0.04211, 0, 0, 0, 0, 0, 0, 1],
-                [4, 7, 0.0001, 0.20912, 0, 0, 0, 0, 0.978, 0, 1],
-                [4, 9, 0.0001, 0.55618, 0, 0, 0, 0, 0.969, 0, 1],
-                [5, 6, 0.0001, 0.25202, 0, 0, 0, 0, 0.932, 0, 1],
+                [4, 7, 0, 0.20912, 0, 0, 0, 0, 0.978, 0, 1],
+                [4, 9, 0, 0.55618, 0, 0, 0, 0, 0.969, 0, 1],
+                [5, 6, 0, 0.25202, 0, 0, 0, 0, 0.932, 0, 1],
                 [6, 11, 0.09498, 0.1989, 0, 0, 0, 0, 0, 0, 1],
                 [6, 12, 0.12291, 0.25581, 0, 0, 0, 0, 0, 0, 1],
                 [6, 13, 0.06615, 0.13027, 0, 0, 0, 0, 0, 0, 1],
-                [7, 8, 0.0001, 0.17615, 0, 0, 0, 0, 0, 0, 1],
-                [7, 9, 0.11001, 0.2064, 0, 0, 0, 0, 0, 0, 1],
+                [7, 8, 0, 0.17615, 0, 0, 0, 0, 0, 0, 1],
+                [7, 9, 0, 0.11001, 0, 0, 0, 0, 0, 0, 1],
                 [9, 10, 0.03181, 0.0845, 0, 0, 0, 0, 0, 0, 1],
                 [9, 14, 0.12711, 0.27038, 0, 0, 0, 0, 0, 0, 1],
                 [10, 11, 0.08205, 0.19207, 0, 0, 0, 0, 0, 0, 1],
@@ -1231,6 +1231,7 @@
             this.iteration = 0;
             this.converged = false;
             this.diverged = false;
+            this.stalled = false;
             this.errorHistory = [];
             this.maxPError = Infinity;
             this.maxQError = Infinity;
@@ -1331,7 +1332,7 @@
                 this.Ybus.im[to][from] -= bSeries / tapRatio;
                 
                 this.Ybus.re[from][from] += g / (tapRatio * tapRatio);
-                this.Ybus.im[from][from] += bSeries / (tapRatio * tapRatio) + b / 2;
+                this.Ybus.im[from][from] += (bSeries + b / 2) / (tapRatio * tapRatio);
                 this.Ybus.re[to][to] += g;
                 this.Ybus.im[to][to] += bSeries + b / 2;
             }
@@ -1485,7 +1486,7 @@
 
             // P-δ subproblem: B' × Δδ = ΔP/V
             if (deltaP.length > 0) {
-                const Bp = this._buildBMatrix(deltaP.map(d => d.bus));
+                const Bp = this._buildBPrime(deltaP.map(d => d.bus));
                 const fp = deltaP.map(d => d.value / this.V[d.bus]);
                 this.currentStep = 'solve';
                 const dDelta = this._solveLU(Bp, fp);
@@ -1551,7 +1552,7 @@
 
             // P-δ subproblem second
             if (deltaP.length > 0) {
-                const Bp = this._buildBMatrix(deltaP.map(d => d.bus));
+                const Bp = this._buildBPrime(deltaP.map(d => d.bus));
                 const fp = deltaP.map(d => d.value / this.V[d.bus]);
                 const dDelta = this._solveLU(Bp, fp);
                 if (dDelta && dDelta.every(v => isFinite(v))) {
@@ -1586,7 +1587,7 @@
                 if (i === this.slackBus) continue;
                 
                 const Pspec = this.Pgen[i] - this.busData[i][2] / this.baseMVA;
-                const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : 0;
+                const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : this._calcQInjectionAt(i);
                 
                 let sumYV_re = 0, sumYV_im = 0;
                 for (let j = 0; j < this.nBus; j++) {
@@ -1651,7 +1652,7 @@
 
                 // Get specified powers
                 const Pspec = this.Pgen[i] - this.busData[i][2] / this.baseMVA;
-                const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : 0;
+                const Qspec = this.pqBuses.includes(i) ? (this.Qgen[i] - this.busData[i][3] / this.baseMVA) : this._calcQInjectionAt(i);
 
                 // Calculate Σ(j≠i) Yij*Vj using OLD values (key difference from GS)
                 let sumYV_re = 0, sumYV_im = 0;
@@ -1722,7 +1723,7 @@
                 if (i !== this.slackBus) buses.push(i);
             }
 
-            const B = this._buildBMatrix(buses);
+            const B = this._buildBPrime(buses, true);
             const P = buses.map(i => this.Pgen[i] - this.busData[i][2] / this.baseMVA);
 
             // Solve B × δ = P
@@ -1735,6 +1736,9 @@
                     this.delta[buses[i]] = delta[i];
                 }
             }
+
+            // DC仮定: 全母線 |V| = 1.0
+            for (let i = 0; i < this.nBus; i++) this.V[i] = 1.0;
 
             this.converged = true;
             this.maxPError = 0;
@@ -1765,14 +1769,24 @@
             const J = this._buildJacobian(deltaP, deltaQ);
             const n = J.length;
 
-            // Add damping: (J + λI)
-            const lambda = 0.01;
+            // Levenberg-Marquardt: solve (JᵀJ + μI) dx = Jᵀf  (fixed μ for simplicity)
+            const mu = 0.01;
+            const N = Array(n).fill(null).map(() => Array(n).fill(0));
+            const rhs = new Array(n).fill(0);
             for (let i = 0; i < n; i++) {
-                J[i][i] += lambda;
+                for (let j = 0; j < n; j++) {
+                    let sum = 0;
+                    for (let k = 0; k < n; k++) sum += J[k][i] * J[k][j];
+                    N[i][j] = sum;
+                }
+                N[i][i] += mu;
+                let sumf = 0;
+                for (let k = 0; k < n; k++) sumf += J[k][i] * f[k];
+                rhs[i] = sumf;
             }
 
             this.currentStep = 'solve';
-            const dx = this._solveLU(J, f);
+            const dx = this._solveLU(N, rhs);
             if (!dx || dx.some(v => !isFinite(v))) return { maxError: Infinity };
 
             this.currentStep = 'update';
@@ -1792,20 +1806,19 @@
         }
 
         /**
-         * Perform one HELM (Holomorphic Embedding) iteration
+         * Perform one Relaxed Newton iteration
          *
          * @private
-         * @description Simplified HELM using NR-like update with relaxation
-         * for improved stability. Full HELM uses power series expansion.
+         * @description Full Newton-Raphson step scaled by a relaxation
+         * factor α = 0.8. Slower than pure NR but more robust when the
+         * initial point is far from the solution.
          *
          * @returns {Object} Iteration results
          * @returns {number} return.maxError - Maximum mismatch (p.u.)
          */
-        _solveHelmStep() {
+        _solveRelaxedNewtonStep() {
             const { deltaP, deltaQ } = this._calcMismatch();
             this.currentStep = 'solve';
-
-            // Use NR-like update with relaxation for stability
             const f = [...deltaP.map(d => d.value), ...deltaQ.map(d => d.value)];
             if (f.length === 0) return { maxError: 0 };
 
@@ -2003,6 +2016,41 @@
          * @param {Array<number>} buses - List of bus indices to include
          * @returns {Array<Array<number>>} B matrix (imaginary part of Ybus)
          */
+        // B' matrix from series reactance only (P-θ subproblem / DC power flow)
+        _buildBPrime(buses, useTap = false) {
+            const idx = new Map(buses.map((b, k) => [b, k]));
+            const n = buses.length;
+            const B = Array(n).fill(null).map(() => Array(n).fill(0));
+            for (const branch of this.branchData) {
+                const from = branch[0] - 1;
+                const to = branch[1] - 1;
+                let x = branch[3];
+                if (Math.abs(x) < 1e-8) x = 1e-6;
+                const tap = branch[8] || 1;
+                const tapRatio = (useTap && tap !== 0) ? tap : 1;
+                const bBranch = 1 / (x * tapRatio);
+                const fi = idx.get(from);
+                const ti = idx.get(to);
+                if (fi !== undefined) B[fi][fi] += bBranch;
+                if (ti !== undefined) B[ti][ti] += bBranch;
+                if (fi !== undefined && ti !== undefined) {
+                    B[fi][ti] -= bBranch;
+                    B[ti][fi] -= bBranch;
+                }
+            }
+            return B;
+        }
+
+        // Reactive power injection implied by current voltages (PV buses in GS/GJ)
+        _calcQInjectionAt(i) {
+            let Q = 0;
+            for (let j = 0; j < this.nBus; j++) {
+                const th = this.delta[i] - this.delta[j];
+                Q += this.V[i] * this.V[j] * (this.Ybus.re[i][j] * Math.sin(th) - this.Ybus.im[i][j] * Math.cos(th));
+            }
+            return Q;
+        }
+
         _buildBMatrix(buses) {
             const n = buses.length;
             const B = Array(n).fill(null).map(() => Array(n).fill(0));
@@ -2098,7 +2146,7 @@
         /**
          * Run one iteration of the specified algorithm
          *
-         * @param {string} [algorithm='nr'] - Algorithm type: 'nr', 'fdxb', 'fdbx', 'gs', 'gj', 'dc', 'lm', 'helm'
+         * @param {string} [algorithm='nr'] - Algorithm type: 'nr', 'fdxb', 'fdbx', 'gs', 'gj', 'dc', 'lm', 'rnr'
          * @returns {Object} Iteration results
          * @returns {number} return.maxError - Maximum mismatch (p.u.)
          */
@@ -2128,8 +2176,8 @@
                 case 'lm':
                     result = this._solveLevenbergMarquardtStep();
                     break;
-                case 'helm':
-                    result = this._solveHelmStep();
+                case 'rnr':
+                    result = this._solveRelaxedNewtonStep();
                     break;
                 default:
                     result = this._solveNewtonRaphsonStep();
@@ -2286,13 +2334,15 @@
                 if (result.maxError < tolerance) {
                     engine.converged = true;
                     engine.currentStep = 'done';
-                } else if (!isFinite(result.maxError) || engine.iteration >= maxIter) {
-                    engine.diverged = true;
+                } else if (!isFinite(result.maxError)) {
+                    engine.diverged = true;      // 数値的発散
+                } else if (engine.iteration >= maxIter) {
+                    engine.stalled = true;       // 反復上限到達(未収束)
                 }
             }
             
             // Update flow diagram for first non-converged algorithm
-            const activeAlgo = selectedAlgos.find(a => !engines[a].converged && !engines[a].diverged);
+            const activeAlgo = selectedAlgos.find(a => !engines[a].converged && !engines[a].diverged && !engines[a].stalled);
             if (activeAlgo) updateFlowDiagram(engines[activeAlgo].currentStep);
             
             updateResults();
@@ -2360,7 +2410,8 @@
             let status = 'waiting';
             let statusText = '待機中';
             if (engine.converged) { status = 'converged'; statusText = '収束'; }
-            else if (engine.diverged) { status = 'diverged'; statusText = '発散'; }
+            else if (engine.diverged) { status = 'diverged'; statusText = '✗ 発散'; }
+            else if (engine.stalled) { status = 'diverged'; statusText = '△ 上限到達(未収束)'; }
             else if (engine.iteration > 0) { status = 'running'; statusText = '実行中'; }
             
             results.push({

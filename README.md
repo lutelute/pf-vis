@@ -1,361 +1,156 @@
-# Power Flow Visualization Project
+# Power Flow Visualization — 潮流計算 可視化教材
 
-電力潮流計算アルゴリズムの可視化・教育プラットフォーム
+電力系統の潮流計算（Power Flow）アルゴリズムを、ブラウザ上で対話的に学べる教育プラットフォームです。
+Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC潮流計算の動作過程・収束特性・精度特性を、実際に動かしながら理解できます。
 
 ## 🌐 オンライン版
 
-**GitHub Pages**: https://lutelute.github.io/power_flow_viz/
+**GitHub Pages**: https://lutelute.github.io/pf-vis/
 
-全ての可視化ツールをブラウザで直接実行できます。ダウンロード不要！
+すべてのツールがブラウザだけで動作します（インストール不要・外部ライブラリ非依存）。
 
-## 📖 概要
+## 🎓 推奨学習パス
 
-このプロジェクトは、電力系統解析における潮流計算アルゴリズムを視覚的に理解できる教育ツール群です。Newton-Raphson法、Gauss-Seidel法、高速分離解法、DC潮流計算など、主要な潮流計算手法の動作過程、収束特性、精度特性を対話的に学習できます。
-
-## 🎯 特徴
-
-- **20以上の潮流計算アルゴリズム**の実装・比較
-- **リアルタイム収束可視化**による学習効果の向上
-- **IEEE標準系統**（2, 5, 9, 14, 30母線系統）のサポート
-- **MATPOWER準拠**のデータ形式とアルゴリズム実装
-- **段階的アルゴリズム解説**による直感的理解
-- **数学的厳密性**と教育的分かりやすさの両立
-
-## 🎯 可視化ツール一覧
-
-| ツール名 | 主要機能 | オンライン版 | 詳細文書 |
+| 順序 | レベル | ツール | 学べること |
 |---|---|---|---|
-| **MATPOWER準拠分析スイート** | 8手法統合・学術標準完全対応 | [🚀 統合版起動](https://lutelute.github.io/power_flow_viz/power_flow_v5.html) | [📖 詳細](./docs/power_flow_v5.html) |
-| **多手法可視化** | Newton-Raphson, Gauss-Seidel等 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_visualizer.html) | [📖 詳細](./docs/power_flow_visualizer.md) |
-| **計算過程ステップ表示** | 5手法の段階別解説 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_process_visualizer_v2.html) | [📖 詳細](./docs/power_flow_process_visualizer.html) |
-| **MATPOWER準拠実装** | Newton-Raphson, 高速分離解法 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_matpower_v2.html) | [📖 詳細](./docs/power_flow_matpower_v2.md) |
-| **収束過程直感的理解** | 複素平面・誤差面可視化 | [🚀 起動](https://lutelute.github.io/power_flow_viz/power_flow_intuitive.html) | [📖 詳細](./docs/power_flow_intuitive.md) |
-| **└ v6_fixed最新版** | 完全修正・安定動作版 | [🚀 Fixed起動](https://lutelute.github.io/power_flow_viz/power_flow_intuitive_v6_fixed.html) | ✅推奨版 |
-| **DC潮流精度検証** | DC近似 vs AC解析 | [🚀 起動](https://lutelute.github.io/power_flow_viz/dc_accuracy_analysis.html) | [📖 詳細](./docs/dc_accuracy_analysis.md) |
+| 1 | 入門 | [収束過程直感的理解](https://lutelute.github.io/pf-vis/power_flow_intuitive_v6_fixed.html) | 潮流計算＝非線形方程式の反復解法であること。解に収束していく様子を複素電圧平面で体感 |
+| 2 | 基礎 | [計算過程ステップ表示](https://lutelute.github.io/pf-vis/power_flow_process_visualizer_v2.html) | Newton-Raphson法の1反復の中身（ミスマッチ計算→ヤコビアン→修正量）を式と数値で追う |
+| 3 | 比較 | [アルゴリズム同時比較](https://lutelute.github.io/pf-vis/power_flow_compare.html) | 4手法を同一系統で同時実行し、収束次数（2次収束 vs 線形収束）の違いを見る |
+| 4 | 実践 | [MATPOWER準拠実装](https://lutelute.github.io/pf-vis/power_flow_matpower_v2.html) | 実務標準のMATPOWERデータ形式（bus/gen/branch）でIEEE標準系統を解く |
+| 5 | 発展 | [統合分析スイート](https://lutelute.github.io/pf-vis/power_flow_v5.html) | 発展的手法（Levenberg-Marquardt・連続潮流・HELM等）を含む8手法の横断分析 |
+| 6 | 応用 | [DC潮流精度検証](https://lutelute.github.io/pf-vis/dc_accuracy_analysis.html) | 線形近似（DC潮流）の精度と適用限界をAC解との比較で定量化 |
 
-## 🚀 使用方法
+補助ツール: [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) — 各手法を個別にじっくり実行・観察
 
-### オンライン版の使用方法
+## 📐 数学的基礎
 
-1. **メインページアクセス**: https://lutelute.github.io/power_flow_viz/
-2. **ツール選択**: 目的に応じた可視化ツールを選択
-3. **系統設定**: IEEE標準系統（2, 5, 9, 14, 30母線）を選択
-4. **アルゴリズム選択**: 使用する潮流計算手法を選択  
-5. **パラメータ調整**: 収束判定値（ε）、最大反復回数を設定
-6. **実行・可視化**: リアルタイムで収束過程を観察
+潮流計算は、各母線の電力収支を表す非線形代数方程式系の求解です:
 
-### ローカル実行
+```
+P_i = Σ_j |V_i||V_j| [G_ij cos(θ_i−θ_j) + B_ij sin(θ_i−θ_j)]
+Q_i = Σ_j |V_i||V_j| [G_ij sin(θ_i−θ_j) − B_ij cos(θ_i−θ_j)]
+```
+
+ここで V_i = |V_i|e^{jθ_i} は母線 i の複素電圧、G_ij + jB_ij はアドミタンス行列 Y の要素です。
+指定値との差（ミスマッチ）ΔP = P_spec − P_calc, ΔQ = Q_spec − Q_calc をゼロに追い込みます。
+
+### 実装アルゴリズムと特性
+
+| 手法 | 反復式 | 収束 | 計算量/反復 | 主な用途 |
+|---|---|---|---|---|
+| **Newton-Raphson (NR)** | J·[Δθ; Δ\|V\|] = [ΔP; ΔQ] | 2次 | O(n³) | 汎用（事実上の標準） |
+| **高速分離法 (FDXB)** | B′Δθ = ΔP/\|V\|,  B″Δ\|V\| = ΔQ/\|V\| | 線形(高速) | O(n²)※ | 大規模送電系統 |
+| **Gauss-Seidel (GS)** | V_i ← (1/Y_ii)[S_i*/V_i* − Σ_{j≠i} Y_ij V_j] | 線形 | O(n²) | 教育・小規模系統 |
+| **DC潮流** | P = Bθ（直接解法・反復なし） | — | O(n³) 1回 | 経済負荷配分・概算 |
+
+※ B′, B″ は定数行列のため、LU分解を初回のみ行えば以降は前進後退代入のみ。
+
+収束速度の違いは実際に動かすとよく分かります。IEEE 14母線系統・許容誤差 1e-6 の場合:
+**NR: 4回 / FDXB: 十数回 / GS: 約170回**（GSの線形収束の遅さが体感できます）。
+
+## ✅ 正確性の検証
+
+共有計算エンジン（`scripts/power_flow_engine.js`）と系統データ（`scripts/ieee_cases.js`）は、
+MATPOWER の公式解と照合して検証しています:
+
+- **IEEE 14母線**: 全母線電圧が MATPOWER `runpf(case14)` と一致（最大差 8×10⁻⁵ p.u.）、総損失 13.393 MW が一致
+- **WSCC 9母線**: 全母線電圧が既知解と一致、総損失 4.641 MW が一致
+- **全アルゴリズム**: NR・GS・FDXB が同一解に収束することを相互検証
+
+検証テストの実行:
 
 ```bash
-# リポジトリクローン
-git clone https://github.com/lutelute/power_flow_viz.git
-cd power_flow_viz
-
-# 任意のHTMLファイルをブラウザで開く
-open power_flow_v5.html
+node tests/verify_algorithms.mjs   # MATPOWER基準解との照合 (22テスト)
+python3 tests/check_pages.py       # 全ページのブラウザ動作確認 (要 playwright)
 ```
 
-### 推奨学習順序
+## 📈 収録系統データ（MATPOWER v2形式）
 
-1. **入門** [`power_flow_intuitive_v6_fixed.html`](https://lutelute.github.io/power_flow_viz/power_flow_intuitive_v6_fixed.html) - 基本概念の理解（最新固定版）
-2. **基礎** [`power_flow_process_visualizer_v2.html`](https://lutelute.github.io/power_flow_viz/power_flow_process_visualizer_v2.html) - アルゴリズム詳細（v2最新版）  
-3. **応用** [`power_flow_v5.html`](https://lutelute.github.io/power_flow_viz/power_flow_v5.html) - MATPOWER準拠統合分析スイート
-5. **実務** [`power_flow_matpower_v2.html`](https://lutelute.github.io/power_flow_viz/power_flow_matpower_v2.html) - 実用的実装
-
-## 📊 実装アルゴリズム
-
-### 数学的定式化
-
-潮流計算は以下の非線形代数方程式系の数値解法です：
-
-```
-P_i = Re[V_i^* ∑_{j=1}^n Y_{ij} V_j] = P_{Gi} - P_{Di}     (1)
-Q_i = Im[V_i^* ∑_{j=1}^n Y_{ij} V_j] = Q_{Gi} - Q_{Di}     (2)
-```
-
-ここで、V_i = |V_i|e^{jθ_i} は母線 i の複素電圧、Y_{ij} はアドミタンス行列要素です。
-
-### 主要アルゴリズムの特性
-
-| 手法 | 収束次数 | 計算複雑度 | 収束条件 | 適用場面 |
+| 系統 | 母線数 | 枝数 | 発電機数 | 特徴 |
 |---|---|---|---|---|
-| **Newton-Raphson** | O(ε²) | O(n³)/iteration | J非特異 | 汎用潮流計算 |
-| **Fast Decoupled** | O(ε^{1.6}) | O(n³/2)/iteration | 送電系統 | 大規模系統 |
-| **Gauss-Seidel** | O(ε) | O(n²)/iteration | ρ(G) < 1 | 教育・小規模系統 |
-| **DC Power Flow** | 線形 | O(n³) | B正則 | 経済負荷配分 |
+| 2-bus | 2 | 1 | 1 | 最小構成（学習用） |
+| 5-bus | 5 | 7 | 2 | 基本系統（学習用） |
+| WSCC 9-bus | 9 | 9 | 3 | 3機9母線・過渡安定度研究の古典 |
+| IEEE 14-bus | 14 | 20 | 5 | 標準テスト系統（AEP 1962年系統の一部） |
+| IEEE 30-bus | 30 | 41 | 6 | 中規模系統（AEP 1961年系統の一部） |
 
-### アルゴリズム詳細
-
-#### Newton-Raphson法
-反復式: **x^{(k+1)} = x^{(k)} - [J(x^{(k)})]^{-1}f(x^{(k)})**
-
-Jacobian行列:
-```
-J = [∂P/∂θ   ∂P/∂|V|]
-    [∂Q/∂θ   ∂Q/∂|V|]     (3)
-```
-
-#### 高速分離解法
-分離近似: **P ≈ B'θ, Q ≈ B''|V|**
-
-反復式:
-```
-Δθ = (B')^{-1}(ΔP/|V|)     (4)
-Δ|V| = (B'')^{-1}(ΔQ/|V|)   (5)
-```
-
-#### DC潮流計算
-線形化近似下での高速解法：
-
-```
-P = Bθ  ⟹  θ = B^{-1}P     (6)
-```
-
-ここで、B_{ij} = -1/X_{ij} （i ≠ j）, B_{ii} = ∑_{j≠i} 1/X_{ij}
-
-### 先進手法
-
-#### Levenberg-Marquardt法
-制御パラメータ μ による収束性改善：
-```
-x^{(k+1)} = x^{(k)} - [J^T J + μI]^{-1} J^T f(x^{(k)})     (7)
-```
-
-#### 連続潮流法（Continuation Power Flow）
-パラメータ λ を用いた経路追跡：
-```
-F(x,λ) = 0,  λ ∈ [0, λ_{critical}]     (8)
-```
-
-#### Holomorphic Embedding法
-複素解析による非反復解法：
-```
-V(s) = ∑_{n=0}^∞ V_n s^n,  |s| < R     (9)
-```
+14/30母線はMATPOWERのcase14/case_ieee30と同一データ、9母線はWSCC標準（古典解と一致検証済み）です。2/5母線は教育用の簡易系統です。
 
 ## 📁 プロジェクト構造
 
 ```
-power_flow_viz/
-├── index.html                    # メインページ
-├── power_flow_v5.html            # MATPOWER準拠分析スイート
-├── power_flow_visualizer.html    # 多手法可視化
-├── power_flow_process_visualizer_v2.html  # 計算過程ステップ表示
-├── power_flow_matpower_v2.html   # MATPOWER準拠実装
-├── power_flow_intuitive_v6_fixed.html    # 収束過程直感的理解（推奨）
-├── dc_accuracy_analysis.html     # DC潮流精度検証
-├── styles/
-│   └── main.css                  # 共通スタイルシート
+pf-vis/
+├── index.html                            # メインページ（学習パス・ツール一覧）
+├── power_flow_intuitive_v6_fixed.html    # 1. 収束過程直感的理解（入門）
+├── power_flow_process_visualizer_v2.html # 2. 計算過程ステップ表示（基礎）
+├── power_flow_compare.html               # 3. アルゴリズム同時比較（比較）
+├── power_flow_matpower_v2.html           # 4. MATPOWER準拠実装（実践）
+├── power_flow_v5.html                    # 5. 統合分析スイート（発展）
+├── dc_accuracy_analysis.html             # 6. DC潮流精度検証（応用）
+├── power_flow_visualizer.html            # 補助: 多手法可視化
 ├── scripts/
-│   └── main.js                   # 共通JavaScript
-└── docs/                         # 技術文書
+│   ├── ieee_cases.js                     # IEEE標準系統データ（MATPOWER準拠・検証済み）
+│   ├── power_flow_engine.js              # 潮流計算エンジン（NR/GS/FDXB/DC）
+│   ├── power_flow_utils.js               # 複素数・行列演算ユーティリティ
+│   └── main.js                           # メインページ用スクリプト
+├── styles/main.css                       # 共通スタイル
+├── tests/
+│   ├── verify_algorithms.mjs             # MATPOWER基準解との照合テスト
+│   ├── verify_ieee14_algorithms.html     # ブラウザ版検証ページ
+│   └── check_pages.py                    # 全ページ動作確認（Playwright）
+├── docs/                                 # 各ツールの技術文書
+└── archive/                              # 旧バージョン（参照用・保守対象外）
 ```
 
-### 技術仕様
-- **フロントエンド**: HTML5 + CSS3 + Vanilla JavaScript
-- **セマンティックHTML**: article, main, section要素による構造化
-- **アクセシビリティ**: ARIA属性によるスクリーンリーダー対応
-- **数値計算**: 独自実装（外部ライブラリ依存なし）
-- **可視化**: Canvas API + Chart.js
-- **UI**: CSS Grid + Flexbox レスポンシブデザイン
-- **フォント**: Google Fonts (Noto Sans JP + JetBrains Mono)
-
-### コード構造
-```javascript
-// 典型的な実装パターン
-class PowerFlowSolver {
-    constructor(systemData) {
-        this.Ybus = this.buildAdmittanceMatrix(systemData);
-        this.busTypes = this.classifyBuses(systemData);
-    }
-    
-    solve(algorithm, tolerance = 1e-8) {
-        switch(algorithm) {
-            case 'newton': return this.newtonRaphson(tolerance);
-            case 'fastdec': return this.fastDecoupled(tolerance);
-            case 'gauss': return this.gaussSeidel(tolerance);
-        }
-    }
-}
-```
-
-### 数値計算実装
-- **複素数演算**: カスタム Complex クラス
-- **行列演算**: スパース行列対応
-- **線形解法**: LU分解 + 前進後進代入
-- **収束判定**: 最大値ノルム ||f||_∞ < ε
-
-## 🎓 教育機能
-
-### 可視化要素
-
-- **収束曲線**: 各反復における誤差推移
-- **複素平面軌跡**: 電圧の収束経路
-- **Jacobian構造**: 係数行列のスパース性
-- **誤差分布**: 母線別ミスマッチ表示
-- **性能比較**: アルゴリズム間ベンチマーク
-
-### 学習支援
-
-- **数式表示**: LaTeX形式での厳密な数学的定式化
-- **段階表示**: アルゴリズムの各ステップを明示
-- **パラメータ感度**: 設定値変更の影響を実時間表示
-- **誤差分析**: 収束判定基準の理解促進
+> **注**: 一部のツール（compare / v5 / process_visualizer_v2 / intuitive）は教育目的で
+> 計算ロジックをページ内に自己完結して実装しています。共有エンジンを使うのは
+> matpower_v2 / dc_accuracy_analysis です。系統データはいずれもMATPOWER準拠に統一しています。
 
 ## 🔧 技術仕様
 
-### 対応ブラウザ
-- Chrome 80+
-- Firefox 75+
-- Safari 13+
-- Edge 80+
+- **実装**: HTML5 + CSS3 + Vanilla JavaScript（フレームワーク・外部ライブラリ非依存）
+- **数値計算**: 独自実装 — LU分解（部分ピボット選択）+ 前進後退代入、極形式ヤコビアン
+- **可視化**: Canvas API による独自描画
+- **対応ブラウザ**: Chrome / Firefox / Safari / Edge の各最新版（ES6+）
 
-### 必要な機能
-- JavaScript ES6+
-- Canvas API
-- WebGL（一部可視化）
-- Local Storage
+### ローカル実行
 
-### 外部ライブラリ
-- **数値計算**: 独自実装（依存ライブラリなし）
-- **可視化**: Canvas API + 独自描画エンジン
-- **UI**: Vanilla JavaScript
-- **フォント**: Google Fonts (Noto Sans JP, JetBrains Mono)
+```bash
+git clone https://github.com/lutelute/pf-vis.git
+cd pf-vis
+python3 -m http.server 8093   # 任意のHTTPサーバでOK
+open http://localhost:8093/
+```
 
-## 📈 系統データ
+## 📚 参考文献
 
-### IEEE標準系統
+1. Bergen, A.R., Vittal, V. *Power Systems Analysis*, 2nd ed., Prentice Hall, 2000
+2. Grainger, J.J., Stevenson, W.D. *Power System Analysis*, McGraw-Hill, 1994
+3. Stott, B., Alsac, O. "Fast Decoupled Load Flow", *IEEE Trans. Power App. Syst.*, 1974
+4. Zimmerman, R.D., Murillo-Sánchez, C.E., Thomas, R.J. "MATPOWER: Steady-State Operations, Planning and Analysis Tools for Power Systems Research and Education", *IEEE Trans. Power Syst.*, 2011
+5. Anderson, P.M., Fouad, A.A. *Power System Control and Stability*, IEEE Press, 2003（WSCC 9母線系統）
+6. Trias, A. "The Holomorphic Embedding Load Flow Method", *IEEE PES General Meeting*, 2012
 
-| 系統 | 母線数 | 枝数 | 発電機数 | 特徴 |
-|---|---|---|---|---|
-| IEEE 2-bus | 2 | 1 | 1 | 最小系統 |
-| IEEE 5-bus | 5 | 7 | 2 | 基本系統 |
-| IEEE 9-bus | 9 | 9 | 3 | WSCC 3-machine |
-| IEEE 14-bus | 14 | 20 | 5 | 標準テスト系統 |
-| IEEE 30-bus | 30 | 41 | 6 | 中規模系統 |
+## 🔄 更新履歴（主要）
 
-### MATPOWER互換性
-- **完全準拠**: mpc.bus, mpc.gen, mpc.branch形式
-- **データ変換**: 自動的な単位系変換
-- **検証済み**: 公式MATPOWER結果との一致確認
-
-## 📚 技術文書・学術資料
-
-### 📖 技術文書
-- [**潮流計算手法技術ノート**](./docs/power_flow_methods.html) - 数学的基礎理論と実装詳細
-- [**各可視化ツール詳細文書**](./docs/) - 個別機能・アルゴリズム解説
-
-### 🔬 学術的背景
-
-#### 理論的基盤
-本プロジェクトは以下の学術分野の理論に基づいています：
-
-**電力系統解析理論**
-- 非線形代数方程式の数値解法
-- 複素電力の定式化理論
-- アドミタンス行列の代数的性質
-
-**数値解析理論**  
-- Newton-Kantorovich定理による収束保証
-- 不動点定理とBanach空間における縮小写像
-- 分解原理による計算複雑度の削減
-
-**最適化理論**
-- 信頼領域法（Trust Region Methods）
-- 連続変形法（Homotopy Continuation）  
-- 非線形計画法における制約処理
-
-#### 参考文献
-
-**基本文献**
-1. Bergen, A.R., Vittal, V. "Power Systems Analysis", 2nd ed., Prentice Hall, 2000
-2. Kundur, P. "Power System Stability and Control", McGraw-Hill, 1994  
-3. Grainger, J.J., Stevenson, W.D. "Power System Analysis", McGraw-Hill, 1994
-
-**専門文献**  
-4. Stott, B., Alsac, O. "Fast Decoupled Load Flow", IEEE Trans. Power App. Syst., 1974
-5. Monticelli, A. "State Estimation in Electric Power Systems", Springer, 1999
-6. Zimmerman, R.D., et al. "MATPOWER: Steady-State Operations, Planning and Analysis Tools", IEEE Trans. Power Syst., 2011
-
-**最新研究**
-7. Trias, A. "The Holomorphic Embedding Load Flow Method", IEEE Trans. Power Syst., 2012
-8. Milano, F. "Continuous Newton's Method for Power Flow Analysis", IEEE Trans. Power Syst., 2009
-9. Various recent papers in IEEE Transactions on Power Systems
-
-## 🤝 対象ユーザー
-
-### 学習者
-- **電力系統工学専攻学生**: 理論と実践の橋渡し
-- **新人エンジニア**: 実務的アルゴリズム理解
-- **研究者**: 手法比較・性能評価
-
-### 教育者
-- **大学教員**: 講義での可視化教材
-- **企業研修**: 実践的スキル向上
-- **セミナー講師**: デモンストレーション
-
-## 🔍 学習効果
-
-### 理解促進要素
-1. **視覚化学習**: 抽象的概念の具体化
-2. **対話的操作**: パラメータ変更による理解深化
-3. **比較学習**: 複数手法の同時比較
-4. **段階的学習**: 基礎から応用への体系的習得
-
-### 実践的スキル
-1. **アルゴリズム選択**: 用途に応じた手法選定能力
-2. **パラメータ調整**: 収束性改善技術
-3. **結果解釈**: 計算結果の妥当性判断
-4. **故障対応**: 非収束時の対処法習得
+- **2026-07-25**: 正確性の全面見直し・教材強化
+  - 共有エンジンの構文エラー修正（エンジンが読み込めない状態を解消）
+  - Gauss-SeidelのPV母線処理を修正（Q注入を反復ごとに再計算）
+  - 高速分離法B′行列・DC潮流B行列を正しい定式化（1/x のみ）に修正
+  - IEEE 14母線の枝7-9データ誤り、WSCC 9母線の負荷配置誤りを修正
+  - MATPOWER解との照合テストを整備（22テスト）・重複ファイル整理・教材構成に再編
+  - 計算過程ステップ表示に**実数値ヤコビアン**を追加: 各要素をクリックすると
+    計算式・代入値・物理的な意味（「この母線の角度を1°進めると何MW変わるか」等）を表示。
+    FD法のB′/B″・DC潮流のB行列も実数値で表示し、ミスマッチ・修正量もMW換算＋解釈付きに
+- **2026-01**: 共有モジュール化（ieee_cases / power_flow_engine / power_flow_utils）、JSDoc整備
+- **2024-12**: 各可視化ツールの初版〜v2/v6系列の開発
 
 ## 📝 ライセンス
 
-このプロジェクトは教育目的で作成されています。
-
-## 🔄 更新履歴
-
-### 直感的理解ツール バージョン履歴
-- **v6_fixed** (2024-12-31): **✅最新安定版✅ 完全修正版**
-  - v6の全問題を根本的に修正
-  - Newton-Raphson収束・描画問題完全解決
-  - ランダム系統生成ブラウザフリーズ問題修正
-  - 全アルゴリズム安定動作・教育用途に最適
-- **v7.0** (2024-12-31): **⚠️非推奨⚠️** 別アプローチ版（問題あり）
-  - v5ベースだが新たな問題発生
-- **v6.0** (2024-12-31): **⚠️非推奨⚠️ 大規模系統対応版（不安定）**
-  - IEEE 30バス・30バスランダム系統（計算問題あり）
-  - Newton-Raphson収束問題・描画エラー多数
-- **v5.0** (2024-12-31): 問題修正・UI改善、数値安定性向上
-- **v4.0** (2024-12-31): 最新機能統合版
-- **v3.0** (2024-12-31): 遠い初期点設定、大規模系統対応
-- **v2.0** (2024-12-30): 精度・収束可視化改善
-- **v1.0** (2024-12-30): 初版リリース
-
-### 計算過程可視化ツール
-- **v2.0** (2024-12-31): **✅最新版✅ 完全リニューアル版**
-  - UI/UX全面刷新・モダンデザイン採用
-  - 収束アルゴリズム根本的修正・安定性向上
-  - PVバス制約の適切な処理・計算精度改善
-  - ステップ表示機能強化・教育効果向上
-- **v1.0** (2024-12-30): 初版リリース
-
-### プロジェクト全体
-- **v1.8** (2025-01-08): **index.htmlリファクタリング・CSS/JS外部化**
-- **v1.7** (2024-12-31): **Process Visualizer v2リリース・UI/UX刷新**
-- **v1.6** (2024-12-31): **v6_fixed完全修正版リリース・全問題解決**
-- **v1.5** (2024-12-31): 安定版v7リリース・v6問題対応
-- **v1.4** (2024-12-31): 30ノード系統最適化・安定性向上
-- **v1.3** (2024-12-31): 大規模系統対応・計算過程修正
-- **v1.2** (2024-12-31): 直感的理解ツールv5対応、問題修正
-- **v1.1** (2024-12-30): 技術文書充実、GitHub Pages対応
-- **v1.0** (2024-12-30): 初回リリース
-
-## 🙏 謝辞
-
-このプロジェクトは電力系統解析における教育の質向上を目的として開発されました。MATPOWERプロジェクト、IEEE標準系統データ、および電力系統解析分野の先駆的研究に深く感謝いたします。
+教育目的のプロジェクトです。MATPOWERプロジェクトおよびIEEE標準系統データの
+先駆的な研究・公開に深く感謝します。
 
 ---
 
-**開発者**: [プロジェクト作成者]
-**更新日**: 2025年1月8日
-**バージョン**: 1.8.0
+**リポジトリ**: https://github.com/lutelute/pf-vis
+**旧リポジトリ** (power_flow_viz) から移行しました。
