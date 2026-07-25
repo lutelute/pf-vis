@@ -200,6 +200,22 @@ def main():
         check("P(δ=30°) = 1.0 p.u. (V1V2/X=2, sin30°=0.5)", abs(r["p30"] - 1.0) < 1e-9, f"P={r['p30']}")
         check("P(δ=90°) = 2.0 p.u. (頂上)", abs(r["p90"] - 2.0) < 1e-9)
 
+        # ---------- ladder_bridge (L2⇔L3橋渡し) ----------
+        print("\n■ ラダー橋渡し (ladder_bridge)")
+        page.goto(f"{BASE}/ladder_bridge.html")
+        page.wait_for_timeout(400)
+        r = page.evaluate("""() => {
+            const s = sOfVI(0.8, -30), chk = pAvg(0.8, -30), y = ybusY();
+            return { P: s.P, Q: s.Q, chk, zb275: zbase(275), zpu66: 10 / zbase(6.6),
+                     g: y.g, b: y.b };
+        }""")
+        check("S=VI*: P = 0.6928 (|I|=0.8, θi=-30°)", abs(r["P"] - 0.6928) < 1e-3, f"P={r['P']:.4f}")
+        check("S=VI*: Q = +0.4 (遅れ電流=誘導性)", abs(r["Q"] - 0.4) < 1e-3, f"Q={r['Q']:.4f}")
+        check("検算: p(t)数値積分の平均 = P", abs(r["chk"] - r["P"]) < 1e-3, f"avg={r['chk']:.4f}")
+        check("p.u.: Zbase(275kV) = 756.25Ω", abs(r["zb275"] - 756.25) < 0.01)
+        check("p.u.: 6.6kVで10Ω → 22.96pu (L1の破綻の別表現)", abs(r["zpu66"] - 22.957) < 0.01, f"zpu={r['zpu66']:.3f}")
+        check("Ybus: y = 5 - j15 (共通2母線系統と一致)", abs(r["g"] - 5) < 1e-9 and abs(r["b"] + 15) < 1e-9)
+
         # ---------- ladder_l5 ----------
         print("\n■ ラダーL5 (ladder_l5)")
         page.goto(f"{BASE}/ladder_l5.html")

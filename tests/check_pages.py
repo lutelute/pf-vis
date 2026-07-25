@@ -30,6 +30,7 @@ PAGES = [
     ("ラダーL0", "ladder_l0.html"),
     ("ラダーL1", "ladder_l1.html"),
     ("ラダーL2", "ladder_l2.html"),
+    ("ラダー橋渡し", "ladder_bridge.html"),
     ("ラダーL5", "ladder_l5.html"),
     ("ラダーL6", "ladder_l6.html"),
 ]

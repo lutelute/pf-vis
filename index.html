@@ -84,6 +84,11 @@
                         <span class="path-desc">— 前提は高校の三角関数。フェーザ実アニメと瞬時電力p(t)の実計算でP/Qの正体を掴み、P∝sinδでL3へ橋を架ける。昇級課題3問</span>
                     </li>
                     <li>
+                        <span class="path-badge" style="color: var(--accent-orange);">橋</span>
+                        <a href="ladder_bridge.html">複素数という記法 — 回る矢印を代数にする</a>
+                        <span class="path-desc">— L2⇔L3の橋渡し: 矢印⇔複素数の往復・S=V·I*（p(t)平均との検算つき）・p.u.法・Ybusの入口。昇級課題3問</span>
+                    </li>
+                    <li>
                         <span class="path-badge">L3〜L4</span>
                         <a href="getting_started.html">はじめに → 学習パス1〜6</a>
                         <span class="path-desc">— 学部基礎〜修士: 潮流計算の本体（既存の学習パスがこの段）</span>
@@ -316,7 +321,7 @@
     <script>
     // 学習ラダー: 昇級課題の合格状況（各ページがlocalStorageに保存）を修了バッジで表示
     (function(){
-        ['l0','l1','l2','l5','l6'].forEach(function(k){
+        ['l0','l1','l2','bridge','l5','l6'].forEach(function(k){
             try {
                 var s = JSON.parse(localStorage.getItem('pfvis_ladder_' + k) || '{}');
                 if (!(s.q1 && s.q2 && s.q3)) return;

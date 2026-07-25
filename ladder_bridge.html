@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>橋渡し: 複素数という記法 — 回る矢印を代数にする</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌉</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#737166;
+    --accent:#197e6e; --warm:#926926; --neg:#ca3c4e; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);line-height:1.75;font-size:15px;}
+  .wrap{max-width:880px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;} .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  .ladder-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--upd);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:24px;margin:0 0 6px;letter-spacing:.02em;}
+  h2{font-family:var(--mincho);font-weight:600;font-size:18px;margin:26px 0 10px;}
+  .lead{color:var(--muted);font-size:14px;max-width:740px;margin-bottom:14px;}
+  .lead b,b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.5px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 118px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:3px;}
+  .prow span:last-child{color:var(--muted);}
+  .eq{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin:10px 0;line-height:1.9;}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12.5px;color:var(--muted);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:6px;}
+  canvas{display:block;width:100%;max-width:840px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .ctrl{display:flex;align-items:center;gap:16px;margin-top:12px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);}
+  input[type=range]{width:min(260px,50vw);accent-color:var(--accent);height:32px;}
+  .readout{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;margin-top:10px;line-height:2;}
+  .readout b{font-size:14.5px;}
+  .note{font-size:12.5px;color:var(--faint);margin-top:6px;}
+  .disc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:10px 0;font-size:14px;color:var(--muted);}
+  .disc .no{display:inline-block;font-family:var(--mono);font-weight:700;color:#fff;background:var(--upd);border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-size:12px;}
+  .limits{background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:16px 0;}
+  .limits-h{font-weight:700;color:var(--warm);margin-bottom:4px;}
+  table.pu{border-collapse:collapse;font-family:var(--mono);font-size:13px;margin:8px 0;width:100%;}
+  table.pu th,table.pu td{border:1px solid var(--line);padding:6px 10px;text-align:right;}
+  table.pu th{background:var(--panel-2);font-family:var(--gothic);font-size:12.5px;color:var(--muted);font-weight:600;}
+  table.pu td:first-child{color:var(--warm);font-weight:700;}
+  .quiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0;}
+  .quiz h3{font-size:15px;margin:0 0 8px;font-family:var(--mincho);}
+  .quiz p{font-size:14px;color:var(--muted);margin:6px 0;}
+  .qcheck{display:inline-flex;align-items:center;gap:8px;}
+  .qcheck input[type=text]{width:100px;font-family:var(--mono);font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);}
+  .qcheck button{font-size:13px;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font-weight:600;cursor:pointer;}
+  .qcheck button:hover{background:rgba(25,126,110,0.06);}
+  .qmark{font-size:16px;min-width:5em;}
+  .quiz label.opt{display:block;font-size:14px;color:var(--muted);padding:4px 0;cursor:pointer;}
+  .nextbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:18px;font-size:14px;}
+  .nextbox a{color:var(--accent);font-weight:600;}
+  .foot{font-size:12px;color:var(--faint);margin-top:20px;} .foot a{color:var(--accent);}
+  @media (max-width:700px){
+    .stage{overflow-x:auto;}
+    .stage canvas{min-width:680px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="ladder_l2.html">🪜 L2へ戻る</a>
+    <a href="getting_started.html">🚪 L3の入口「はじめに」</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="ladder-tag">🌉 学習ラダー L2⇔L3 橋渡し — 前提: L2（フェーザ・PとQ）</div>
+  <h1>複素数という記法 — 回る矢印を代数にする</h1>
+  <div class="lead">
+    L2の「回る矢印」は絵でした。絵は直感に効きますが、100本の矢印を連立させて解くことはできません。
+    学部の潮流計算が最初にやるのは、矢印を<b>計算できる記号</b>に置き換えること——それが複素数です。
+    このページは、L2の絵とL3の数式のあいだに橋を架けます。渡るものは3つ:
+    <b>①矢印⇔複素数の往復 ②S=V·I*（PとQが一度に出る）③p.u.法（電圧階級を1つの土俵へ）</b>。
+    数値はすべてその場の実計算です。
+  </div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>L3以降の全ツール・全数式は複素数とp.u.で書かれている。この記法に乗れないと、内容の前に記号で転ぶ。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>矢印 = 複素数。掛け算 = 回して伸ばす。S=V·I* でPとQが同時に出て、p.u.が単位の違いを消す。</span></div>
+    <div class="prow"><span class="pq">L2との接続</span><span>L2で苦労して p(t) の平均からPを、振動からQを取り出した。複素数はその手間を<b>1回の掛け算</b>に圧縮する。</span></div>
+  </div>
+
+  <div class="eq">z = a + jb = |z|∠θ = |z|·e^(jθ)　　［j² = −1、jを掛ける = 90°回す］
+    <span class="read">読み：複素数zは「横にa・縦にb」の矢印であり、同時に「長さ|z|・角度θ」の矢印でもある。
+    2つの書き方の往復が自由にできれば、それがこの橋の第一歩。電気工学では虚数単位に i でなく <b>j</b> を使う
+    （i は電流の記号と衝突するため）。</span>
+  </div>
+
+  <h2>実験1: 矢印⇔複素数の往復と「jを掛ける」</h2>
+  <div class="stage">
+    <canvas id="cv1" width="840" height="300"></canvas>
+    <div class="ctrl">
+      <label>角度 θ: <b id="thLabel" style="font-family:var(--mono)">30</b>°</label>
+      <input type="range" id="th" min="-180" max="180" step="5" value="30">
+      <label>長さ |z|: <b id="mgLabel" style="font-family:var(--mono)">1.0</b></label>
+      <input type="range" id="mg" min="0.2" max="1.4" step="0.05" value="1">
+    </div>
+    <div class="readout" id="ro1"></div>
+    <p class="note">薄い矢印は j·z。zがどこにあっても、j·z は常に「zを90°回した先」にいます——「jを掛ける=90°回す」は絵で見ると当たり前になる。</p>
+  </div>
+
+  <h2>実験2: S = V·I* — PとQが一度に出る</h2>
+  <div class="eq">S = V·I* = |V||I|∠(θv − θi) = P + jQ　　（I* は共役: 角度の符号を反転した I）
+    <span class="read">読み：電圧フェーザVと「電流フェーザの共役I*」を掛けると、大きさは|V||I|、角度は<b>位相差</b>になる。
+    その実部がP（有効電力）、虚部がQ（無効電力）。L2で波形の平均と振動から別々に読み取った2つの量が、
+    掛け算1回で同時に手に入る。共役を取るのは、角度を「差 θv−θi」にするため。</span>
+  </div>
+  <div class="stage">
+    <canvas id="cv2" width="840" height="300"></canvas>
+    <div class="ctrl">
+      <label>電流の大きさ |I|: <b id="imLabel" style="font-family:var(--mono)">0.80</b></label>
+      <input type="range" id="im" min="0.1" max="1.2" step="0.05" value="0.8">
+      <label>電流の位相 θi: <b id="phLabel" style="font-family:var(--mono)">-30</b>°</label>
+      <input type="range" id="ph" min="-90" max="90" step="5" value="-30">
+    </div>
+    <div class="readout" id="ro2"></div>
+    <p class="note">「検算」の行は、L2と同じ方法（瞬時電力p(t)を1周期ぶん数値積分した平均）をその場で計算したもの。
+      S=V·I*の実部と毎回一致します——記法が変わっても物理は同じ。</p>
+  </div>
+
+  <h2>実験3: p.u.法 — 6.6kVと500kVを同じ土俵へ</h2>
+  <div class="eq">Z_pu = Z[Ω] / Z_base,　Z_base = (基準電圧kV)² / (基準容量MVA)
+    <span class="read">読み：各電圧階級ごとに「その系の標準の重さ」Z_baseを決め、実際のΩをそれで割る。
+    すると変圧器をまたいでも数字がつながり、電圧はどこでもほぼ1.0前後になる——
+    このサイトの全ツールで電圧が0.9〜1.1の小さな数字だったのは、この規格化のおかげ。</span>
+  </div>
+  <div class="stage">
+    <table class="pu" id="puTable"></table>
+    <p class="note">全行がページ読み込み時の実計算（基準容量100MVA、送電線10Ωの例）。
+      L1で「6.6kVで100MWを送ると損失2296MW」という破綻を見ましたが、p.u.で見ると一目瞭然——
+      同じ10Ωが6.6kV系では<b>23倍(2296%)</b>、275kV系では<b>0.013(1.3%)</b>の重さになる。</p>
+  </div>
+
+  <h2>橋の出口: Ybus — L3で待っている行列</h2>
+  <div class="disc"><span class="no">1</span><b>枝の複素インピーダンスから、系統の行列へ。</b>
+    このサイトの2母線教材は全部 z = 0.02 + j0.06 p.u. の線でつながっています。逆数を取ると
+    y = 1/z = <b>5 − j15</b>——L5・L6でG=5, B=−15と呼んでいた数の正体はこれです。
+    母線が増えたら y を並べて行列にする。それが<b>Ybus（アドミタンス行列）</b>で、
+    潮流方程式 S = V·(Y·V)* の主役です。</div>
+  <div class="eq" id="ybusEq"></div>
+  <div class="disc"><span class="no">2</span><b>ここまでの3つが揃えば、L3の入口は開いている。</b>
+    複素数の往復・S=V·I*・p.u.——この3つの記法の上に、
+    <a href="getting_started.html" style="color:var(--accent)">「はじめに」</a>の用語整理と
+    <a href="learn_newton.html" style="color:var(--accent)">NR講演</a>の非線形方程式が乗ります。
+    L2までの物理は何も変わらない。変わったのは言葉だけです。</div>
+
+  <div class="limits">
+    <div class="limits-h">⚠ 正直な注意</div>
+    ①フェーザ＝複素数の対応は<b>定常状態（一定周波数の正弦波）だけ</b>で成立します（L2の注意と同じ。過渡現象は別の道具）。
+    ②p.u.の基準の取り方には流儀があり（機器容量基準・系統共通基準など）、文献間で数値を比べるときは基準の確認が必須。
+    ③S=V·I*の符号規約（Iの向き・発電正か負荷正か）も教科書で異なることがある——このサイトは「注入を正」で統一しています。
+  </div>
+
+  <h2>昇級課題 — 3問正解で橋を渡る</h2>
+  <div class="quiz">
+    <h3>課題1（実測）</h3>
+    <p>実験2で |I|=0.8, θi=−30° のとき、P はいくつ？（読み出しの値を確かめて記入）</p>
+    <span class="qcheck"><input type="text" id="q1" inputmode="decimal">
+      <button onclick="checkNum('q1',0.693,0.02)">判定</button><span class="qmark" id="q1m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題2（実測）</h3>
+    <p>同じ条件で Q はいくつ？（遅れ電流＝誘導性のとき符号はどうなるかも確認）</p>
+    <span class="qcheck"><input type="text" id="q2" inputmode="decimal">
+      <button onclick="checkNum('q2',0.4,0.03)">判定</button><span class="qmark" id="q2m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題3（理解）</h3>
+    <p>S = V·I* で、共役 I*（角度の符号を反転）を使う理由として正しいのはどれ？</p>
+    <label class="opt"><input type="radio" name="q3" value="a"> 電流は常に負の角度を持つから</label>
+    <label class="opt"><input type="radio" name="q3" value="b"> 積の角度が位相差 θv−θi になり、実部がP・虚部がQに正しく対応するから</label>
+    <label class="opt"><input type="radio" name="q3" value="c"> 共役を取らないと計算結果が虚数にならないから</label>
+    <span class="qcheck"><button onclick="checkQ3()">判定</button><span class="qmark" id="q3m"></span></span>
+  </div>
+
+  <div class="nextbox" id="nextbox">🔒 3問正解で、L3への橋が開きます。</div>
+
+  <p class="foot">
+    実装ノート: S=V·I*の検算はp(t)=v(t)·i(t)を1周期・1万点の数値積分で毎回計算しています。
+    p.u.表・Ybusもロード時の実計算。
+    <a href="index.html#ladder">ラダーの全体像</a> ／ <a href="docs/LADDER.md">設計ドキュメント</a>
+  </p>
+</div>
+
+<script>
+"use strict";
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const D2R=Math.PI/180;
+
+// ============================================================
+// 実計算コア
+// ============================================================
+// S = V·I* (V=1∠0固定): P=|I|cos(-θi補正)= |I|cosφ, φ=θv-θi=-θi
+function sOfVI(Im,phiDeg){
+  const dphi=0-phiDeg; // θv−θi
+  return {P:1.0*Im*Math.cos(dphi*D2R), Q:1.0*Im*Math.sin(dphi*D2R)};
+}
+// 検算: p(t)=√2·1·cos(ωt)·√2·|I|·cos(ωt+θi) の1周期平均（数値積分）
+function pAvg(Im,phiDeg){
+  let sum=0; const N=10000;
+  for(let k=0;k<N;k++){
+    const t=2*Math.PI*k/N;
+    sum+=Math.SQRT2*Math.cos(t)*Math.SQRT2*Im*Math.cos(t+phiDeg*D2R);
+  }
+  return sum/N;
+}
+function zbase(kV){return kV*kV/100;} // 基準100MVA
+// 2母線の枝: z=0.02+j0.06 → y=g+jb
+function ybusY(){
+  const r=0.02,x=0.06,d=r*r+x*x;
+  return {g:r/d, b:-x/d};
+}
+
+// ============================================================
+// 実験1: 矢印⇔複素数
+// ============================================================
+const cv1=document.getElementById('cv1'), c1=cv1.getContext('2d');
+let th=30, mg=1.0;
+function drawArrow(ctx,cx,cy,scale,re,im,col,w,label){
+  const x=cx+re*scale, y=cy-im*scale;
+  ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=w;
+  ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(x,y);ctx.stroke();
+  const a=Math.atan2(cy-y,x-cx);
+  ctx.beginPath();ctx.moveTo(x,y);
+  ctx.lineTo(x-9*Math.cos(a-0.4),y+9*Math.sin(a-0.4));
+  ctx.lineTo(x-9*Math.cos(a+0.4),y+9*Math.sin(a+0.4));
+  ctx.closePath();ctx.fill();
+  if(label){ctx.font='700 12px '+getCSS('--mono');ctx.textAlign='left';
+    ctx.fillText(label,x+8,y-4);}
+}
+function grid(ctx,cx,cy,scale,W,H){
+  ctx.strokeStyle=getCSS('--grid');ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,cy);ctx.lineTo(W,cy);ctx.moveTo(cx,0);ctx.lineTo(cx,H);ctx.stroke();
+  ctx.strokeStyle=getCSS('--line');ctx.setLineDash([3,4]);
+  ctx.beginPath();ctx.arc(cx,cy,scale,0,7);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');
+  ctx.textAlign='center';ctx.fillText('実部 Re',W-30,cy+16);
+  ctx.save();ctx.translate(cx-10,16);ctx.rotate(0);ctx.fillText('虚部 Im',0,0);ctx.restore();
+}
+function draw1(){
+  const W=840,H=300,cx=W/2,cy=H/2,S=95;
+  c1.clearRect(0,0,W,H);c1.fillStyle=getCSS('--panel-2');c1.fillRect(0,0,W,H);
+  grid(c1,cx,cy,S,W,H);
+  const a=mg*Math.cos(th*D2R), b=mg*Math.sin(th*D2R);
+  // j·z = -b + ja (90°回転)
+  drawArrow(c1,cx,cy,S,-b,a,'rgba(111,84,196,0.45)',2,'j·z（90°先）');
+  drawArrow(c1,cx,cy,S,a,b,getCSS('--accent'),3,'z');
+  // 成分の点線
+  c1.strokeStyle=getCSS('--warm');c1.setLineDash([4,4]);c1.lineWidth=1.4;
+  c1.beginPath();c1.moveTo(cx+a*S,cy);c1.lineTo(cx+a*S,cy-b*S);c1.moveTo(cx,cy-b*S);c1.lineTo(cx+a*S,cy-b*S);c1.stroke();
+  c1.setLineDash([]);
+  document.getElementById('ro1').innerHTML=
+    'z = |z|∠θ = <b>'+mg.toFixed(2)+'∠'+th+'°</b>　⇔　a + jb = <b>'+a.toFixed(3)+
+    (b>=0?' + j':' − j')+Math.abs(b).toFixed(3)+'</b>'+
+    '<br>j·z = '+(-b).toFixed(3)+(a>=0?' + j':' − j')+Math.abs(a).toFixed(3)+
+    '　（角度 '+((th+90)>180?th+90-360:th+90)+'° — ちょうど90°先）';
+}
+document.getElementById('th').addEventListener('input',e=>{th=+e.target.value;
+  document.getElementById('thLabel').textContent=th;draw1();});
+document.getElementById('mg').addEventListener('input',e=>{mg=+e.target.value;
+  document.getElementById('mgLabel').textContent=mg.toFixed(1);draw1();});
+draw1();
+
+// ============================================================
+// 実験2: S = V·I*
+// ============================================================
+const cv2=document.getElementById('cv2'), c2=cv2.getContext('2d');
+let Im=0.8, ph=-30;
+function draw2(){
+  const W=840,H=300,cx=W/2,cy=H/2,S=95;
+  c2.clearRect(0,0,W,H);c2.fillStyle=getCSS('--panel-2');c2.fillRect(0,0,W,H);
+  grid(c2,cx,cy,S,W,H);
+  drawArrow(c2,cx,cy,S,1,0,getCSS('--warm'),3,'V = 1∠0°');
+  drawArrow(c2,cx,cy,S,Im*Math.cos(ph*D2R),Im*Math.sin(ph*D2R),getCSS('--accent'),3,'I');
+  const s=sOfVI(Im,ph);
+  drawArrow(c2,cx,cy,S,s.P,s.Q,getCSS('--neg'),2.4,'S = V·I*');
+  const chk=pAvg(Im,ph);
+  document.getElementById('ro2').innerHTML=
+    'S = V·I* = '+Im.toFixed(2)+'∠'+(-ph)+'° = <b>P = '+s.P.toFixed(3)+'</b>'+
+    (s.Q>=0?' + j':' − j')+'<b>'+Math.abs(s.Q).toFixed(3)+'</b>'+
+    '　（'+(s.Q>1e-9?'誘導性: Qを消費':(s.Q<-1e-9?'容量性: Qを供給':'力率1'))+'）'+
+    '<br>検算: p(t)の1周期平均（数値積分1万点） = <b>'+chk.toFixed(4)+'</b> '+
+    (Math.abs(chk-s.P)<1e-3?'✓ Pと一致':'✗ 不一致');
+}
+document.getElementById('im').addEventListener('input',e=>{Im=+e.target.value;
+  document.getElementById('imLabel').textContent=Im.toFixed(2);draw2();});
+document.getElementById('ph').addEventListener('input',e=>{ph=+e.target.value;
+  document.getElementById('phLabel').textContent=ph;draw2();});
+draw2();
+
+// ============================================================
+// 実験3: p.u.表
+// ============================================================
+(function(){
+  const rows=[6.6,66,154,275,500].map(kV=>{
+    const zb=zbase(kV), zpu=10/zb;
+    return '<tr><td>'+kV+' kV</td><td>'+zb.toFixed(2)+' Ω</td><td>'+
+      (zpu>=1?'<b style="color:var(--neg)">'+zpu.toFixed(2)+'</b>':zpu.toFixed(4))+
+      '</td><td>'+(zpu*100).toFixed(zpu>=1?0:2)+' %</td></tr>';
+  }).join('');
+  document.getElementById('puTable').innerHTML=
+    '<tr><th>電圧階級</th><th>Z_base = kV²/100MVA</th><th>10Ωのp.u.値</th><th>%表示</th></tr>'+rows;
+})();
+
+// Ybus
+(function(){
+  const y=ybusY();
+  document.getElementById('ybusEq').innerHTML=
+    'z = 0.02 + j0.06 pu　→　y = 1/z = <b>'+y.g.toFixed(1)+' − j'+Math.abs(y.b).toFixed(1)+'</b>　→　'+
+    'Ybus = [ y  −y ; −y  y ] = [ 5−j15  −5+j15 ; −5+j15  5−j15 ]'+
+    '<span class="read">読み：枝のインピーダンスの逆数（アドミタンス）を「自分の対角に足し、相手との場所に−で置く」。'+
+    'この組み立てを全部の枝で繰り返すと、どんな系統のYbusも作れる——getting_started・learn_newton で実物に会えます。</span>';
+})();
+
+// ============================================================
+// 昇級課題
+// ============================================================
+const quizState={q1:false,q2:false,q3:false};
+function done(id,ok){document.getElementById(id+'m').textContent=ok?'✅ 正解':'❌ もう一度';
+  quizState[id]=ok;
+  if(quizState.q1&&quizState.q2&&quizState.q3){
+    document.getElementById('nextbox').innerHTML='🎉 <b>橋を渡りました。</b>'+
+      '複素数・S=V·I*・p.u.——L3の記法は、もうあなたの道具です。'+
+      '<br>→ <a href="getting_started.html">L3の入口「はじめに」へ</a> ／ '+
+      '<a href="learn_newton.html">NR講演で非線形方程式の物語を聞く</a> ／ '+
+      '<a href="ladder_l2.html">L2に戻って絵と記号を往復する</a>';
+  }}
+function checkNum(id,ans,tol){
+  const v=parseFloat(document.getElementById(id).value.replace(/,/g,''));
+  done(id,isFinite(v)&&Math.abs(v-ans)<=tol);
+}
+function checkQ3(){
+  const sel=document.querySelector('input[name=q3]:checked');
+  done('q3',!!sel&&sel.value==='b');
+}
+
+// ============================================================
+// 進捗の保存・復元（昇級課題の合格をブラウザに記憶）・Enter判定
+// ============================================================
+(function(){
+  const KEY='pfvis_ladder_bridge';
+  const orig=done;
+  done=function(id,ok){orig(id,ok);
+    try{localStorage.setItem(KEY,JSON.stringify(quizState));}catch(e){}};
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY)||'{}');
+    ['q1','q2','q3'].forEach(id=>{if(s[id])orig(id,true);});
+  }catch(e){}
+  document.querySelectorAll('.qcheck input[type=text]').forEach(inp=>{
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();
+      const b=inp.closest('.qcheck').querySelector('button');if(b)b.click();}});
+  });
+})();
+</script>
+</body>
+</html>
