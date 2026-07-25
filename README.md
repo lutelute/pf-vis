@@ -78,12 +78,15 @@ MATPOWER の公式解と照合して検証しています:
 検証テストの実行:
 
 ```bash
-node tests/verify_algorithms.mjs   # ① エンジン単体: MATPOWER基準解との照合 (22テスト)
+node tests/verify_algorithms.mjs   # ① エンジン単体: MATPOWER基準解との照合 (24テスト)
 python3 tests/check_pages.py       # ② 全ページのJSエラー検出 (要 playwright)
-python3 tests/check_numerics.py    # ③ E2E数値回帰: 各ツールを駆動し核心数値を検証 (21テスト)
+python3 tests/check_numerics.py    # ③ E2E数値回帰: 各ツールを駆動し核心数値を検証 (45テスト)
+python3 tests/check_layout.py      # ④ レイアウト検証: 3画面幅×全ページで
+                                   #    はみ出し/コントラスト比/canvas文字/タップ領域 (要 playwright)
 ```
 
-三層の検証体制: エンジンの数学 → ページの動作 → 画面に出る数値、をそれぞれ別のテストが守ります。
+四層の検証体制: エンジンの数学 → ページの動作 → 画面に出る数値 → 画面の見え方、を
+それぞれ別のテストが守ります（改善の経緯は [docs/layout_improvement_log.md](./docs/layout_improvement_log.md)）。
 
 ## 📈 収録系統データ（MATPOWER v2形式）
 
