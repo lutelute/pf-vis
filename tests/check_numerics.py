@@ -187,6 +187,20 @@ def main():
         check("P(δ=30°) = 1.0 p.u. (V1V2/X=2, sin30°=0.5)", abs(r["p30"] - 1.0) < 1e-9, f"P={r['p30']}")
         check("P(δ=90°) = 2.0 p.u. (頂上)", abs(r["p90"] - 2.0) < 1e-9)
 
+        # ---------- ladder_l5 ----------
+        print("\n■ ラダーL5 (ladder_l5)")
+        page.goto(f"{BASE}/ladder_l5.html")
+        page.wait_for_timeout(600)
+        r = page.evaluate("""() => ({
+            nose04: CURVES['0.4'].nose.PL, noseV04: CURVES['0.4'].nose.V,
+            noseComp: CURVES['-0.2'].nose.PL, noseVComp: CURVES['-0.2'].nose.V,
+            detAtNose: Math.abs(CURVES['0.4'].nose.det)
+        })""")
+        check("ノーズ(tanφ=0.4) ≈ 446 MW", abs(r["nose04"] - 446) < 5, f"nose={r['nose04']:.1f}")
+        check("補償でノーズが伸びる (→ ≈690 MW)", abs(r["noseComp"] - 690) < 6, f"nose={r['noseComp']:.1f}")
+        check("補償でノーズ電圧が上がる (0.55→0.67)", r["noseVComp"] > r["noseV04"] + 0.08)
+        check("ノーズで |det J| ≈ 0", r["detAtNose"] < 1.0, f"|det|={r['detAtNose']:.2f}")
+
         # ---------- dc_accuracy ----------
         print("\n■ DC潮流精度検証 (dc_accuracy)")
         page.goto(f"{BASE}/dc_accuracy_analysis.html")

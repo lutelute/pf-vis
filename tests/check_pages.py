@@ -30,6 +30,7 @@ PAGES = [
     ("ラダーL0", "ladder_l0.html"),
     ("ラダーL1", "ladder_l1.html"),
     ("ラダーL2", "ladder_l2.html"),
+    ("ラダーL5", "ladder_l5.html"),
 ]
 
 

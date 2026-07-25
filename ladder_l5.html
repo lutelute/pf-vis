@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L5: 連続潮流とPV曲線 — 解が消える点を追跡する</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪜</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
+    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);line-height:1.75;font-size:15px;}
+  .wrap{max-width:880px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;} .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  .ladder-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--upd);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:24px;margin:0 0 6px;letter-spacing:.02em;}
+  h2{font-family:var(--mincho);font-weight:600;font-size:18px;margin:26px 0 10px;}
+  .lead{color:var(--muted);font-size:14px;max-width:740px;margin-bottom:14px;}
+  .lead b,b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.5px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 118px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:3px;}
+  .prow span:last-child{color:var(--muted);}
+  .eq{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin:10px 0;line-height:1.9;}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12.5px;color:var(--muted);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:6px;}
+  canvas{display:block;width:100%;max-width:840px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .ctrl{display:flex;align-items:center;gap:16px;margin-top:12px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);}
+  input[type=range]{width:min(300px,55vw);accent-color:var(--accent);}
+  .pfbtn{font-size:13px;border-radius:8px;padding:7px 13px;border:1px solid var(--line);background:var(--panel);color:var(--muted);cursor:pointer;font-family:var(--mono);}
+  .pfbtn.active{border-color:var(--accent);color:var(--accent);font-weight:700;background:rgba(31,158,138,0.07);}
+  .readout{font-family:var(--mono);font-size:13.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;margin-top:10px;line-height:2;}
+  .readout b{font-size:15px;}
+  .note{font-size:12.5px;color:var(--faint);margin-top:6px;}
+  .disc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:10px 0;font-size:14px;color:var(--muted);}
+  .disc .no{display:inline-block;font-family:var(--mono);font-weight:700;color:#fff;background:var(--upd);border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-size:12px;}
+  .limits{background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:16px 0;}
+  .limits-h{font-weight:700;color:var(--warm);margin-bottom:4px;}
+  .quiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0;}
+  .quiz h3{font-size:15px;margin:0 0 8px;font-family:var(--mincho);}
+  .quiz p{font-size:14px;color:var(--muted);margin:6px 0;}
+  .qcheck{display:inline-flex;align-items:center;gap:8px;}
+  .qcheck input[type=text]{width:100px;font-family:var(--mono);font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);}
+  .qcheck button{font-size:13px;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font-weight:600;cursor:pointer;}
+  .qcheck button:hover{background:rgba(31,158,138,0.08);}
+  .qmark{font-size:16px;min-width:5em;}
+  .quiz label.opt{display:block;font-size:14px;color:var(--muted);padding:4px 0;cursor:pointer;}
+  .nextbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:18px;font-size:14px;}
+  .nextbox a{color:var(--accent);font-weight:600;}
+  .foot{font-size:12px;color:var(--faint);margin-top:20px;} .foot a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="power_flow_compare.html">⚖ 比較(L4)へ戻る</a>
+    <a href="learn_newton.html">🎓 NR講演</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="ladder-tag">🪜 学習ラダー L5 — 前提: L4（NR法・ヤコビアン・収束特性）</div>
+  <h1>連続潮流とPV曲線 — 解が消える点を追跡する</h1>
+  <div class="lead">
+    L0の「送電の限界」、L2の「sinδの頂上」、入門ツールの「電圧崩壊直前」——ラダーの各段で
+    予告してきた<b>限界</b>を、ここで正面から扱います。負荷を増やしながら潮流解を追跡すると、
+    解は<b>2つ→1つ→ゼロ</b>と減っていき、消える瞬間の点（ノーズ）では<b>ヤコビアンが特異</b>になる。
+    この曲線の実トレースが、電圧安定性解析の出発点<b>連続潮流（Continuation Power Flow）</b>です。
+    このページの曲線は全点が実計算です。
+  </div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>系統がどこまで負荷に耐えるか（電圧安定性余裕）を測る実務・研究の標準手法だから。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>負荷倍率λを連続的に変えて解の曲線を描く。曲線の折り返し点（ノーズ）＝<b>解が消滅する点</b>＝det J = 0。</span></div>
+    <div class="prow"><span class="pq">L4との接続</span><span>「NRがノーズ付近で苦しむ」のは偶然ではない——解くべき方程式のヤコビアンそのものが特異に向かうから。</span></div>
+  </div>
+
+  <div class="eq">F(x, λ) = 0,　x = (V, δ),　負荷 = λ·(P₀, Q₀)　　［ノーズ:  det J(x*) = 0］
+    <span class="read">読み：λ（ラムダ）は負荷の倍率。λを増やしながら解xの道を追う。折り返し点ではヤコビアンJの行列式がゼロになり、
+    λを媒介変数にした追跡は破綻する——そこで<b>歩く向きを変える</b>（本ページはVを媒介変数にして曲線全体を描いている。
+    弧長を使う一般版がpredictor-corrector型の連続潮流）。</span>
+  </div>
+
+  <h2>実験: PV曲線を実トレースする</h2>
+  <div class="stage">
+    <canvas id="cv" width="840" height="380"></canvas>
+    <div class="ctrl">
+      <label>負荷 P: <b id="pLabel" style="font-family:var(--mono)">100</b> MW</label>
+      <input type="range" id="lam" min="20" max="740" step="5" value="100">
+      <span>負荷の性質:</span>
+      <button class="pfbtn active" data-pf="0.4" id="pf0">誘導性 tanφ=0.4</button>
+      <button class="pfbtn" data-pf="0" id="pf1">力率1 tanφ=0</button>
+      <button class="pfbtn" data-pf="-0.2" id="pf2">補償あり tanφ=−0.2</button>
+    </div>
+    <div class="readout" id="readout"></div>
+    <p class="note">上の曲線: PV曲線（実線=上枝・破線=下枝・▼=ノーズ）。下の帯: 上枝に沿った |det J|（実計算）——ノーズでゼロに落ちる。</p>
+  </div>
+
+  <h2>この実験からわかる4つのこと</h2>
+  <div class="disc"><span class="no">1</span><b>同じ負荷に、解が2つある。</b>
+    曲線の上枝と下枝——例えば200 MWの負荷に対し、高い電圧の解と低い電圧の解が両方とも方程式を満たします。
+    実際に運転できるのは上枝だけ（下枝は電流が過大で、制御をかけると不安定化する）。
+    「解けた」だけでは足りず、<b>どちらの解か</b>を問うのがこのレベルです。</div>
+  <div class="disc"><span class="no">2</span><b>ノーズで det J = 0（実測できる）。</b>
+    下の帯を見てください。負荷を増やすほど |det J| が減り、ノーズでゼロに触れる——
+    2つの解が接近・合体して消える瞬間、ヤコビアンは特異になります。
+    L4で「NRは崩壊の縁で苦しむ」と観察した現象の、これが理論的正体です。</div>
+  <div class="disc"><span class="no">3</span><b>無効電力補償はノーズを伸ばす——が、話には裏がある。</b>
+    「補償あり」に切り替えると、ノーズは446 MW→690 MWへ大きく伸びます（コンデンサでQを地産地消した効果）。
+    しかし<b>ノーズ電圧も 0.55→0.67 へ上がる</b>ことに注目——補償の効いた系統は、
+    <b>普段と大差ない電圧のまま崩壊点に接近</b>できてしまう。電圧の低さを崩壊の警報として使えなくなる、
+    という実務上の重要な逆説です。</div>
+  <div class="disc"><span class="no">4</span><b>この折り返しには数学の名前がある。</b>
+    パラメータを動かすと2つの解が合体して消える——力学系理論の<b>サドルノード分岐（saddle-node bifurcation）</b>です。
+    電圧崩壊の解析が分岐理論・特異点理論と接続するのはこのため。L6で研究の言葉として再訪します。</div>
+
+  <div class="limits">
+    <div class="limits-h">⚠ 正直な注意 — 静的PV曲線の限界</div>
+    ①実系統では発電機の<b>無効電力上限</b>により、滑らかなノーズの手前で曲線が折れて突然余裕を失うことがある
+    （limit-induced bifurcation。ノーズだけ見ていると危険側に誤る）。
+    ②このPV曲線は<b>静的</b>解析であり、OLTC（タップ切替）や誘導電動機の動特性が絡む実際の電圧崩壊の
+    時間発展は語れない（動的解析・時間シミュレーションの領分）。
+    ③実務ではPV曲線に加えQV曲線・モーダル解析（Jの固有値）を併用する。
+  </div>
+
+  <h2>昇級課題 — 3問正解でL6へ</h2>
+  <div class="quiz">
+    <h3>課題1（実測）</h3>
+    <p>誘導性負荷（tanφ=0.4）のとき、ノーズ点の負荷はおよそ何MW？（曲線の▼を読むこと）</p>
+    <span class="qcheck"><input type="text" id="q1" inputmode="numeric"> <span>MW</span>
+      <button onclick="checkNum('q1',446,12)">判定</button><span class="qmark" id="q1m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題2（理論）</h3>
+    <p>ノーズ点でヤコビアンの行列式 det J はいくつになる？</p>
+    <span class="qcheck"><input type="text" id="q2" inputmode="numeric">
+      <button onclick="checkNum('q2',0,0.5)">判定</button><span class="qmark" id="q2m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題3（解釈）</h3>
+    <p>無効電力補償（コンデンサ設置）の効果として、正しい説明はどれ？</p>
+    <label class="opt"><input type="radio" name="q3" value="a"> ノーズが伸び、ノーズ電圧も下がるので二重に安全になる</label>
+    <label class="opt"><input type="radio" name="q3" value="b"> ノーズは伸びるが、ノーズ電圧は上がるため「電圧低下」という警報が効きにくくなる</label>
+    <label class="opt"><input type="radio" name="q3" value="c"> ノーズの位置は変わらず、電圧だけが全体に上がる</label>
+    <span class="qcheck"><button onclick="checkQ3()">判定</button><span class="qmark" id="q3m"></span></span>
+  </div>
+
+  <div class="nextbox" id="nextbox">🔒 3問正解すると、最後のレベルへの道が開きます。</div>
+
+  <p class="foot">
+    実装ノート: この曲線は「Vを媒介変数にして、各Vで負荷方向の一致条件からδとλを解く」
+    連続手法で全点を実計算しています（ノーズ付近でも破綻しない——λで歩くと破綻する、その理由ごと教材です）。
+    <a href="index.html#ladder">ラダーの全体像</a> ／ <a href="power_flow_intuitive_v6_fixed.html">入門ツールの「電圧崩壊直前」を再訪する</a>
+  </p>
+</div>
+
+<script>
+"use strict";
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+// ============================================================
+// 実計算: 2母線 (G=5, B=-15)。負荷 = λ(P0, Q0)
+// Vを媒介変数に: 各Vで「負荷方向の一致」からδを解き、λを得る
+// ============================================================
+const G=5, B=-15, BASE=100;
+function inj(V,d){
+  const P=V*V*G - V*(G*Math.cos(d)+B*Math.sin(d));
+  const Q=-V*V*B - V*(G*Math.sin(d)-B*Math.cos(d));
+  return {P,Q};
+}
+function detJ(V,d){
+  const c=inj(V,d);
+  const a=-c.Q-V*V*B, b=c.P/V+V*G, cc=c.P-V*V*G, e=c.Q/V-V*B;
+  return a*e-b*cc;
+}
+function solveDelta(V,P0,Q0){
+  const h=d=>{const c=inj(V,d); return c.P*Q0-c.Q*P0;};
+  let lo=-1.35, hi=-1e-6;
+  if(h(lo)*h(hi)>0) return null;
+  for(let k=0;k<80;k++){const mid=(lo+hi)/2; (h(mid)*h(hi)<=0)?(lo=mid):(hi=mid);}
+  return (lo+hi)/2;
+}
+function trace(P0,Q0){
+  const pts=[];
+  for(let V=1.06;V>=0.15;V-=0.004){
+    const d=solveDelta(V,P0,Q0);
+    if(d===null)continue;
+    const c=inj(V,d), lam=-c.P/P0;
+    if(lam<0)continue;
+    pts.push({V,d,PL:lam*P0*BASE,det:detJ(V,d)});
+  }
+  // ノーズ: PL最大の点
+  let nose=pts[0], noseIdx=0;
+  pts.forEach((p,i)=>{if(p.PL>nose.PL){nose=p;noseIdx=i;}});
+  return {pts,nose,noseIdx};
+}
+const P0=0.5;
+const CURVES={
+  '0.4':trace(P0,P0*0.4),
+  '0':trace(P0,0),
+  '-0.2':trace(P0,-P0*0.2)
+};
+let pf='0.4', PL_MW=100;
+
+// 上枝で目標PLに最も近い点
+function opPoint(){
+  const {pts,noseIdx}=CURVES[pf];
+  let best=null,bd=1e9;
+  for(let i=0;i<=noseIdx;i++){const d=Math.abs(pts[i].PL-PL_MW);if(d<bd){bd=d;best=pts[i];}}
+  return {pt:best,offCurve:bd>6};
+}
+function lowerPoint(){
+  const {pts,noseIdx}=CURVES[pf];
+  let best=null,bd=1e9;
+  for(let i=noseIdx;i<pts.length;i++){const d=Math.abs(pts[i].PL-PL_MW);if(d<bd){bd=d;best=pts[i];}}
+  return (best&&Math.abs(best.PL-PL_MW)<6)?best:null;
+}
+
+// ============================================================
+// 描画
+// ============================================================
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CW=840, CH=380;
+const PLOT={x:64,y:24,w:730,h:230,pMax:760,vMin:0.15,vMax:1.08};
+const px=P=>PLOT.x+P/PLOT.pMax*PLOT.w;
+const py=V=>PLOT.y+(PLOT.vMax-V)/(PLOT.vMax-PLOT.vMin)*PLOT.h;
+const DET={y:300,h:56};
+
+function drawCurve(key,active){
+  const {pts,noseIdx,nose}=CURVES[key];
+  const col=key==='0.4'?getCSS('--neg'):(key==='0'?getCSS('--warm'):getCSS('--accent'));
+  ctx.globalAlpha=active?1:0.25;
+  // 上枝 (実線)
+  ctx.strokeStyle=col;ctx.lineWidth=active?2.4:1.6;ctx.setLineDash([]);
+  ctx.beginPath();
+  for(let i=0;i<=noseIdx;i++){const p=pts[i];i===0?ctx.moveTo(px(p.PL),py(p.V)):ctx.lineTo(px(p.PL),py(p.V));}
+  ctx.stroke();
+  // 下枝 (破線)
+  ctx.setLineDash([5,4]);ctx.beginPath();
+  for(let i=noseIdx;i<pts.length;i++){const p=pts[i];i===noseIdx?ctx.moveTo(px(p.PL),py(p.V)):ctx.lineTo(px(p.PL),py(p.V));}
+  ctx.stroke();ctx.setLineDash([]);
+  // ノーズ
+  ctx.fillStyle=col;
+  ctx.beginPath();ctx.moveTo(px(nose.PL)+8,py(nose.V));ctx.lineTo(px(nose.PL)-2,py(nose.V)-6);ctx.lineTo(px(nose.PL)-2,py(nose.V)+6);ctx.closePath();ctx.fill();
+  if(active){
+    ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='left';
+    ctx.fillText('ノーズ '+nose.PL.toFixed(0)+' MW (V='+nose.V.toFixed(2)+')',px(nose.PL)-150,py(nose.V)-12);
+  }
+  ctx.globalAlpha=1;
+}
+function draw(){
+  ctx.clearRect(0,0,CW,CH);
+  ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,CW,CH);
+  // 軸
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(PLOT.x,PLOT.y,PLOT.w,PLOT.h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';
+  for(const P of [0,200,400,600]) ctx.fillText(P+'MW',px(P),PLOT.y+PLOT.h+15);
+  ctx.textAlign='right';
+  for(const V of [0.2,0.6,1.0]) ctx.fillText(V.toFixed(1),PLOT.x-6,py(V)+3);
+  ctx.save();ctx.translate(20,PLOT.y+PLOT.h/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';
+  ctx.fillText('電圧 V (p.u.)',0,0);ctx.restore();
+
+  // 3本の曲線 (非アクティブは薄く)
+  for(const k of ['0.4','0','-0.2']) if(k!==pf) drawCurve(k,false);
+  drawCurve(pf,true);
+
+  // 運転点
+  const {pt,offCurve}=opPoint();
+  if(pt&&!offCurve){
+    ctx.fillStyle=getCSS('--upd');
+    ctx.beginPath();ctx.arc(px(pt.PL),py(pt.V),6,0,7);ctx.fill();
+    ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='left';
+    ctx.fillText('運転点',px(pt.PL)+10,py(pt.V)-6);
+    const lp=lowerPoint();
+    if(lp){ctx.fillStyle='rgba(111,84,196,0.45)';
+      ctx.beginPath();ctx.arc(px(lp.PL),py(lp.V),5,0,7);ctx.fill();
+      ctx.fillText('もう一つの解(下枝)',px(lp.PL)+10,py(lp.V)+4);}
+  }else{
+    ctx.fillStyle=getCSS('--neg');ctx.font='700 12px '+getCSS('--gothic');ctx.textAlign='center';
+    ctx.fillText('⚠ この負荷はノーズを超えています — 解は存在しません',PLOT.x+PLOT.w/2,PLOT.y+30);
+  }
+
+  // |det J| 帯 (上枝に沿って実計算)
+  const {pts,noseIdx}=CURVES[pf];
+  const maxDet=Math.max(...pts.slice(0,noseIdx+1).map(p=>Math.abs(p.det)));
+  ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--gothic');ctx.textAlign='left';
+  ctx.fillText('|det J| 上枝に沿った実測（右端=ノーズでゼロへ）',PLOT.x,DET.y-8);
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(PLOT.x,DET.y,PLOT.w,DET.h);
+  ctx.strokeStyle=getCSS('--upd');ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<=noseIdx;i++){
+    const p=pts[i];
+    const x=px(p.PL), y=DET.y+DET.h-(Math.abs(p.det)/maxDet)*(DET.h-6)-3;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  const {pt:op}=opPoint();
+  if(op){ctx.fillStyle=getCSS('--upd');
+    ctx.beginPath();ctx.arc(px(op.PL),DET.y+DET.h-(Math.abs(op.det)/maxDet)*(DET.h-6)-3,4,0,7);ctx.fill();}
+}
+
+function updateReadout(){
+  const {pt,offCurve}=opCurrent();
+  const {nose}=CURVES[pf];
+  document.getElementById('pLabel').textContent=PL_MW;
+  const el=document.getElementById('readout');
+  if(!pt||offCurve){
+    el.innerHTML='<b style="color:var(--neg)">解なし</b> — 負荷 '+PL_MW+' MW はノーズ('+nose.PL.toFixed(0)+' MW)の先。'+
+      '系統はこの負荷を支えられません。これが電圧崩壊の静的な意味です。';
+    return;
+  }
+  const margin=nose.PL-pt.PL;
+  const lp=lowerPoint();
+  el.innerHTML='上枝の解: V = <b>'+pt.V.toFixed(3)+'</b> p.u., δ = '+(pt.d*180/Math.PI).toFixed(1)+'°'+
+    (lp?'　／　下枝の解: V = '+lp.V.toFixed(3):'')+
+    '<br>安定余裕 = ノーズ '+nose.PL.toFixed(0)+' − 現在 '+pt.PL.toFixed(0)+' = <b style="color:'+(margin<60?'var(--neg)':'var(--accent)')+'">'+margin.toFixed(0)+' MW</b>'+
+    '　／　|det J| = <b>'+Math.abs(pt.det).toFixed(1)+'</b>（ノーズで→0）';
+}
+function opCurrent(){return opPoint();}
+
+document.getElementById('lam').addEventListener('input',e=>{PL_MW=+e.target.value;updateReadout();draw();});
+document.querySelectorAll('.pfbtn').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.pfbtn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');pf=b.dataset.pf;updateReadout();draw();
+}));
+updateReadout();draw();
+
+// ============================================================
+// 昇級課題
+// ============================================================
+const quizState={q1:false,q2:false,q3:false};
+function done(id,ok){document.getElementById(id+'m').textContent=ok?'✅ 正解':'❌ もう一度';
+  quizState[id]=ok;
+  if(quizState.q1&&quizState.q2&&quizState.q3){
+    document.getElementById('nextbox').innerHTML='🎉 <b>L5 修了。</b>解の消滅を「追跡して測る」道具を手に入れました。'+
+      '最後の段 <b>L6: 研究の入口</b> では、今日のノーズがサドルノード分岐という一般理論に接続され、'+
+      '収束理論・HELM・機械学習サロゲートまで、研究のフロンティアの地図を歩きます。'+
+      '<br>→ <a href="ladder_l6.html">L6へ進む（準備中の場合はメインページのラダーを確認）</a>';
+  }}
+function checkNum(id,ans,tol){
+  const v=parseFloat(document.getElementById(id).value.replace(/,/g,''));
+  done(id,isFinite(v)&&Math.abs(v-ans)<=tol);
+}
+function checkQ3(){
+  const sel=document.querySelector('input[name=q3]:checked');
+  done('q3',!!sel&&sel.value==='b');
+}
+</script>
+</body>
+</html>
