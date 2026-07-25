@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L6: 研究の入口 — 収束の地図と、開いている問い</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪜</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
+    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);line-height:1.75;font-size:15px;}
+  .wrap{max-width:880px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;} .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  .ladder-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--upd);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:24px;margin:0 0 6px;letter-spacing:.02em;}
+  h2{font-family:var(--mincho);font-weight:600;font-size:18px;margin:26px 0 10px;}
+  .lead{color:var(--muted);font-size:14px;max-width:740px;margin-bottom:14px;}
+  .lead b,b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.5px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 118px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:3px;}
+  .prow span:last-child{color:var(--muted);}
+  .eq{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin:10px 0;line-height:1.9;}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12.5px;color:var(--muted);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:6px;}
+  canvas{display:block;width:100%;max-width:840px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .ctrl{display:flex;align-items:center;gap:16px;margin-top:12px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);}
+  input[type=range]{width:min(300px,55vw);accent-color:var(--accent);}
+  .readout{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;margin-top:10px;line-height:2;}
+  .readout b{font-size:14.5px;}
+  .note{font-size:12.5px;color:var(--faint);margin-top:6px;}
+  .disc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:10px 0;font-size:14px;color:var(--muted);}
+  .disc .no{display:inline-block;font-family:var(--mono);font-weight:700;color:#fff;background:var(--upd);border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-size:12px;}
+  .limits{background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:16px 0;}
+  .limits-h{font-weight:700;color:var(--warm);margin-bottom:4px;}
+  table.sig{border-collapse:collapse;font-family:var(--mono);font-size:13px;margin:8px 0;width:100%;}
+  table.sig th,table.sig td{border:1px solid var(--line);padding:6px 10px;text-align:right;}
+  table.sig th{background:var(--panel-2);font-family:var(--gothic);font-size:12.5px;color:var(--muted);font-weight:600;}
+  table.sig td:first-child{color:var(--warm);font-weight:700;}
+  .axes{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0;}
+  @media (max-width:720px){.axes{grid-template-columns:1fr;}}
+  .axis{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;font-size:13px;color:var(--muted);}
+  .axis h3{font-family:var(--mincho);font-size:15px;margin:0 0 8px;color:var(--text);}
+  .axis .ax-tag{font-family:var(--mono);font-size:10.5px;color:#fff;background:var(--accent);border-radius:2px;padding:1px 7px;margin-right:7px;vertical-align:2px;}
+  .axis dl{margin:0;}
+  .axis dt{font-family:var(--mono);font-size:11px;color:var(--warm);font-weight:700;margin-top:7px;}
+  .axis dd{margin:1px 0 0 0;line-height:1.65;}
+  .axis .refs{font-size:12px;color:var(--faint);line-height:1.7;}
+  .quiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0;}
+  .quiz h3{font-size:15px;margin:0 0 8px;font-family:var(--mincho);}
+  .quiz p{font-size:14px;color:var(--muted);margin:6px 0;}
+  .qcheck{display:inline-flex;align-items:center;gap:8px;}
+  .qcheck input[type=text]{width:100px;font-family:var(--mono);font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);}
+  .qcheck button{font-size:13px;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font-weight:600;cursor:pointer;}
+  .qcheck button:hover{background:rgba(31,158,138,0.08);}
+  .qmark{font-size:16px;min-width:5em;}
+  .quiz label.opt{display:block;font-size:14px;color:var(--muted);padding:4px 0;cursor:pointer;}
+  .nextbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:18px;font-size:14px;}
+  .nextbox a{color:var(--accent);font-weight:600;}
+  .foot{font-size:12px;color:var(--faint);margin-top:20px;} .foot a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="ladder_l5.html">🪜 L5へ戻る</a>
+    <a href="learn_newton.html">🎓 NR講演</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="ladder-tag">🪜 学習ラダー L6 — 前提: L5（連続潮流・サドルノード分岐）</div>
+  <h1>研究の入口 — 収束の地図と、開いている問い</h1>
+  <div class="lead">
+    最後の段は、これまでと性質が違います。L0〜L5は<b>確立した知識</b>の階段でしたが、
+    ここは教科書の最終章から<b>論文の最初のページ</b>へ渡る橋です。渡すのは答えではなく<b>地図</b>——
+    ただし地図だけでは橋になりません。そこで博士課程の入口にふさわしい実験を2つ用意しました。
+    NR法の<b>収束領域（basin）を初期値の平面ごと実測する</b>実験と、収束を保証できる半径が
+    分岐点で<b>ゼロに潰れていく</b>実測です。どちらも「教科書が終わって研究が始まる場所」を数字で見せます。
+  </div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>「解けた／解けない」の先——<b>いつ解けると保証できるか</b>・<b>解けないとき何が言えるか</b>が、実務の信頼性と研究の問いの両方を決めるから。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>NRの収束は初期値に依存する（basinの地図）。その保証半径はノーズで潰れる（σ_minの崩落）。この2つの実測が、研究5軸すべての入口になる。</span></div>
+    <div class="prow"><span class="pq">L5との接続</span><span>L5で det J → 0 を見た。ここでは同じ現象を J⁻¹ の発散＝<b>収束理論の崩壊</b>として見直し、そこから研究地図へ出発する。</span></div>
+  </div>
+
+  <div class="eq">Newton–Kantorovich:　h = ‖J(x₀)⁻¹F(x₀)‖ · L · ‖J(x₀)⁻¹‖ ≤ 1/2　⟹　NRは収束する
+    <span class="read">読み：出発点での「ずれの大きさ」×「方程式の曲がり具合（リプシッツ定数L）」×「ヤコビアン逆行列の大きさ」が
+    十分小さければ、NRの収束が<b>証明つきで保証</b>される（1948年、Kantorovich）。
+    ‖J⁻¹‖ は最小特異値の逆数 1/σ_min なので、ノーズ（σ_min→0）に近づくほど保証できる出発点の範囲は<b>ゼロへ潰れる</b>。
+    L4で観察し、L5で det J=0 と同定した現象の、これが収束理論側の顔です。</span>
+  </div>
+
+  <h2>実験1: 収束領域（basin of attraction）の実測地図</h2>
+  <div class="lead">初期値 (δ₀, V₀) を平面に敷き詰め、<b>1点ずつ本物のNR反復を実行</b>して、
+    どの解に収束したかで塗り分けます。左は軽負荷100 MW、右は負荷スライダーで動かせます（ノーズ≈446 MW）。</div>
+  <div class="stage">
+    <canvas id="cv" width="840" height="340"></canvas>
+    <div class="ctrl">
+      <label>右パネルの負荷: <b id="pLabel" style="font-family:var(--mono)">430</b> MW</label>
+      <input type="range" id="lam" min="100" max="445" step="5" value="430">
+      <span style="font-size:12.5px">
+        <span style="color:var(--accent)">■</span> 上枝（運転解）へ収束
+        <span style="color:var(--upd)">■</span> 下枝へ収束
+        <span style="color:#c9b8a8">■</span> 収束せず
+      </span>
+    </div>
+    <div class="readout" id="readout"></div>
+    <p class="note">○=フラットスタート(V=1, δ=0)、●=2つの解。各画素が独立したNR実行（初期値だけを変えた本物の反復計算）です。</p>
+  </div>
+
+  <h2>実験2: 保証半径の崩落 — σ_min(J) と反復回数の実測</h2>
+  <div class="stage">
+    <table class="sig" id="sigTable"></table>
+    <p class="note">全行がページ読み込み時の実計算。σ_min は解におけるヤコビアンの最小特異値（2×2なので厳密値）。
+      Kantorovich条件の ‖J⁻¹‖ = 1/σ_min がノーズへ向けて発散していくのが読み取れます。</p>
+  </div>
+
+  <h2>この2つの実験からわかる4つのこと</h2>
+  <div class="disc"><span class="no">1</span><b>「収束した」は初期値とセットでしか語れない。</b>
+    左の地図でも、フラットスタートの周りには広い盆地がある一方、盆地の外の初期値は下枝へ落ちるか発散します。
+    NRの答えは「方程式の解」であると同時に「<b>この初期値から辿り着ける解</b>」でもある——
+    教科書が1行で流すこの但し書きが、研究では主役になります。</div>
+  <div class="disc"><span class="no">2</span><b>ノーズに近づくと、2つの解が接近し境界が運転解に迫る。</b>
+    右パネルを445 MWへ動かすと、●2つ（上枝と下枝）が近づき、収束領域の境界が運転解のすぐそばまで来ます。
+    「解はあるのに、素朴な初期値では届かない」状況はこうして生まれ、
+    重負荷時の潮流計算の実務的な難しさの正体がこれです。</div>
+  <div class="disc"><span class="no">3</span><b>保証には値段がある。</b>
+    実験2で σ_min は 100→445 MWで約13.8→0.63へ、およそ22分の1に崩落します。Kantorovichの保証球は
+    1/σ_min を含む積で決まるので、保証できる範囲はそれ以上の勢いで潰れる——
+    しかし実測の盆地（実験1）は保証球より<b>ずっと広い</b>。定理の保証と実際の挙動のこの隙間こそ、
+    理論研究の生息地です。</div>
+  <div class="disc"><span class="no">4</span><b>反復回数の増加は「壁の予兆」として観測できる。</b>
+    同じフラットスタートでも、必要な反復は4回→8回へ増えます。収束の減速は σ_min の崩落の影であり、
+    実務の監視量（収束履歴）と理論量（特異値）がここで接続します。</div>
+
+  <h2>研究地図 — 5つの軸と、最初に読む文献</h2>
+  <div class="lead">各軸に「確立した足場」「開いている問い」「最初の1〜3本」を付します。
+    網羅ではなく<b>入口</b>です——この地図の外にも軸はあります。</div>
+  <div class="axes">
+    <div class="axis"><h3><span class="ax-tag">A</span>収束理論</h3>
+      <dl>
+        <dt>中心の問い</dt><dd>いつ・どの初期値からの収束を保証できるか。解は全部でいくつあるか。</dd>
+        <dt>足場</dt><dd>Newton–Kantorovich型の半局所収束定理。ホモトピー法による全解探索の原理。</dd>
+        <dt>開いている問い</dt><dd>実規模系統で使える初期値選択の実用的保証。複数解の効率的列挙（全列挙は一般に指数的）。basin境界の構造（Newtonフラクタル）の系統的意味づけ。</dd>
+        <dt>最初に読む</dt><dd class="refs">Kantorovich (1948) の収束定理／Ortega &amp; Rheinboldt (1970)『Iterative Solution of Nonlinear Equations in Several Variables』</dd>
+        <dt>この教材との接続</dt><dd>本ページの実験1・2。L3のNR導出（learn_newton）。</dd>
+      </dl>
+    </div>
+    <div class="axis"><h3><span class="ax-tag">B</span>分岐理論と電圧安定</h3>
+      <dl>
+        <dt>中心の問い</dt><dd>解の消滅（電圧崩壊）を理論的に特徴づけ、余裕をどう測るか。</dd>
+        <dt>足場</dt><dd>サドルノード分岐としての定式化。連続潮流・QV曲線・モーダル解析。</dd>
+        <dt>開いている問い</dt><dd>リアルタイムの余裕推定。limit-induced bifurcation（L5の正直な注意）の体系的扱い。OLTC・誘導機など動的機構との統合。</dd>
+        <dt>最初に読む</dt><dd class="refs">Dobson &amp; Chiang (1989)「Towards a theory of voltage collapse」／Van Cutsem &amp; Vournas (1998)『Voltage Stability of Electric Power Systems』</dd>
+        <dt>この教材との接続</dt><dd>L5の実PV曲線とノーズ。det J=0 と σ_min=0 は同じ点の2つの顔。</dd>
+      </dl>
+    </div>
+    <div class="axis"><h3><span class="ax-tag">C</span>解法のフロンティア</h3>
+      <dl>
+        <dt>中心の問い</dt><dd>速く・確実に・「解なし」も証明つきで判定できる解法はあるか。</dd>
+        <dt>足場</dt><dd>スパース行列技法（最適順序付けLU分解）。高速分離法（FDLF）。正則関数埋め込み（HELM）——級数の収束・発散が解の存在・不在に対応するという設計。</dd>
+        <dt>開いている問い</dt><dd>「解なし」の高速・証明つき判定。HELMの大規模実務化。悪条件・弱連系系統でのロバスト性。</dd>
+        <dt>最初に読む</dt><dd class="refs">Tinney &amp; Walker (1967) スパース三角分解／Stott &amp; Alsac (1974)「Fast decoupled load flow」／Trias (2012)「The Holomorphic Embedding Load Flow Method」</dd>
+        <dt>この教材との接続</dt><dd>L4の多手法比較（compare）。NR非収束≠解なし、を実験1が示す。</dd>
+      </dl>
+    </div>
+    <div class="axis"><h3><span class="ax-tag">D</span>最適化との融合（OPF）</h3>
+      <dl>
+        <dt>中心の問い</dt><dd>潮流制約の下で費用最小の運転点を、大域最適の保証つきで求められるか。</dd>
+        <dt>足場</dt><dd>OPFの定式化（1962年〜）。SDP/SOCPによる凸緩和と、緩和が厳密になる系統クラスの発見。AC潮流の実行可能性判定は強NP困難という限界の証明。</dd>
+        <dt>開いている問い</dt><dd>緩和が厳密になる条件の完全な特徴づけ。実時間・大規模OPF。不確実性（再エネ）下での頑健OPF。</dd>
+        <dt>最初に読む</dt><dd class="refs">Carpentier (1962) OPFの定式化／Lavaei &amp; Low (2012)「Zero duality gap in optimal power flow problem」／Bienstock &amp; Verma (2019) AC実行可能性の強NP困難性</dd>
+        <dt>この教材との接続</dt><dd>潮流方程式はOPFの等式制約そのもの。L3〜L5の全部が制約集合の幾何になる。</dd>
+      </dl>
+    </div>
+    <div class="axis"><h3><span class="ax-tag">E</span>機械学習との融合</h3>
+      <dl>
+        <dt>中心の問い</dt><dd>学習ベースの高速サロゲートに、物理的整合と安全の保証を与えられるか。</dd>
+        <dt>足場</dt><dd>物理情報つきNN（PINN）。グラフNNによる潮流近似。NRのwarm-start（良い初期値の学習）としての活用。</dd>
+        <dt>開いている問い</dt><dd>分布外（見たことのない系統状態）での保証。制約充足の厳密保証。「実験1のbasin」を学習で広げられるか——初期値生成の理論保証。</dd>
+        <dt>最初に読む</dt><dd class="refs">Raissi, Perdikaris &amp; Karniadakis (2019)「Physics-informed neural networks」／Donon ほか (2020) Graph neural solver for power flows</dd>
+        <dt>この教材との接続</dt><dd>L4の計算量の話が動機。実験1の盆地の狭さが、warm-start学習の存在意義。</dd>
+      </dl>
+    </div>
+    <div class="axis" style="background:var(--panel-2);"><h3>🧭 博士的読み方の指南</h3>
+      <dl>
+        <dt>1. 主張と証明の範囲を切り分ける</dt><dd>Kantorovichは十分条件であって必要条件ではない——実測の盆地（実験1）は保証球よりずっと広い。定理が言っていないことを定理に言わせない。</dd>
+        <dt>2. 再現実装してから読む</dt><dd>このサイトの数値は全て動くコードの出力。論文も同じで、最小模型で再現すると主張の意味と限界が体に入る。</dd>
+        <dt>3. 仮定を一つ外して壊す</dt><dd>「発電機のQ上限を入れたら?」——L5のlimit-induced bifurcationはまさにその操作から生まれた概念。壊れ方が次の問いになる。</dd>
+        <dt>4. 地図は動くものとして扱う</dt><dd>ここに「開いている」と書いた問いに、部分的解決が既にあるかもしれない。文献データベースでそれを確かめる行為そのものが研究の第一歩。</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="limits">
+    <div class="limits-h">⚠ 正直な注意 — この地図の限界</div>
+    ①実験は2母線の最小模型で、本質（収束・分岐・保証）を最小構成で見せる装置です。実規模（数千〜数万母線）で主戦場になる
+    現象——スパース性・地域的電圧問題・制御系の相互作用——はここには映りません。
+    ②文献は各軸1〜3本の「最初の入口」であり網羅ではありません。
+    ③「開いている問い」は2026年時点の見取り図で、研究は動きます。地図の古びを疑うところから始めてください。
+  </div>
+
+  <h2>昇級課題 — 3問正解でラダー踏破</h2>
+  <div class="quiz">
+    <h3>課題1（理論）</h3>
+    <p>サドルノード分岐点（ノーズ）でヤコビアン J に起きることとして正しいのはどれ？</p>
+    <label class="opt"><input type="radio" name="q1" value="a"> すべての固有値が同時にゼロになる</label>
+    <label class="opt"><input type="radio" name="q1" value="b"> 最小特異値 σ_min がゼロになり、J⁻¹ が発散する（＝収束保証半径が潰れる）</label>
+    <label class="opt"><input type="radio" name="q1" value="c"> 行列式が最大値をとる</label>
+    <span class="qcheck"><button onclick="checkRadio('q1','b')">判定</button><span class="qmark" id="q1m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題2（実測）</h3>
+    <p>実験2の表で、負荷445 MW（ノーズ間近）のとき σ_min(J) はいくつ？（表から読むこと）</p>
+    <span class="qcheck"><input type="text" id="q2" inputmode="decimal">
+      <button onclick="checkNum('q2',0.63,0.05)">判定</button><span class="qmark" id="q2m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題3（研究的判断）</h3>
+    <p>NR法が収束しなかった。研究者として正しい判断はどれ？</p>
+    <label class="opt"><input type="radio" name="q3" value="a"> 解は存在しないと結論してよい</label>
+    <label class="opt"><input type="radio" name="q3" value="b"> 非収束は「解なし」を意味しない——初期値を変える・連続法やHELMなどで解の存在自体を別途検討する</label>
+    <label class="opt"><input type="radio" name="q3" value="c"> 反復回数を増やせばいずれ必ず収束するので待てばよい</label>
+    <span class="qcheck"><button onclick="checkRadio('q3','b')">判定</button><span class="qmark" id="q3m"></span></span>
+  </div>
+
+  <div class="nextbox" id="nextbox">🔒 3問正解で、ラダーの頂上です。</div>
+
+  <p class="foot">
+    実装ノート: basin図は各画素が独立の本物のNR実行（初期値のみ変更、最大30反復、収束判定1e-10）。
+    σ_min は2×2ヤコビアンの厳密な特異値。乱数・作り置きの数値は使っていません。
+    <a href="index.html#ladder">ラダーの全体像</a> ／ <a href="docs/LADDER.md">設計ドキュメント</a>
+  </p>
+</div>
+
+<script>
+"use strict";
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+
+// ============================================================
+// 実計算: 2母線 (G=5, B=-15)。L5と同一系統。
+// ============================================================
+const G=5, B=-15, BASE=100;
+function inj(V,d){
+  const P=V*V*G - V*(G*Math.cos(d)+B*Math.sin(d));
+  const Q=-V*V*B - V*(G*Math.sin(d)-B*Math.cos(d));
+  return {P,Q};
+}
+function jac(V,d){
+  const c=inj(V,d);
+  return [-c.Q-V*V*B, c.P/V+V*G, c.P-V*V*G, c.Q/V-V*B]; // [a,b,c,e]
+}
+// 初期値(V0,d0)からの本物のNR。収束: {V,d,it} / 失敗: null
+function nrFrom(V0,d0,PL,QL,maxIt){
+  maxIt = maxIt||30;
+  let V=V0,d=d0;
+  for(let k=0;k<maxIt;k++){
+    const c=inj(V,d), dP=-PL-c.P, dQ=-QL-c.Q;
+    if(Math.max(Math.abs(dP),Math.abs(dQ))<1e-10) return {V,d,it:k};
+    const J=jac(V,d), det=J[0]*J[3]-J[1]*J[2];
+    if(Math.abs(det)<1e-12) return null;
+    d+=(J[3]*dP-J[1]*dQ)/det; V+=(-J[2]*dP+J[0]*dQ)/det;
+    if(!isFinite(V)||V<=0.01||V>3||Math.abs(d)>3) return null;
+  }
+  return null;
+}
+// 2×2の最小特異値（厳密）
+function sigmaMin(V,d){
+  const J=jac(V,d), a=J[0],b=J[1],c=J[2],e=J[3];
+  const T=a*a+b*b+c*c+e*e, D=a*e-b*c;
+  const s=Math.sqrt(Math.max(0,T*T-4*D*D));
+  return Math.sqrt(Math.max(0,(T-s)/2));
+}
+// 負荷PL[p.u.]（tanφ=0.4）のフラットスタート収束情報
+function sigAt(PL){
+  const r=nrFrom(1,0,PL,0.4*PL,40);
+  return r?{it:r.it,V:r.V,d:r.d,sig:sigmaMin(r.V,r.d)}:null;
+}
+// 下枝の解: 複数シードで上枝以外へ収束する点を探す
+function lowerSol(PL,QL,up){
+  const seeds=[[0.2,-0.5],[0.35,-0.8],[0.5,-1.0],[0.1,-0.3],[0.6,-1.15],[0.25,-0.9]];
+  for(const s of seeds){
+    const r=nrFrom(s[0],s[1],PL,QL,40);
+    if(r && up && Math.abs(r.V-up.V)>0.02) return r;
+  }
+  return null;
+}
+
+// ============================================================
+// 実験1: basin地図（2パネル: 左=100MW固定, 右=スライダー）
+// ============================================================
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const PANEL={w:370,h:250,y:30}, PX=[45,465];
+const DOM={dMin:-1.35,dMax:0.35,vMin:0.02,vMax:1.45};
+const CELL=4;
+let PL_R=4.3; // 右パネル負荷 [p.u.]
+
+function toX(px0,d){return px0+(d-DOM.dMin)/(DOM.dMax-DOM.dMin)*PANEL.w;}
+function toY(V){return PANEL.y+(DOM.vMax-V)/(DOM.vMax-DOM.vMin)*PANEL.h;}
+
+function basinPanel(px0,PL){
+  const QL=0.4*PL;
+  const up=nrFrom(1,0,PL,QL,40);
+  const low=lowerSol(PL,QL,up);
+  const cUp='rgba(31,158,138,0.55)', cLow='rgba(111,84,196,0.5)', cDiv='#efe3da';
+  let nUp=0,nLow=0,nDiv=0,nTot=0;
+  const nx=Math.floor(PANEL.w/CELL), ny=Math.floor(PANEL.h/CELL);
+  for(let i=0;i<nx;i++){
+    for(let j=0;j<ny;j++){
+      const d0=DOM.dMin+(i+0.5)/nx*(DOM.dMax-DOM.dMin);
+      const V0=DOM.vMax-(j+0.5)/ny*(DOM.vMax-DOM.vMin);
+      const r=nrFrom(V0,d0,PL,QL); nTot++;
+      let col;
+      if(!r){col=cDiv;nDiv++;}
+      else if(up&&Math.abs(r.V-up.V)<0.02&&Math.abs(r.d-up.d)<0.02){col=cUp;nUp++;}
+      else{col=cLow;nLow++;}
+      ctx.fillStyle=col;
+      ctx.fillRect(px0+i*CELL,PANEL.y+j*CELL,CELL,CELL);
+    }
+  }
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(px0,PANEL.y,PANEL.w,PANEL.h);
+  // フラットスタート（解マーカーより先に描き、ラベル衝突を避ける）
+  ctx.beginPath();ctx.arc(toX(px0,0),toY(1.0),4.5,0,7);
+  ctx.strokeStyle=getCSS('--text');ctx.lineWidth=1.8;ctx.stroke();
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--gothic');ctx.textAlign='left';
+  ctx.fillText('○ flat start',toX(px0,0)-30,toY(1.0)-10);
+  // 解のマーカー
+  function mark(sol,col,label,dy,side){
+    if(!sol)return;
+    ctx.beginPath();ctx.arc(toX(px0,sol.d),toY(sol.V),5,0,7);
+    ctx.fillStyle=col;ctx.fill();ctx.strokeStyle='#fff';ctx.lineWidth=1.6;ctx.stroke();
+    ctx.fillStyle=getCSS('--text');ctx.font='700 10.5px '+getCSS('--mono');
+    ctx.textAlign=side==='left'?'right':'left';
+    ctx.fillText(label,toX(px0,sol.d)+(side==='left'?-9:8),toY(sol.V)+dy);
+  }
+  mark(up,getCSS('--accent'),'上枝 V='+(up?up.V.toFixed(3):'—'),-4,'left');
+  mark(low,getCSS('--upd'),'下枝 V='+(low?low.V.toFixed(3):'—'),12,'right');
+  // 軸ラベル
+  ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';
+  for(const dd of [-1.2,-0.6,0]) ctx.fillText(dd+'rad',toX(px0,dd),PANEL.y+PANEL.h+14);
+  ctx.textAlign='right';
+  for(const vv of [0.4,0.8,1.2]) ctx.fillText(vv.toFixed(1),px0-5,toY(vv)+3);
+  // タイトル
+  ctx.fillStyle=getCSS('--muted');ctx.font='700 12px '+getCSS('--gothic');ctx.textAlign='left';
+  ctx.fillText('負荷 '+(PL*BASE).toFixed(0)+' MW'+(px0===PX[0]?'（基準・軽負荷）':'（スライダー）'),px0,PANEL.y-9);
+  return {up,low,nUp,nLow,nDiv,nTot};
+}
+
+function drawAll(){
+  ctx.clearRect(0,0,840,340);
+  ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,840,340);
+  ctx.save();ctx.translate(14,PANEL.y+PANEL.h/2);ctx.rotate(-Math.PI/2);
+  ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.fillText('初期値 V0 (p.u.)',0,0);ctx.restore();
+  const sL=basinPanel(PX[0],1.0);
+  const sR=basinPanel(PX[1],PL_R);
+  const pc=(n,t)=>(100*n/t).toFixed(0)+'%';
+  const gap=(s)=>s.up&&s.low?Math.abs(s.up.V-s.low.V).toFixed(3):'—';
+  document.getElementById('readout').innerHTML=
+    '左(100MW): 上枝へ <b style="color:var(--accent)">'+pc(sL.nUp,sL.nTot)+'</b> ／ 下枝へ '+pc(sL.nLow,sL.nTot)+' ／ 収束せず '+pc(sL.nDiv,sL.nTot)+'　2解の間隔 |ΔV| = '+gap(sL)+
+    '<br>右('+(PL_R*BASE).toFixed(0)+'MW): 上枝へ <b style="color:var(--accent)">'+pc(sR.nUp,sR.nTot)+'</b> ／ 下枝へ '+pc(sR.nLow,sR.nTot)+' ／ 収束せず '+pc(sR.nDiv,sR.nTot)+'　2解の間隔 |ΔV| = <b>'+gap(sR)+'</b>（ノーズで0へ）';
+}
+document.getElementById('lam').addEventListener('input',e=>{
+  PL_R=(+e.target.value)/BASE;
+  document.getElementById('pLabel').textContent=e.target.value;
+  drawAll();
+});
+drawAll();
+
+// ============================================================
+// 実験2: σ_min と反復回数の表（実計算）
+// ============================================================
+(function(){
+  const rows=[100,200,300,400,430,440,445].map(MW=>{
+    const s=sigAt(MW/BASE);
+    return '<tr><td>'+MW+' MW</td><td>'+(s?s.it:'—')+' 回</td><td>'+(s?s.sig.toFixed(2):'—')+'</td><td>'+(s?(1/s.sig).toFixed(3):'—')+'</td></tr>';
+  }).join('');
+  document.getElementById('sigTable').innerHTML=
+    '<tr><th>負荷（tanφ=0.4）</th><th>NR反復回数（フラットスタート）</th><th>σ_min(J) at 解</th><th>‖J⁻¹‖ = 1/σ_min</th></tr>'+rows;
+})();
+
+// ============================================================
+// 昇級課題
+// ============================================================
+const quizState={q1:false,q2:false,q3:false};
+function done(id,ok){document.getElementById(id+'m').textContent=ok?'✅ 正解':'❌ もう一度';
+  quizState[id]=ok;
+  if(quizState.q1&&quizState.q2&&quizState.q3){
+    document.getElementById('nextbox').innerHTML='🏔 <b>L6 修了 — ラダー踏破。</b>'+
+      'L0の「つくる＝つかう＋うしなう」から、同じ一つの物理を7つの言葉で登ってきました——'+
+      'たし算、比例、回る矢印、非線形方程式、収束次数、分岐理論、そして開いている問い。'+
+      'ここから先の教材は論文と、あなた自身の実装です。'+
+      '<br>→ <a href="index.html#ladder">ラダーの全体像を振り返る</a> ／ '+
+      '<a href="learn_newton.html">NR講演をもう一度、今の目で</a> ／ '+
+      '<a href="exercises.html">演習で腕を確かめる</a>';
+  }}
+function checkNum(id,ans,tol){
+  const v=parseFloat(document.getElementById(id).value.replace(/,/g,''));
+  done(id,isFinite(v)&&Math.abs(v-ans)<=tol);
+}
+function checkRadio(id,correct){
+  const sel=document.querySelector('input[name='+id+']:checked');
+  done(id,!!sel&&sel.value===correct);
+}
+</script>
+</body>
+</html>

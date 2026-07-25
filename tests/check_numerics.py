@@ -201,6 +201,24 @@ def main():
         check("補償でノーズ電圧が上がる (0.55→0.67)", r["noseVComp"] > r["noseV04"] + 0.08)
         check("ノーズで |det J| ≈ 0", r["detAtNose"] < 1.0, f"|det|={r['detAtNose']:.2f}")
 
+        # ---------- ladder_l6 ----------
+        print("\n■ ラダーL6 (ladder_l6)")
+        page.goto(f"{BASE}/ladder_l6.html")
+        page.wait_for_timeout(600)
+        r = page.evaluate("""() => {
+            const a = sigAt(1.0), b = sigAt(4.45);
+            const low = nrFrom(0.2, -0.5, 4.3, 1.72, 40);
+            return { sig1: a.sig, it1: a.it, V1: a.V,
+                     sig445: b.sig, it445: b.it, lowV: low ? low.V : null };
+        }""")
+        check("σ_min(J) at 100MW ≈ 13.77", abs(r["sig1"] - 13.767) < 0.05, f"σ={r['sig1']:.3f}")
+        check("σ_min(J) at 445MW ≈ 0.63 (崩落)", abs(r["sig445"] - 0.629) < 0.05, f"σ={r['sig445']:.3f}")
+        check("NR反復 100MW: 4回", r["it1"] == 4, f"it={r['it1']}")
+        check("NR反復 445MW: 増加 (7〜9回)", 7 <= r["it445"] <= 9, f"it={r['it445']}")
+        check("上枝 V(100MW) ≈ 0.9523", abs(r["V1"] - 0.9523) < 0.001, f"V={r['V1']:.4f}")
+        check("下枝 V(430MW) ≈ 0.4548 (basin分類の基準)", r["lowV"] is not None and abs(r["lowV"] - 0.4548) < 0.01,
+              f"V={r['lowV']}")
+
         # ---------- dc_accuracy ----------
         print("\n■ DC潮流精度検証 (dc_accuracy)")
         page.goto(f"{BASE}/dc_accuracy_analysis.html")
