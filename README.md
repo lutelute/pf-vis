@@ -23,7 +23,7 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 
 補助ツール: [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) — 各手法を個別にじっくり実行・観察
 
-**✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全16問（手計算チャレンジ・ツール操作・考察、検証済み解答つき）
+**✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、検証済み解答つき）
 
 ## 📐 数学的基礎
 

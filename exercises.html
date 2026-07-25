@@ -50,6 +50,22 @@
         .ex-tag.hand { background: rgba(245,158,11,0.15); color: var(--accent-orange); border: 1px solid rgba(245,158,11,0.4); }
         .ex-tag.tool { background: rgba(59,130,246,0.15); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.4); }
         .ex-tag.think { background: rgba(139,92,246,0.15); color: var(--accent-purple); border: 1px solid rgba(139,92,246,0.4); }
+        .ex-tag.diff { background: rgba(148,163,184,0.12); color: var(--text-secondary); border: 1px solid rgba(148,163,184,0.35); letter-spacing: 1px; }
+        .ex-progress {
+            position: sticky; top: 0; z-index: 10;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 16px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .ex-progress .bar { flex: 1; height: 8px; background: var(--bg-dark); border-radius: 4px; overflow: hidden; }
+        .ex-progress .bar > div { height: 100%; background: var(--accent-green); width: 0%; transition: width 0.3s; }
+        .ex-selfcheck { margin-top: 8px; padding: 8px 12px; background: rgba(139,92,246,0.06); border-radius: 6px; font-size: 0.88rem; }
+        .ex-selfcheck label { display: block; cursor: pointer; line-height: 2; color: var(--text-secondary); }
+        .ex-selfcheck .sc-title { font-weight: 700; color: var(--accent-purple); font-size: 0.8rem; }
         .ex-problem p, .ex-problem li { color: var(--text-primary); font-size: 0.93rem; line-height: 1.8; }
         .ex-problem ol, .ex-problem ul { margin: 8px 0 8px 22px; }
         .ex-problem code, .ex-answer code {
@@ -184,10 +200,11 @@
             const result = document.createElement('span');
             result.className = 'ex-result';
 
-            const check = () => {
+            const check = (save = true) => {
                 const v = parseFloat(input.value.replace(/[,＝=]/g, ''));
                 if (!isFinite(v)) { result.textContent = '❓'; result.title = '数値を入力してください'; return; }
-                if (Math.abs(v - answer) <= tol) {
+                const ok = Math.abs(v - answer) <= tol;
+                if (ok) {
                     result.textContent = '✅';
                     result.title = '正解!';
                     input.style.borderColor = '#10b981';
@@ -196,12 +213,46 @@
                     result.title = `不正解 (許容誤差 ±${tol})。ヒントや解答を確認してください`;
                     input.style.borderColor = '#ef4444';
                 }
+                if (save) {
+                    // 達成状況をブラウザに保存 (次回訪問時に復元)
+                    try {
+                        const store = JSON.parse(localStorage.getItem('pfvis-exercises') || '{}');
+                        store[span.dataset.key] = { value: input.value, ok };
+                        localStorage.setItem('pfvis-exercises', JSON.stringify(store));
+                    } catch (e) { /* プライベートモード等では保存しない */ }
+                }
+                updateProgress();
             };
-            btn.addEventListener('click', check);
+            btn.addEventListener('click', () => check());
             input.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
 
             span.append(input, unitEl, btn, result);
+            span._check = check;
         });
+
+        // キー割当と保存済み解答の復元
+        const spans = document.querySelectorAll('.ex-check');
+        spans.forEach((span, i) => { span.dataset.key = 'q' + i; });
+        try {
+            const store = JSON.parse(localStorage.getItem('pfvis-exercises') || '{}');
+            spans.forEach(span => {
+                const saved = store[span.dataset.key];
+                if (saved && saved.value !== '') {
+                    span.querySelector('input').value = saved.value;
+                    span._check(false);
+                }
+            });
+        } catch (e) { /* 復元失敗は無視 */ }
+        updateProgress();
+
+        function updateProgress() {
+            const all = document.querySelectorAll('.ex-check');
+            const done = [...all].filter(sp => sp.querySelector('.ex-result').textContent === '✅').length;
+            const fill = document.getElementById('progressFill');
+            const text = document.getElementById('progressText');
+            if (fill) fill.style.width = (all.length ? (done / all.length * 100) : 0) + '%';
+            if (text) text.textContent = `${done} / ${all.length}`;
+        }
     });
     </script>
 </head>
@@ -218,6 +269,12 @@
         </header>
 
         <main>
+            <div class="ex-progress">
+                <span>🎯 自動判定の達成状況</span>
+                <div class="bar"><div id="progressFill"></div></div>
+                <strong id="progressText" style="color: var(--accent-green); white-space: nowrap;">0 / 0</strong>
+            </div>
+
             <p class="ex-note">
                 <strong>使い方</strong>: 学習パスの各段階に対応した演習です。まず自力で考え、詰まったら「ヒント」、
                 答え合わせは「解答と解説」を開いてください。<span style="color:var(--accent-orange)">✋手計算</span>は紙とペンで、
@@ -232,7 +289,7 @@
                 <p class="stage-goal">p.u.（単位法）と母線タイプを説明できるようになる。</p>
 
                 <div class="ex-problem">
-                    <h3>Q0-1. 単位法 (p.u.)<span class="ex-tag hand">✋手計算</span></h3>
+                    <h3>Q0-1. 単位法 (p.u.)<span class="ex-tag diff">★☆☆</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>基準容量 100 MVA の系統で、ある母線の有効電力負荷が P = 0.5 p.u. と表されている。これは何MWか。
                     また、電圧 V = 1.045 p.u.（基準電圧132 kV）は何kVか。</p>
                     <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定</span>
@@ -248,7 +305,7 @@
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q0-2. 母線タイプと未知数<span class="ex-tag hand">✋手計算</span></h3>
+                    <h3>Q0-2. 母線タイプと未知数<span class="ex-tag diff">★☆☆</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>Slack・PV・PQ の各母線について、「指定される量」と「計算で求める量」をそれぞれ2つずつ挙げよ。</p>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
                         <div class="ex-math">タイプ   指定される量        計算で求める量
@@ -268,7 +325,7 @@ PQ      P, Q               |V|, δ （負荷母線）</div>
                 <p class="stage-goal">使用ツール: <a class="tool-link" href="power_flow_intuitive_v6_fixed.html">収束過程直感的理解</a></p>
 
                 <div class="ex-problem">
-                    <h3>Q1-1. はじめての潮流計算<span class="ex-tag tool">🖥ツール</span></h3>
+                    <h3>Q1-1. はじめての潮流計算<span class="ex-tag diff">★☆☆</span><span class="ex-tag tool">🖥ツール</span></h3>
                     <p>「2ノード(中負荷)」を Newton-Raphson法で解き、次を記録せよ:
                     (a) 収束後の |V| と δ、(b) 収束までの反復回数、(c) 誤差が反復ごとにどう減ったか（ログの err の列）。</p>
                     <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定</span>
@@ -288,7 +345,7 @@ PQ      P, Q               |V|, δ （負荷母線）</div>
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q1-2. 負荷を重くしていくと<span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q1-2. 負荷を重くしていくと<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
                     <p>問題を「軽負荷 → 中負荷 → 重負荷 → 臨界負荷 → 電圧崩壊直前」と順に切り替えてNRで解き、
                     (a) 収束後の |V| がどう変わるか、(b) 反復回数がどう変わるかを記録せよ。
                     (c) なぜ負荷が重いほど解きにくくなるのか、複素電圧平面の表示を根拠に説明せよ。</p>
@@ -297,6 +354,11 @@ PQ      P, Q               |V|, δ （負荷母線）</div>
                         (c) 複素電圧平面で見ると、負荷が重いほど解（星印）が「解の存在する領域」の端に近づく。
                         臨界負荷を超えると解自体が消滅する — これが<strong>電圧崩壊</strong>。
                         PV曲線（ノーズカーブ）の先端に相当し、初期点から解までの「道」が細くなるため反復法が迷いやすくなる。
+                        <div class="ex-selfcheck"><span class="sc-title">💭 自己評価 — 自分の説明に以下が含まれているか</span>
+                            <label><input type="checkbox"> 「負荷増 → 電圧低下」の因果を述べた</label>
+                            <label><input type="checkbox"> 解が「存在しなくなる」限界があることに触れた</label>
+                            <label><input type="checkbox"> 複素平面の表示（解の位置の変化）を根拠に使った</label>
+                        </div>
                     </div></details>
                 </div>
             </section>
@@ -308,7 +370,7 @@ PQ      P, Q               |V|, δ （負荷母線）</div>
                 題材: 母線1 = Slack (V=1.0∠0°)、母線2 = PQ負荷 (P=0.5, Q=0.2 p.u. 消費)、線路 r=0.02, x=0.06 p.u.</p>
 
                 <div class="ex-problem">
-                    <h3>Q2-1. アドミタンス行列 Ybus を作る<span class="ex-tag hand">✋手計算</span></h3>
+                    <h3>Q2-1. アドミタンス行列 Ybus を作る<span class="ex-tag diff">★☆☆</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>線路インピーダンス z = 0.02 + j0.06 から直列アドミタンス y = 1/z を求め、2×2 の Ybus を書け。</p>
                     <div class="ex-checkzone"><span class="zone-label">🎯 y = g + jb の実部・虚部を入力して自動判定</span>
                         g = <span class="ex-check" data-answer="5" data-tol="0.05"></span>
@@ -328,7 +390,7 @@ Ybus = [  5−j15   −5+j15 ]      対角: 接続する線路のyの和
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q2-2. ヤコビアンをフラットスタートで求める<span class="ex-tag hand">✋手計算</span></h3>
+                    <h3>Q2-2. ヤコビアンをフラットスタートで求める<span class="ex-tag diff">★★☆</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>初期値 V₂=1.0, δ₂=0（フラットスタート）でのヤコビアン
                     J = [[∂P₂/∂δ₂, ∂P₂/∂V₂], [∂Q₂/∂δ₂, ∂Q₂/∂V₂]] を求めよ。
                     公式: ∂P/∂δ = −Q_calc − V²B₂₂, ∂P/∂V = P_calc/V + V·G₂₂, ∂Q/∂δ = P_calc − V²G₂₂, ∂Q/∂V = Q_calc/V − V·B₂₂</p>
@@ -355,7 +417,7 @@ J = [ 15   5 ]
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q2-3. Newton-Raphson の1反復を回す<span class="ex-tag hand">✋手計算</span></h3>
+                    <h3>Q2-3. Newton-Raphson の1反復を回す<span class="ex-tag diff">★★★</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>ミスマッチは ΔP = −0.5 − 0 = −0.5, ΔQ = −0.2 − 0 = −0.2（負荷なので指定注入が負）。
                     J·Δx = [ΔP; ΔQ] を解いて Δδ₂ と ΔV₂ を求め、1反復後の (V₂, δ₂) を出せ。</p>
                     <div class="ex-checkzone"><span class="zone-label">🎯 修正量を入力して自動判定</span>
@@ -380,7 +442,7 @@ J = [ 15   5 ]
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q2-4. DC潮流と比べる<span class="ex-tag hand">✋手計算</span><span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q2-4. DC潮流と比べる<span class="ex-tag diff">★★☆</span><span class="ex-tag hand">✋手計算</span><span class="ex-tag think">💭考察</span></h3>
                     <p>同じ系統をDC潮流で解け（δ₂ = −P·x）。ACの厳密解 δ₂ = −1.525° と比べ、
                     差が生じる理由を DC の3つの仮定から説明せよ。</p>
                     <div class="ex-checkzone"><span class="zone-label">🎯 DC解を入力して自動判定</span>
@@ -401,7 +463,7 @@ J = [ 15   5 ]
                 <p class="stage-goal">使用ツール: <a class="tool-link" href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>（5ノード系統・NR法）</p>
 
                 <div class="ex-problem">
-                    <h3>Q3-1. ヤコビアン要素の物理的意味<span class="ex-tag tool">🖥ツール</span></h3>
+                    <h3>Q3-1. ヤコビアン要素の物理的意味<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span></h3>
                     <p>5ノード系統をNRで実行し、実数値ヤコビアン（7×7）で次に答えよ:
                     (a) J[1][1]（∂P₂/∂δ₂）の値と、その物理的な意味（クリックして表示される解釈を自分の言葉で言い直す）。
                     (b) 値が 0 のセルがあるのはなぜか。(c) 0 のセルの多さは実系統のヤコビアンの何という性質に対応するか。</p>
@@ -415,7 +477,7 @@ J = [ 15   5 ]
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q3-2. Fast Decoupled 法の分離根拠を数値で確認<span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q3-2. Fast Decoupled 法の分離根拠を数値で確認<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
                     <p>NR実行中の「ブロック平均|要素|」（∂P/∂δ, ∂P/∂V, ∂Q/∂δ, ∂Q/∂V の4つ）を記録し、
                     「対角ブロックが非対角ブロックより大きい」ことを確かめよ。これがFast Decoupled法の何を正当化するか説明せよ。</p>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
@@ -426,6 +488,24 @@ J = [ 15   5 ]
                         B′/B″が定数行列でLU分解を使い回せるため大規模系統では総合的に速くなる。
                     </div></details>
                 </div>
+                <div class="ex-problem">
+                    <h3>Q3-3. ヤコビアンの次元を予測する<span class="ex-tag diff">★★☆</span><span class="ex-tag hand">✋手計算</span><span class="ex-tag tool">🖥ツール</span></h3>
+                    <p>IEEE 14母線系統は Slack 1・PV 4・PQ 9 で構成される。
+                    (a) ヤコビアン行列の次元（行数）を予測せよ。(b) そのうち ∂P/∂δ ブロックは何行何列か。
+                    予測したら14ノード系統をNRで実行し、パネルの表示と一致するか確認せよ。</p>
+                    <details class="ex-hint"><summary>ヒント</summary><div>
+                        未知数 = 非Slack母線のδ（13個）+ PQ母線の|V|（9個）。行はミスマッチ [ΔP; ΔQ] で同じ数。
+                    </div></details>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定</span>
+                        Jの次元 = <span class="ex-check" data-answer="22" data-tol="0"></span>
+                        ∂P/∂δの行数 = <span class="ex-check" data-answer="13" data-tol="0"></span>
+                    </div>
+                    <details class="ex-answer"><summary>解答と解説</summary><div>
+                        (a) <strong>22×22</strong>（δが13個 + |V|が9個）。(b) ∂P/∂δ は <strong>13×13</strong>。<br>
+                        n母線の系統でも J は「ほぼ 2n×2n」にしかならず、しかも大半が0（スパース）。
+                        この構造が見えていれば、1万母線の実系統でNRが実用になる理由（スパースLU分解）も理解できる。
+                    </div></details>
+                </div>
             </section>
 
             <!-- ================= Stage 4 ================= -->
@@ -434,7 +514,7 @@ J = [ 15   5 ]
                 <p class="stage-goal">使用ツール: <a class="tool-link" href="power_flow_compare.html">アルゴリズム同時比較</a>（IEEE 9-bus）</p>
 
                 <div class="ex-problem">
-                    <h3>Q4-1. Gauss-Seidel を収束させる<span class="ex-tag tool">🖥ツール</span></h3>
+                    <h3>Q4-1. Gauss-Seidel を収束させる<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span></h3>
                     <p>NR・FDXB・GS を選択し、既定の最大反復数（50）で同時実行すると GS は「上限到達(未収束)」になる。
                     (a) これは発散とどう違うか。(b) 最大反復数を 300 に上げて再実行し、GSが収束するまでの反復数を記録せよ。
                     (c) 「真の解への距離」チャートで、GSの線はどんな形か。それは何収束の証拠か。</p>
@@ -447,7 +527,7 @@ J = [ 15   5 ]
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q4-2. 収束次数を自分で推定する<span class="ex-tag tool">🖥ツール</span><span class="ex-tag hand">✋手計算</span></h3>
+                    <h3>Q4-2. 収束次数を自分で推定する<span class="ex-tag diff">★★★</span><span class="ex-tag tool">🖥ツール</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>NRの誤差履歴（各反復の最大ミスマッチ）を3点以上記録し、e_{k+1} と e_k² の比がほぼ一定になることを確かめよ
                     （2次収束の判定）。GSでは e_{k+1}/e_k がほぼ一定になることを確かめよ（線形収束の判定）。</p>
                     <details class="ex-hint"><summary>ヒント</summary><div>
@@ -468,7 +548,7 @@ J = [ 15   5 ]
                 <p class="stage-goal">使用ツール: <a class="tool-link" href="power_flow_matpower_v2.html">MATPOWER準拠実装</a>（IEEE 14-bus・NR法）</p>
 
                 <div class="ex-problem">
-                    <h3>Q5-1. 電力収支を検算する<span class="ex-tag tool">🖥ツール</span><span class="ex-tag hand">✋手計算</span></h3>
+                    <h3>Q5-1. 電力収支を検算する<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>IEEE 14母線をNRで解き、(a) 総負荷、(b) スラック母線の実発電量、(c) 総損失を求め、
                     「総発電 = 総負荷 + 総損失」が成り立つことを検算せよ。</p>
                     <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定（ツールの「解の妥当性チェック」パネルで確認できます）</span>
@@ -492,7 +572,7 @@ J = [ 15   5 ]
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q5-2. 系統の弱点を読む<span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q5-2. 系統の弱点を読む<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
                     <p>解いた結果の母線表から、(a) 最も位相角が遅れている母線、(b) その母線が遅れる理由を系統の構造から説明せよ。</p>
                     <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定</span>
                         母線番号 = <span class="ex-check" data-answer="14" data-tol="0"></span>
@@ -505,6 +585,21 @@ J = [ 15   5 ]
                         末端の負荷母線は坂の一番下 = 最も角度が遅れる。位相角の分布は「電力がどこからどこへ流れているかの地図」として読める。
                     </div></details>
                 </div>
+                <div class="ex-problem">
+                    <h3>Q5-3. Gauss-Seidel の忍耐を実測する<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span></h3>
+                    <p><a class="tool-link" href="power_flow_matpower_v2.html">MATPOWER準拠実装</a>で系統をIEEE 14-bus、
+                    アルゴリズムをGauss-Seidel、収束判定 10⁻⁶、最大反復 300 に設定して実行し、収束までの反復数を記録せよ。
+                    NR（4〜5回）の何倍かも計算せよ。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 反復数を入力して自動判定（±20回まで正解）</span>
+                        GS反復数 = <span class="ex-check" data-answer="179" data-tol="20" data-unit="回"></span>
+                    </div>
+                    <details class="ex-answer"><summary>解答と解説</summary><div>
+                        <strong>179回</strong>（NRの約36倍）。ただしGSの1反復は O(n²)（行列を解かない）でNRの O(n³) より軽い。
+                        「反復回数 × 1反復のコスト」の総和で比較するのが正しい —
+                        小規模系統ではGSも実用になり得るが、精度要求が上がるほど（許容誤差を10⁻⁸にすると）
+                        線形収束のGSは加速度的に不利になる。
+                    </div></details>
+                </div>
             </section>
 
             <!-- ================= Stage 6 ================= -->
@@ -513,7 +608,7 @@ J = [ 15   5 ]
                 <p class="stage-goal">使用ツール: <a class="tool-link" href="dc_accuracy_analysis.html">DC潮流精度検証</a></p>
 
                 <div class="ex-problem">
-                    <h3>Q6-1. DC近似はどこまで使えるか<span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q6-1. DC近似はどこまで使えるか<span class="ex-tag diff">★★☆</span><span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
                     <p>IEEE 9母線と IEEE 30母線それぞれでDC精度分析を実行し、位相角誤差（平均・最大）を記録せよ。
                     「DC潮流を使ってよい場面・使ってはいけない場面」を、観察した誤差と DC が捨てている情報（V, Q, 損失）から論ぜよ。</p>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
@@ -525,7 +620,7 @@ J = [ 15   5 ]
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q6-2. 総合問題: 手法選択<span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q6-2. 総合問題: 手法選択<span class="ex-tag diff">★★★</span><span class="ex-tag think">💭考察</span></h3>
                     <p>次の3つの業務にNR / Gauss-Seidel / DC のどれを使うべきか、収束次数・計算量・得られる情報の観点から選び、理由を述べよ:
                     ① 系統計画で1万ケースの概略潮流を流す、② 电圧も含めた日常の系統解析、③ 教育目的で反復法の仕組みを一歩ずつ見せる。</p>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
@@ -533,6 +628,11 @@ J = [ 15   5 ]
                         ② <strong>NR</strong> — 2次収束で4〜6反復、V・Q・損失まで全て得られる。実務の標準。<br>
                         ③ <strong>Gauss-Seidel</strong> — 1母線ずつの更新で「反復で解へ近づく」過程が最も見えやすい。
                         遅い（IEEE14で百数十回）こと自体が、NRのありがたみを教えてくれる教材になる。
+                        <div class="ex-selfcheck"><span class="sc-title">💭 自己評価 — 理由に以下の観点を使えたか</span>
+                            <label><input type="checkbox"> 収束次数（2次/線形/直接）で速さを説明した</label>
+                            <label><input type="checkbox"> 「得られる情報」（V・Q・損失の有無）で用途を説明した</label>
+                            <label><input type="checkbox"> 計算量とケース数の掛け算で総コストを考えた</label>
+                        </div>
                     </div></details>
                 </div>
             </section>
@@ -542,7 +642,7 @@ J = [ 15   5 ]
                 <p class="stage-goal">学んだ全てを使う開放型課題。決まった一つの正解はなく、自分で検証まで行う。</p>
 
                 <div class="ex-problem">
-                    <h3>Q7-1. 自分の2母線問題を設計して解く<span class="ex-tag hand">✋手計算</span><span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q7-1. 自分の2母線問題を設計して解く<span class="ex-tag diff">★★★</span><span class="ex-tag hand">✋手計算</span><span class="ex-tag think">💭考察</span></h3>
                     <p>自分で線路定数（r, x）と負荷（P, Q）を1組決め、Stage 2と同じ手順を最初から最後まで通せ:
                     ① Ybus構築 → ② フラットスタートのヤコビアン → ③ NR 1反復 → ④ DC解との比較。</p>
                     <p>答え合わせの代わりに、次の<strong>自己検証基準</strong>を満たすことを確認せよ:</p>
@@ -564,7 +664,7 @@ J = [ 15   5 ]
                 </div>
 
                 <div class="ex-problem">
-                    <h3>Q7-2. 電圧崩壊の縁で手法を比べる<span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
+                    <h3>Q7-2. 電圧崩壊の縁で手法を比べる<span class="ex-tag diff">★★★</span><span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
                     <p><a class="tool-link" href="power_flow_intuitive_v6_fixed.html">収束過程直感的理解</a>の
                     「2ノード(電圧崩壊直前)」で NR法・Gauss-Seidel法・勾配降下法をそれぞれ実行し、
                     (a) 反復数と最終誤差を記録、(b) 複素平面での軌跡の違いを言葉で描写、
@@ -575,6 +675,11 @@ J = [ 15   5 ]
                         (c) DCは |V|=1.0 を仮定するため、<strong>電圧が崩れかけていること自体を検出できない</strong>。
                         位相角の概算は出るが、電圧安定性の危険を完全に見落とす — 「DCを電圧問題に使ってはいけない」
                         （Q6-1）の最も極端な実例。
+                        <div class="ex-selfcheck"><span class="sc-title">💭 自己評価 — 記録・説明に以下が含まれているか</span>
+                            <label><input type="checkbox"> 3手法の反復数と最終誤差を具体的な数値で記録した</label>
+                            <label><input type="checkbox"> 軌跡の違い（直行/迷走/停滞）を自分の言葉で描写した</label>
+                            <label><input type="checkbox"> DCの「V=1.0仮定」と電圧崩壊検出不能を結びつけた</label>
+                        </div>
                     </div></details>
                 </div>
             </section>
