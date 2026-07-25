@@ -17,6 +17,7 @@ BASE = f"http://localhost:{PORT}"
 
 PAGES = [
     ("メインページ", "index.html"),
+    ("学習アトラス", "map.html"),
     ("MATPOWER準拠分析スイート", "power_flow_v5.html"),
     ("多手法可視化", "power_flow_visualizer.html"),
     ("計算過程ステップ表示", "power_flow_process_visualizer_v2.html"),

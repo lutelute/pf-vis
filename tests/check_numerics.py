@@ -154,6 +154,30 @@ def main():
         check("スライド16枚", r["slides"] == 16, f"slides={r['slides']}")
         check("GS参照解も収束", r["gsConv"])
 
+        # ---------- map (学習アトラス) ----------
+        print("\n■ 学習アトラス (map)")
+        page.goto(f"{BASE}/map.html")
+        page.wait_for_timeout(400)
+        r = page.evaluate("""() => ({
+            cards: M.length,
+            hrefs: M.map(m => m.h),
+            spineOk: SPINE.every(n => M.some(m => m.n === n)),
+            motOk: M.every(m => typeof MOT[m.mo] === 'function')
+        })""")
+        check("カード16枚", r["cards"] == 16, f"cards={r['cards']}")
+        check("推奨順路の全項目がカードに存在", r["spineOk"])
+        check("全カードにミニ可視化が定義", r["motOk"])
+        import os as _os
+        missing = [h for h in r["hrefs"] if not _os.path.exists(_os.path.join(_os.path.dirname(__file__), "..", h))]
+        check("全リンク先ページが実在", not missing, f"missing={missing}")
+        # 進捗連携: 昇級記録がカードバッジに反映される
+        page.evaluate("() => localStorage.setItem('pfvis_ladder_l1', JSON.stringify({q1:true,q2:true,q3:true}))")
+        page.reload()
+        page.wait_for_timeout(400)
+        r = page.evaluate("() => progressOf(M.find(m => m.n === 'L1 高圧送電'))")
+        check("昇級記録がマップの✓に反映", r == "✓", f"badge={r}")
+        page.evaluate("() => localStorage.removeItem('pfvis_ladder_l1')")
+
         # ---------- ladder_l0 (学習ラダー) ----------
         print("\n■ ラダーL0 (ladder_l0)")
         page.goto(f"{BASE}/ladder_l0.html")

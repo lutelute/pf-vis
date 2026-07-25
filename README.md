@@ -26,6 +26,10 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 **✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、難易度表示つき）。
 数値入力の自動判定（22入力欄・達成状況はブラウザに保存）と考察問題の自己評価チェックリスト付き。
 
+**🗺 [学習アトラス](https://lutelute.github.io/pf-vis/map.html)** — 全16教材をミニ可視化カードで2軸
+（物理の直感⇔数式・実装 × 入口⇔研究）に配置した俯瞰マップ。推奨順路の重ね表示と、
+昇級課題・演習の達成状況の表示つき。迷ったらまずこの地図から。
+
 **🪜 [学習ラダー](https://lutelute.github.io/pf-vis/ladder_l0.html)** — 小学生（L0: たし算だけで電力収支の本質）から
 博士課程（L6: NR収束領域basinの実測＋研究5軸の文献地図）まで、同じ物理を言葉を変えながら登る縦の道。
 全7段公開中・各段に自動判定の昇級課題つき（[設計](./docs/LADDER.md)）。

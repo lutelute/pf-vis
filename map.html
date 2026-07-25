@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>学習アトラス — 全教材の俯瞰マップ | 潮流計算可視化教材</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#f2efe6; --line:#dcd8cc;
+    --ink:#1a1a17; --ink-2:#52504a; --ink-3:#737166; --accent:#197b6c;
+    --gothic:"Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--gothic);line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:34px 26px 64px;}
+  .nav{font-size:12.5px;margin-bottom:18px;color:var(--ink-3);}
+  .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:22px;letter-spacing:.04em;color:var(--ink);margin:0;padding-bottom:11px;border-bottom:1px solid var(--ink);}
+  .lead{color:var(--ink-2);font-size:13.5px;line-height:1.8;max-width:860px;margin:15px 0 22px;}
+  .lead b{color:var(--ink);font-weight:700;}
+  .stage{background:var(--panel);border:1px solid var(--ink);border-radius:3px;overflow:hidden;}
+  .maphost{position:relative;}
+  canvas{display:block;width:100%;height:auto;background:#fffdf6;cursor:crosshair;}
+  .axis{position:absolute;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3);pointer-events:none;}
+  .axis.x{bottom:8px;right:14px;} .axis.x2{bottom:8px;left:14px;}
+  .axis.y{top:10px;left:12px;} .axis.y2{bottom:30px;left:12px;}
+  .bar{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--ink);background:var(--panel-2);flex-wrap:wrap;}
+  .legend{display:flex;gap:7px 14px;flex-wrap:wrap;font-family:var(--mono);font-size:10.5px;color:var(--ink-2);}
+  .legend b{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:400;letter-spacing:.02em;}
+  .legend .sw{width:11px;height:11px;border-radius:2px;border:1px solid rgba(0,0,0,.2);}
+  .legend b.off{opacity:.3;}
+  .hint{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin-left:auto;}
+  button{font-family:var(--gothic);font-size:11.5px;border-radius:2px;padding:6px 11px;border:1px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer;transition:.12s;}
+  button:hover{background:var(--panel-2);} button.on{background:var(--ink);color:#fff;font-weight:700;}
+  details{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:2px;}
+  summary{padding:12px 15px;cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.03em;color:var(--ink-2);} summary:hover{color:var(--ink);}
+  .det{padding:0 15px 15px;font-size:12.5px;line-height:1.8;color:var(--ink-2);} .det a{color:var(--accent);}
+  @media print{@page{size:A3 landscape;margin:8mm;}html,body{background:#fff;}.stage{border-color:#000;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="ladder_l0.html">🪜 ラダーL0から登る</a>
+    <a href="getting_started.html">🚪 はじめに</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <h1>学習アトラス — 全教材の俯瞰マップ</h1>
+  <div class="lead">このサイトの<b>全16教材</b>を、<b>横＝物理の直感 ←→ 数式・実装</b>、<b>縦＝入口 ←→ 限界・研究</b> の2軸に配置した地図です。
+    各教材は中身を表す<b>ミニ可視化カード</b>になっていて、<b>色と点線枠がカテゴリの領土</b>を示します。
+    カードに乗ると強調、<b>クリックでそのページへ</b>。「⊹ 推奨順路」で L0→L6 の学びの道筋を重ねられます。
+    昇級課題に合格した段には <b style="color:#2e7d4f">✓</b> が、演習カードには<b>自動判定の達成数</b>が表示されます（あなたのブラウザの記録から）。</div>
+
+  <div class="stage">
+    <div class="maphost">
+      <canvas id="cv" width="1160" height="820"></canvas>
+      <span class="axis x">数式・実装 →</span>
+      <span class="axis x2">← 物理の直感</span>
+      <span class="axis y">↑ 限界・研究</span>
+      <span class="axis y2">↓ 入口</span>
+    </div>
+    <div class="bar">
+      <button id="pathBtn">⊹ 推奨順路</button>
+      <div class="legend" id="legend"></div>
+      <span class="hint" id="progHint">カード=教材 / 枠=カテゴリ / クリックで開く</span>
+    </div>
+  </div>
+
+  <details>
+    <summary>この地図の見方・進み方</summary>
+    <div class="det">縦軸を登るほど「解けるか」ではなく「<b>いつ解ける・いつ解けない</b>」を問う教材になります。
+      左下の<a href="ladder_l0.html">L0</a>はたし算だけの入口、右上の<a href="ladder_l6.html">L6</a>は研究論文への接続です。
+      迷ったら「⊹ 推奨順路」の番号どおりに進むのが<a href="docs/LADDER.md">学習ラダー設計</a>の想定ルート。
+      各段の昇級課題（自動判定）に合格すると、この地図とメインページに ✓ が刻まれます。
+      腕試しは<a href="exercises.html">演習18問</a>（自動判定22欄）でいつでも。</div>
+  </details>
+</div>
+
+<script>
+"use strict";
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+function rng(s){let x=s>>>0;return ()=>{x=(Math.imul(x,1103515245)+12345)&0x7fffffff;return x/0x7fffffff;};}
+
+// カテゴリ（領土）
+const CATS={
+  phys:{label:'物理の直感',color:'#2e7d4f'},
+  gate:{label:'記法と入口',color:'#8f6625'},
+  algo:{label:'アルゴリズムの中身',color:'#197b6c'},
+  tools:{label:'手法の広がり・実務',color:'#2f5d9e'},
+  edge:{label:'限界と研究',color:'#6f54c4'},
+  drill:{label:'腕試し',color:'#ca3c4e'},
+};
+
+// n:表示名, h:リンク, c:カテゴリ, x,y:概念座標(0..1), mo:ミニ可視化, prog:進捗キー
+const M=[
+  {n:'L0 釣り合い',h:'ladder_l0.html',c:'phys',x:0.05,y:0.05,mo:'balance',prog:'l0'},
+  {n:'L1 高圧送電',h:'ladder_l1.html',c:'phys',x:0.13,y:0.13,mo:'wire',prog:'l1'},
+  {n:'L2 フェーザ',h:'ladder_l2.html',c:'phys',x:0.20,y:0.22,mo:'phasor',prog:'l2'},
+  {n:'橋 複素数',h:'ladder_bridge.html',c:'gate',x:0.33,y:0.30,mo:'complex',prog:'bridge'},
+  {n:'はじめに',h:'getting_started.html',c:'gate',x:0.46,y:0.24,mo:'terms'},
+  {n:'入門 収束体感',h:'power_flow_intuitive_v6_fixed.html',c:'algo',x:0.32,y:0.45,mo:'spiral'},
+  {n:'NR講演 16枚',h:'learn_newton.html',c:'algo',x:0.44,y:0.54,mo:'cliff'},
+  {n:'過程 NR解剖',h:'power_flow_process_visualizer_v2.html',c:'algo',x:0.57,y:0.47,mo:'matrix'},
+  {n:'比較 4手法',h:'power_flow_compare.html',c:'tools',x:0.67,y:0.57,mo:'curves3'},
+  {n:'可視化 20手法',h:'power_flow_visualizer.html',c:'tools',x:0.73,y:0.41,mo:'cards'},
+  {n:'MATPOWER準拠',h:'power_flow_matpower_v2.html',c:'tools',x:0.86,y:0.50,mo:'network'},
+  {n:'統合分析 v5',h:'power_flow_v5.html',c:'tools',x:0.83,y:0.65,mo:'dash'},
+  {n:'DC精度検証',h:'dc_accuracy_analysis.html',c:'edge',x:0.69,y:0.76,mo:'acdc'},
+  {n:'L5 PV曲線',h:'ladder_l5.html',c:'edge',x:0.50,y:0.81,mo:'nose',prog:'l5'},
+  {n:'L6 研究入口',h:'ladder_l6.html',c:'edge',x:0.58,y:0.95,mo:'basin',prog:'l6'},
+  {n:'演習 18問',h:'exercises.html',c:'drill',x:0.90,y:0.27,mo:'check',prog:'ex'},
+];
+const SPINE=['L0 釣り合い','L1 高圧送電','L2 フェーザ','橋 複素数','はじめに','入門 収束体感',
+  'NR講演 16枚','過程 NR解剖','比較 4手法','MATPOWER準拠','統合分析 v5','DC精度検証','L5 PV曲線','L6 研究入口'];
+
+// 進捗（各教材ページがlocalStorageに保存した昇級課題・演習の記録を読む）
+function ladderDone(k){try{const s=JSON.parse(localStorage.getItem('pfvis_ladder_'+k)||'{}');return !!(s.q1&&s.q2&&s.q3);}catch(e){return false;}}
+function exCount(){try{const s=JSON.parse(localStorage.getItem('pfvis-exercises')||'{}');return Object.values(s).filter(v=>v&&v.ok).length;}catch(e){return 0;}}
+
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),CW=cv.width,CH=cv.height;
+const PAD=70, CWH=50, CHH=33;
+function toPx(m){return{x:PAD+m.x*(CW-2*PAD), y:CH-PAD-m.y*(CH-2*PAD)};}
+M.forEach(m=>{const p=toPx(m);m.px=p.x;m.py=p.y;});
+// AABB反発で重なり回避
+function relax(){const gx=14,gy=18;for(let it=0;it<600;it++){let moved=false;
+  for(let i=0;i<M.length;i++)for(let j=i+1;j<M.length;j++){const a=M[i],b=M[j];const dx=b.px-a.px,dy=b.py-a.py;const ox=(CWH*2+gx)-Math.abs(dx),oy=(CHH*2+gy)-Math.abs(dy);
+    if(ox>0&&oy>0){moved=true;if(ox<oy){const s=(dx<0?-1:1)*ox/2;a.px-=s;b.px+=s;}else{const s=(dy<0?-1:1)*oy/2;a.py-=s;b.py+=s;}}}
+  for(const m of M){m.px=Math.max(PAD-2,Math.min(CW-PAD+2,m.px));m.py=Math.max(PAD+6,Math.min(CH-PAD,m.py));}
+  if(!moved)break;}}
+relax();
+
+function hull(pts){if(pts.length<3)return pts.slice();const p=pts.slice().sort((a,b)=>a.x-b.x||a.y-b.y);const cr=(o,a,b)=>(a.x-o.x)*(b.y-o.y)-(a.y-o.y)*(b.x-o.x);const lo=[];for(const q of p){while(lo.length>=2&&cr(lo[lo.length-2],lo[lo.length-1],q)<=0)lo.pop();lo.push(q);}const up=[];for(let i=p.length-1;i>=0;i--){const q=p[i];while(up.length>=2&&cr(up[up.length-2],up[up.length-1],q)<=0)up.pop();up.push(q);}lo.pop();up.pop();return lo.concat(up);}
+function expand(poly,m){const cx=poly.reduce((s,p)=>s+p.x,0)/poly.length,cy=poly.reduce((s,p)=>s+p.y,0)/poly.length;return poly.map(p=>{const dx=p.x-cx,dy=p.y-cy,d=Math.hypot(dx,dy)||1;return{x:p.x+dx/d*m,y:p.y+dy/d*m};});}
+function hex2rgb(h){return[parseInt(h.slice(1,3),16),parseInt(h.slice(3,5),16),parseInt(h.slice(5,7),16)];}
+function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}
+
+// ===== ミニ可視化モチーフ（各教材の中身のサムネ） =====
+const INK='#3a3a34', MUT='#9a978d';
+function clipCard(x,y,w,h,fn){ctx.save();rr(x,y,w,h,2);ctx.clip();fn();ctx.restore();}
+const MOT={
+  balance(x,y,w,h,c){ // L0: つくる=つかう+うしなう の天秤
+    const cx=x+w/2, ty=y+h*0.3;
+    ctx.strokeStyle=INK;ctx.lineWidth=1.4;
+    ctx.beginPath();ctx.moveTo(cx,ty);ctx.lineTo(cx,y+h*0.8);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x+w*0.15,ty);ctx.lineTo(x+w*0.85,ty);ctx.stroke();
+    ctx.fillStyle=c;ctx.fillRect(x+w*0.08,ty-8,w*0.16,6);
+    ctx.fillStyle='#8f6625';ctx.fillRect(x+w*0.62,ty-8,w*0.12,6);
+    ctx.fillStyle='rgba(202,60,78,0.8)';ctx.fillRect(x+w*0.76,ty-8,w*0.07,6);
+    ctx.beginPath();ctx.moveTo(cx,y+h*0.8);ctx.lineTo(cx-8,y+h*0.92);ctx.lineTo(cx+8,y+h*0.92);ctx.closePath();ctx.fill();ctx.fillStyle=INK;},
+  wire(x,y,w,h,c){ // L1: 鉄塔2本と送電線、損失の熱
+    ctx.strokeStyle=INK;ctx.lineWidth=1.3;
+    for(const px of [x+w*0.15,x+w*0.85]){ctx.beginPath();ctx.moveTo(px,y+h*0.9);ctx.lineTo(px,y+h*0.25);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(px-5,y+h*0.35);ctx.lineTo(px+5,y+h*0.35);ctx.stroke();}
+    ctx.strokeStyle=c;ctx.lineWidth=1.6;ctx.beginPath();ctx.moveTo(x+w*0.15,y+h*0.35);
+    ctx.quadraticCurveTo(x+w*0.5,y+h*0.62,x+w*0.85,y+h*0.35);ctx.stroke();
+    ctx.strokeStyle='rgba(202,60,78,0.7)';ctx.lineWidth=1;
+    for(let i=0;i<3;i++){const px=x+w*(0.38+0.12*i);ctx.beginPath();ctx.moveTo(px,y+h*0.52);
+      ctx.quadraticCurveTo(px+3,y+h*0.42,px,y+h*0.32);ctx.stroke();}},
+  phasor(x,y,w,h,c){ // L2: 回る矢印と正弦波
+    const cx=x+w*0.26,cy=y+h/2,r=h*0.32;
+    ctx.strokeStyle=MUT;ctx.lineWidth=.8;ctx.beginPath();ctx.arc(cx,cy,r,0,7);ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=1.7;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*0.8,cy-r*0.55);ctx.stroke();
+    ctx.beginPath();ctx.arc(cx+r*0.8,cy-r*0.55,1.8,0,7);ctx.fillStyle=c;ctx.fill();
+    ctx.strokeStyle=c;ctx.lineWidth=1.3;ctx.beginPath();
+    for(let i=0;i<=22;i++){const t=i/22,px=x+w*0.48+t*w*0.46,py=cy-Math.sin(t*Math.PI*2.6+0.6)*r*0.8;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();},
+  complex(x,y,w,h,c){ // 橋: 複素平面の矢印 a+jb
+    const cx=x+w*0.4,cy=y+h*0.62;
+    ctx.strokeStyle=MUT;ctx.lineWidth=.8;
+    ctx.beginPath();ctx.moveTo(x+4,cy);ctx.lineTo(x+w-4,cy);ctx.moveTo(cx,y+4);ctx.lineTo(cx,y+h-4);ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=1.8;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+w*0.34,cy-h*0.36);ctx.stroke();
+    ctx.fillStyle=c;ctx.beginPath();ctx.arc(cx+w*0.34,cy-h*0.36,2.2,0,7);ctx.fill();
+    ctx.strokeStyle='#8f6625';ctx.setLineDash([2,2]);ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(cx+w*0.34,cy);ctx.lineTo(cx+w*0.34,cy-h*0.36);ctx.stroke();ctx.setLineDash([]);},
+  terms(x,y,w,h,c){ // はじめに: 用語リスト
+    ctx.fillStyle=c;ctx.fillRect(x+w*0.1,y+h*0.16,w*0.26,3);
+    for(let i=0;i<4;i++){ctx.fillStyle=i===0?c:'rgba(60,60,52,0.35)';
+      ctx.fillRect(x+w*0.1,y+h*(0.35+0.16*i),w*(0.8-0.12*(i%2)),2);}},
+  spiral(x,y,w,h,c){ // 入門: 複素平面で解へ渦を巻く軌跡
+    const cx=x+w*0.55,cy=y+h*0.5;
+    ctx.strokeStyle=MUT;ctx.lineWidth=.7;ctx.beginPath();ctx.arc(cx,cy,h*0.34,0,7);ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=1.5;ctx.beginPath();
+    for(let i=0;i<=40;i++){const t=i/40,a=t*Math.PI*3.2,r=h*0.38*(1-t*0.85);
+      const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();
+    ctx.fillStyle='#ca3c4e';ctx.beginPath();ctx.arc(cx+h*0.38*0.15*Math.cos(Math.PI*3.2),cy,2.4,0,7);ctx.fill();},
+  cliff(x,y,w,h,c){ // NR講演: 2次収束の崖（片対数の階段落ち） vs 直線
+    ctx.strokeStyle=MUT;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x+5,y+4);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+w-4,y+h-5);ctx.stroke();
+    ctx.strokeStyle='#8f6625';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(x+8,y+h*0.2);ctx.lineTo(x+w-6,y+h*0.62);ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=1.7;ctx.beginPath();
+    const pts=[[0.1,0.18],[0.3,0.3],[0.5,0.55],[0.68,0.88]];
+    pts.forEach((p,i)=>{const px=x+p[0]*w,py=y+p[1]*h;i?ctx.lineTo(px,py):ctx.moveTo(px,py);});ctx.stroke();
+    ctx.fillStyle=c;for(const p of pts){ctx.beginPath();ctx.arc(x+p[0]*w,y+p[1]*h,1.8,0,7);ctx.fill();}},
+  matrix(x,y,w,h,c){ // 過程: ヤコビアン行列ヒートマップ
+    const N=5,cw=Math.min(w,h)/N*0.92,ox=x+(w-cw*N)/2,oy=y+(h-cw*N)/2,g=rng(31);
+    const[r,gg,b]=hex2rgb(c);
+    for(let rr2=0;rr2<N;rr2++)for(let cc=0;cc<N;cc++){
+      const diag=rr2===cc, v=diag?0.75:0.15+0.35*g();
+      ctx.fillStyle=diag?`rgba(${r},${gg},${b},${v})`:`rgba(47,93,158,${v*0.7})`;
+      ctx.fillRect(ox+cc*cw,oy+rr2*cw,cw-1,cw-1);}},
+  curves3(x,y,w,h,c){ // 比較: 3本の収束曲線（崖・直線・停滞）
+    ctx.strokeStyle=MUT;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x+5,y+4);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+w-4,y+h-5);ctx.stroke();
+    const draw=(col,f,lw)=>{ctx.strokeStyle=col;ctx.lineWidth=lw;ctx.beginPath();
+      for(let i=0;i<=20;i++){const t=i/20,px=x+6+t*(w-12),py=y+h*f(t);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();};
+    draw(c,t=>0.15+0.75*Math.pow(t,2.6),1.7);
+    draw('#2e7d4f',t=>0.15+0.75*Math.pow(t,1.6),1.4);
+    draw('#8f6625',t=>0.15+0.62*t,1.4);},
+  cards(x,y,w,h,c){ // 可視化: 手法カードのグリッド
+    const cols=4,rows=3,cw=w/cols,chh=h/rows;
+    for(let r2=0;r2<rows;r2++)for(let cc=0;cc<cols;cc++){
+      ctx.fillStyle=(r2===0&&cc===1)?c:'rgba(60,60,52,0.14)';
+      ctx.fillRect(x+cc*cw+2,y+r2*chh+2,cw-4,chh-4);}},
+  network(x,y,w,h,c){ // MATPOWER: 9母線リング
+    const P=[[0.5,0.1],[0.8,0.22],[0.92,0.5],[0.8,0.78],[0.5,0.9],[0.2,0.78],[0.08,0.5],[0.2,0.22],[0.5,0.5]].map(p=>[x+p[0]*w,y+p[1]*h]);
+    ctx.strokeStyle='rgba(60,60,52,0.45)';ctx.lineWidth=.9;
+    [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[8,0],[8,2],[8,4],[8,6]].forEach(([a,b])=>{ctx.beginPath();ctx.moveTo(P[a][0],P[a][1]);ctx.lineTo(P[b][0],P[b][1]);ctx.stroke();});
+    P.forEach((p,i)=>{ctx.beginPath();ctx.arc(p[0],p[1],2.4,0,7);ctx.fillStyle=i===0?'#2e7d4f':(i%3===1?'#8f6625':c);ctx.fill();});},
+  dash(x,y,w,h,c){ // v5: ダッシュボード（チャート+バー）
+    ctx.strokeStyle=c;ctx.lineWidth=1.4;ctx.beginPath();
+    for(let i=0;i<=14;i++){const t=i/14,px=x+4+t*(w*0.5),py=y+h*0.4-Math.sin(t*5)*h*0.16*(1-t);i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();
+    const bars=[0.5,0.8,0.3];bars.forEach((b,i)=>{ctx.fillStyle=i===1?'#6f54c4':c;
+      ctx.fillRect(x+w*(0.62+0.12*i),y+h*(0.85-b*0.6),w*0.08,h*b*0.6);});
+    ctx.strokeStyle=MUT;ctx.lineWidth=.7;ctx.strokeRect(x+3,y+h*0.6,w*0.52,h*0.3);},
+  acdc(x,y,w,h,c){ // DC精度: AC曲線とDC直線の乖離
+    ctx.strokeStyle=MUT;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x+5,y+4);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+w-4,y+h-5);ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=1.6;ctx.beginPath();
+    for(let i=0;i<=20;i++){const t=i/20,px=x+6+t*(w-12),py=y+h*(0.75-0.5*Math.sin(t*1.2));i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();
+    ctx.strokeStyle='#8f6625';ctx.setLineDash([3,3]);ctx.lineWidth=1.3;ctx.beginPath();
+    ctx.moveTo(x+6,y+h*0.75);ctx.lineTo(x+w-6,y+h*0.19);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='rgba(202,60,78,0.6)';ctx.beginPath();ctx.arc(x+w-9,y+h*0.31,2.4,0,7);ctx.fill();},
+  nose(x,y,w,h,c){ // L5: PV曲線のノーズ
+    ctx.strokeStyle=MUT;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x+5,y+4);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+w-4,y+h-5);ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=1.7;ctx.beginPath();
+    for(let i=0;i<=24;i++){const a=i/24*Math.PI*0.94;const px=x+8+Math.sin(a)*(w-16),py=y+h*0.5-Math.cos(a)*h*0.4;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}
+    ctx.stroke();
+    ctx.fillStyle='#ca3c4e';ctx.beginPath();ctx.arc(x+8+(w-16),y+h*0.5,2.6,0,7);ctx.fill();},
+  basin(x,y,w,h,c){ // L6: 収束領域basin（2色の盆地）
+    const[r,g,b]=hex2rgb(c),gg=rng(41);
+    for(let i=0;i<8;i++)for(let j=0;j<6;j++){
+      const teal=(j<3)^(i>4&&j<4&&gg()<0.4);
+      ctx.fillStyle=teal?`rgba(${r},${g},${b},0.5)`:'rgba(111,84,196,0.45)';
+      ctx.fillRect(x+2+i*(w-4)/8,y+2+j*(h-4)/6,(w-4)/8-1,(h-4)/6-1);}
+    ctx.fillStyle='#fff';ctx.strokeStyle=INK;ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.arc(x+w*0.6,y+h*0.34,2.6,0,7);ctx.fill();ctx.stroke();},
+  check(x,y,w,h,c){ // 演習: チェックリスト
+    for(let i=0;i<3;i++){const oy=y+h*(0.18+0.28*i);
+      ctx.strokeStyle=i<2?c:MUT;ctx.lineWidth=1.4;ctx.strokeRect(x+w*0.12,oy,9,9);
+      if(i<2){ctx.beginPath();ctx.moveTo(x+w*0.12+2,oy+5);ctx.lineTo(x+w*0.12+4,oy+7.5);ctx.lineTo(x+w*0.12+8,oy+1.5);ctx.stroke();}
+      ctx.fillStyle='rgba(60,60,52,0.35)';ctx.fillRect(x+w*0.32,oy+3,w*(0.5-0.1*i),2.4);}},
+};
+
+let hover=-1,off={},showPath=false;
+function drawGrid(){const step=29;ctx.lineWidth=1;
+  for(let gx=PAD%step;gx<CW;gx+=step){const major=Math.round((gx-PAD%step)/step)%5===0;ctx.strokeStyle=major?'rgba(150,143,127,0.28)':'rgba(150,143,127,0.13)';ctx.beginPath();ctx.moveTo(gx+.5,0);ctx.lineTo(gx+.5,CH);ctx.stroke();}
+  for(let gy=PAD%step;gy<CH;gy+=step){const major=Math.round((gy-PAD%step)/step)%5===0;ctx.strokeStyle=major?'rgba(150,143,127,0.28)':'rgba(150,143,127,0.13)';ctx.beginPath();ctx.moveTo(0,gy+.5);ctx.lineTo(CW,gy+.5);ctx.stroke();}}
+function polyOf(k){const pts=M.filter(m=>m.c===k).map(m=>({x:m.px,y:m.py}));if(!pts.length)return null;
+  if(pts.length>=3)return expand(hull(pts),32);
+  const cx=pts.reduce((s,p)=>s+p.x,0)/pts.length,cy=pts.reduce((s,p)=>s+p.y,0)/pts.length;const poly=[];
+  for(let a=0;a<14;a++)poly.push({x:cx+Math.cos(a/14*6.283)*(CWH+28),y:cy+Math.sin(a/14*6.283)*(CHH+24)});return poly;}
+function drawHulls(){for(const k in CATS){if(off[k])continue;const poly=polyOf(k);if(!poly)continue;const[r,g,b]=hex2rgb(CATS[k].color);
+  ctx.beginPath();poly.forEach((p,i)=>i?ctx.lineTo(p.x,p.y):ctx.moveTo(p.x,p.y));ctx.closePath();ctx.fillStyle=`rgba(${r},${g},${b},0.05)`;ctx.fill();ctx.strokeStyle=`rgba(${r},${g},${b},0.45)`;ctx.setLineDash([5,4]);ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);}}
+function drawHullLabels(){for(const k in CATS){if(off[k])continue;const poly=polyOf(k);if(!poly)continue;const[r,g,b]=hex2rgb(CATS[k].color);
+  let tx=poly[0].x,ty=poly[0].y;for(const p of poly)if(p.y<ty){ty=p.y;tx=p.x;}
+  ctx.font='600 11px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.lineWidth=3;ctx.strokeStyle='rgba(255,253,246,0.92)';ctx.strokeText(CATS[k].label,tx,ty-6);
+  ctx.fillStyle=`rgba(${r},${g},${b},0.95)`;ctx.fillText(CATS[k].label,tx,ty-6);}}
+function spinePts(){return SPINE.map(n=>M.find(m=>m.n===n)).filter(m=>m&&!off[m.c]);}
+function drawPathLine(){const pts=spinePts();if(pts.length<2)return;
+  ctx.strokeStyle='rgba(26,26,23,0.55)';ctx.lineWidth=1.8;ctx.setLineDash([2,5]);ctx.beginPath();pts.forEach((m,i)=>i?ctx.lineTo(m.px,m.py):ctx.moveTo(m.px,m.py));ctx.stroke();ctx.setLineDash([]);}
+function drawPathBadges(){const pts=spinePts();
+  pts.forEach((m,i)=>{const bx=m.px-CWH+8,by=m.py-CHH+8;ctx.beginPath();ctx.arc(bx,by,8,0,7);ctx.fillStyle='#1a1a17';ctx.fill();ctx.fillStyle='#fff';ctx.font='700 10px '+getCSS('--mono');ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(i+1,bx,by+.5);});}
+function progressOf(m){
+  if(!m.prog)return null;
+  if(m.prog==='ex'){const n=exCount();return n>0?n+'/22':null;}
+  return ladderDone(m.prog)?'✓':null;
+}
+function drawCard(m,i){if(off[m.c])return;const[r,g,b]=hex2rgb(CATS[m.c].color);const hl=(i===hover);const x=m.px-CWH,y=m.py-CHH,w=CWH*2,h=CHH*2;
+  ctx.save();ctx.shadowColor='rgba(0,0,0,0.10)';ctx.shadowBlur=hl?7:3;ctx.shadowOffsetY=1.5;rr(x,y,w,h,3);ctx.fillStyle='#fffefb';ctx.fill();ctx.restore();
+  rr(x,y,w,h,3);ctx.lineWidth=hl?2:1;ctx.strokeStyle=hl?'#1a1a17':'rgba(26,26,23,0.32)';ctx.stroke();
+  ctx.fillStyle=CATS[m.c].color;rr(x,y,w,3.2,2);ctx.fill();
+  const vx=x+5,vy=y+8,vw=w-10,vh=h-24;clipCard(vx,vy,vw,vh,()=>MOT[m.mo](vx,vy,vw,vh,CATS[m.c].color));
+  ctx.fillStyle=hl?'#1a1a17':'rgba(26,26,23,0.9)';ctx.font=(hl?'700 ':'600 ')+'9.5px '+getCSS('--gothic');ctx.textAlign='center';ctx.textBaseline='middle';
+  let nm=m.n;if(nm.length>11)nm=nm.slice(0,10)+'…';ctx.fillText(nm,m.px,y+h-8);
+  const pg=progressOf(m);
+  if(pg){const bw=pg==='✓'?15:34;
+    ctx.fillStyle='#2e7d4f';rr(x+w-bw-3,y+4,bw,13,2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='700 9px '+getCSS('--mono');ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(pg,x+w-bw/2-3,y+11);}}
+function draw(){ctx.clearRect(0,0,CW,CH);drawGrid();drawHulls();if(showPath)drawPathLine();
+  for(let i=0;i<M.length;i++)if(i!==hover)drawCard(M[i],i);if(hover>=0)drawCard(M[hover],hover);
+  drawHullLabels();
+  if(showPath)drawPathBadges();
+  if(hover>=0){const m=M[hover];ctx.fillStyle='#1a1a17';ctx.font='700 11px '+getCSS('--gothic');ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(m.n,16,CH-16);ctx.fillStyle=getCSS('--ink-3');ctx.font='10px '+getCSS('--mono');ctx.fillText('  ▸ '+CATS[m.c].label+' / クリックで開く',16+ctx.measureText(m.n).width+6,CH-16);}}
+function renderLegend(){const el=document.getElementById('legend');el.innerHTML=Object.keys(CATS).map(k=>'<b data-k="'+k+'" class="'+(off[k]?'off':'')+'"><span class="sw" style="background:'+CATS[k].color+'"></span>'+CATS[k].label+'</b>').join('');el.querySelectorAll('b').forEach(b=>b.onclick=()=>{off[b.dataset.k]=!off[b.dataset.k];renderLegend();draw();});}
+function renderProg(){const done=['l0','l1','l2','bridge','l5','l6'].filter(ladderDone).length;const ex=exCount();
+  const parts=[];if(done)parts.push('昇級 '+done+'/6段');if(ex)parts.push('演習 '+ex+'/22');
+  document.getElementById('progHint').textContent=(parts.length?parts.join(' / ')+'　·　':'')+'カード=教材 / 枠=カテゴリ / クリックで開く';}
+function pick(mx,my){for(let i=M.length-1;i>=0;i--){const m=M[i];if(off[m.c])continue;if(Math.abs(mx-m.px)<=CWH&&Math.abs(my-m.py)<=CHH)return i;}return -1;}
+function evt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)*CW/r.width,y:(e.clientY-r.top)*CH/r.height};}
+cv.addEventListener('mousemove',e=>{const p=evt(e),h=pick(p.x,p.y);cv.style.cursor=h>=0?'pointer':'crosshair';if(h!==hover){hover=h;draw();}});
+cv.addEventListener('mouseleave',()=>{if(hover!==-1){hover=-1;draw();}});
+cv.addEventListener('click',e=>{const p=evt(e),h=pick(p.x,p.y);if(h>=0)location.href=M[h].h;});
+document.getElementById('pathBtn').onclick=function(){showPath=!showPath;this.classList.toggle('on',showPath);draw();};
+renderLegend();renderProg();draw();
+</script>
+</body>
+</html>
