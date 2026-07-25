@@ -536,6 +536,48 @@ J = [ 15   5 ]
                     </div></details>
                 </div>
             </section>
+            <!-- ================= Stage 7 ================= -->
+            <section class="ex-stage">
+                <h2>Stage 7 — 総合チャレンジ</h2>
+                <p class="stage-goal">学んだ全てを使う開放型課題。決まった一つの正解はなく、自分で検証まで行う。</p>
+
+                <div class="ex-problem">
+                    <h3>Q7-1. 自分の2母線問題を設計して解く<span class="ex-tag hand">✋手計算</span><span class="ex-tag think">💭考察</span></h3>
+                    <p>自分で線路定数（r, x）と負荷（P, Q）を1組決め、Stage 2と同じ手順を最初から最後まで通せ:
+                    ① Ybus構築 → ② フラットスタートのヤコビアン → ③ NR 1反復 → ④ DC解との比較。</p>
+                    <p>答え合わせの代わりに、次の<strong>自己検証基準</strong>を満たすことを確認せよ:</p>
+                    <ol>
+                        <li>Ybusの対角虚部が負（誘導性）になっている</li>
+                        <li>1反復後のミスマッチが初期値より小さくなっている（NRが機能している証拠）</li>
+                        <li>負荷母線の δ が負（角度が遅れる）、|V| が1.0未満になっている</li>
+                        <li>DC解 δ = −P·x が AC解の δ と同符号・同程度になっている</li>
+                    </ol>
+                    <details class="ex-hint"><summary>ヒント</summary><div>
+                        x/r 比は3〜5程度（送電線らしい値）、負荷は P=0.3〜0.8 p.u. 程度にすると計算しやすい。
+                        重すぎる負荷（P&gt;2 p.u.など）を選ぶと解が存在しないこともある — それ自体がStage 1で学んだ電圧崩壊。
+                    </div></details>
+                    <details class="ex-answer"><summary>解説（設計の見方）</summary><div>
+                        この課題の狙いは「答えを当てる」ことではなく、<strong>解の妥当性を自分で判定する力</strong>。
+                        実務でも真の解は誰も教えてくれない — 収支・符号・大きさのオーダー・別手法との一致という
+                        検証基準で解を信頼するしかない。基準1〜4はそのミニチュア版になっている。
+                    </div></details>
+                </div>
+
+                <div class="ex-problem">
+                    <h3>Q7-2. 電圧崩壊の縁で手法を比べる<span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
+                    <p><a class="tool-link" href="power_flow_intuitive_v6_fixed.html">収束過程直感的理解</a>の
+                    「2ノード(電圧崩壊直前)」で NR法・Gauss-Seidel法・勾配降下法をそれぞれ実行し、
+                    (a) 反復数と最終誤差を記録、(b) 複素平面での軌跡の違いを言葉で描写、
+                    (c) この運転状態でDC潮流を使うと何を見落とすかを述べよ。</p>
+                    <details class="ex-answer"><summary>解答と解説</summary><div>
+                        (a)(b) 崩壊直前では解が「解の存在領域」の縁にあり、NRでもステップが暴れやすく
+                        バックトラッキングが働く（反復数が増える）。GSはさらに苦しく、進みが極端に遅くなる。<br>
+                        (c) DCは |V|=1.0 を仮定するため、<strong>電圧が崩れかけていること自体を検出できない</strong>。
+                        位相角の概算は出るが、電圧安定性の危険を完全に見落とす — 「DCを電圧問題に使ってはいけない」
+                        （Q6-1）の最も極端な実例。
+                    </div></details>
+                </div>
+            </section>
         </main>
 
         <footer class="footer">
