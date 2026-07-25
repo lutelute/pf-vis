@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gauss-Seidel潮流計算 — 連立を解かずに、1母線ずつ</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#737166;
+    --accent:#197b6c; --warm:#8f6625; --neg:#ca3c4e; --loss:#c2891b; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);-webkit-font-smoothing:antialiased;line-height:1.6;}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;line-height:1.9;}
+  .nav a{color:var(--accent);text-decoration:none;margin-right:14px;} .nav a:hover{text-decoration:underline;}
+  .lecture-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--accent);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:25px;margin:0 0 5px;letter-spacing:.02em;}
+  .lead{color:var(--muted);font-size:13.5px;max-width:730px;margin-bottom:14px;}
+  .lead a{color:var(--accent);} .lead b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 108px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:2px;}
+  .prow span:last-child{color:var(--muted);} .prow b{color:var(--text);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .stepper{display:flex;background:var(--panel-2);border-bottom:1px solid var(--line);}
+  .stp{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;cursor:pointer;position:relative;border-right:1px solid var(--line);transition:.18s;}
+  .stp:last-child{border-right:none;}
+  .stp .n{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;background:#fff;color:var(--faint);border:1px solid var(--line);transition:.18s;}
+  .stp .t{font-size:12px;color:var(--faint);transition:.18s;}
+  .stp.done .n{background:#e4f4ef;color:var(--accent);border-color:var(--accent);} .stp.done .t{color:var(--muted);}
+  .stp.active{background:var(--panel);}
+  .stp.active .n{background:var(--c);color:#fff;border-color:var(--c);font-weight:700;}
+  .stp.active .t{color:var(--text);font-weight:600;}
+  .stp.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--c);}
+  .body{display:grid;grid-template-columns:1fr 1fr;}
+  .vis{padding:16px;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;}
+  canvas{display:block;width:100%;max-width:360px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .mini{display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:10px;flex-wrap:wrap;align-self:flex-start;}
+  .mini b{color:var(--text);font-weight:600;} .mini .best b{color:var(--accent);}
+  .legend{font-size:11.5px;color:var(--faint);margin-top:6px;align-self:flex-start;}
+  .explain{padding:18px 18px 16px;}
+  .explain .lbl{display:inline-block;font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--c,var(--accent));border:1px solid var(--line);border-radius:6px;padding:2px 8px;margin-bottom:10px;}
+  .explain h3{font-family:var(--mincho);font-size:17px;margin:0 0 8px;}
+  .eq{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:8px 0;line-height:1.9;}
+  .eq.curr{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12px;color:var(--muted);}
+  .desc{font-size:13px;color:var(--muted);} .desc b{color:var(--text);} .desc a{color:var(--accent);}
+  .bar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--line);background:var(--panel-2);flex-wrap:wrap;}
+  button{font-family:var(--gothic);font-size:13.5px;border-radius:9px;padding:9px 15px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--faint);} button:disabled{opacity:.4;cursor:default;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .bar .spacer{flex:1;}
+  .aha{margin-top:18px;background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .aha-h{font-weight:700;color:var(--warm);margin-bottom:4px;font-size:13px;}
+  .aha b{color:var(--text);}
+  .myth{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .myth-h{font-weight:700;color:var(--neg);margin-bottom:6px;font-size:13px;}
+  .myth .row{display:flex;gap:10px;padding:3px 0;}
+  .myth .x{color:var(--neg);font-weight:700;flex:0 0 14px;} .myth .o{color:var(--accent);font-weight:700;flex:0 0 14px;}
+  .myth b{color:var(--text);}
+  details{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;}
+  summary{padding:13px 16px;cursor:pointer;font-size:13.5px;color:var(--muted);} summary:hover{color:var(--text);}
+  .det{padding:0 16px 16px;font-size:13px;color:var(--muted);} .det a{color:var(--accent);} .det b{color:var(--text);}
+  @media(max-width:760px){.body{grid-template-columns:1fr;}.vis{border-right:none;border-bottom:1px solid var(--line);}.stp .t{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="learn_newton.html">🎓 NR講演</a>
+    <a href="power_flow_compare.html">⚖ 比較ツール</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="lecture-tag">⚡ 講演 — 全14枚</div>
+  <h1>Gauss-Seidel潮流計算 — 連立を解かずに、1母線ずつ</h1>
+  <div class="lead">NR法より20年古い、潮流計算の<b>最初の実用解法</b>。連立方程式を丸ごと解く力がなかった時代、人々は「<b>1母線ずつ、自分の式だけ満たすよう直す</b>」ことを繰り返しました。素朴なのに解に着く——その理由と、加速係数の<b>意外な実測結果</b>まで、全て本物の計算で見せます。<a href="learn_newton.html">NR講演</a>の姉妹編です。</div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>反復法の<b>感覚</b>が一番よく見える方法だから。NRの偉さも、GSを知って初めて分かる。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>各母線で「自分の収支だけ合う電圧」に置き直して<b>ぐるぐる回る</b>。誤差は一定比率でしか減らない（線形収束）。</span></div>
+    <div class="prow"><span class="pq">どこで使われる?</span><span>1950〜60年代の主役。現在は教育・NRの<b>初期値づくり</b>・メモリ制約環境で生きる。</span></div>
+  </div>
+
+  <div class="stage">
+    <div class="stepper" id="stepper"></div>
+    <div class="body">
+      <div class="vis">
+        <canvas id="cv" width="360" height="430"></canvas>
+        <div class="mini" id="mini"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="explain" id="explain"></div>
+    </div>
+    <div class="bar">
+      <button id="prevBtn">◀ 前へ</button>
+      <button class="primary" id="nextBtn">次へ ▶</button>
+      <button id="autoBtn">⏵ 自動</button>
+      <button id="resetBtn">↻ 最初から</button>
+      <span class="spacer"></span>
+      <button id="diceBtn">🎲 別の負荷</button>
+    </div>
+  </div>
+
+  <div class="aha">
+    <div class="aha-h">💡 見方が変わる一文</div>
+    <p style="margin:0">GS法は方程式を「解いて」いません——各母線が<b>自分の式だけ満たすよう置き直す</b>のを繰り返しているだけです。それでも解に着くのは、<b>解だけが「誰も動く必要のない点」（不動点）</b>だから。反復法とは、解を「探す」のではなく「そこでしか止まれない仕掛けを作る」技術です。</p>
+  </div>
+
+  <div class="myth">
+    <div class="myth-h">⚠ よくある誤解</div>
+    <div class="row"><span class="x">✗</span><span>加速係数（1.4〜1.6）を使えば必ず速くなる</span></div>
+    <div class="row"><span class="o">✓</span><span>効くかどうかは<b>系統の性質（収束比率）次第</b>。このページの2母線では ω=1.6 は7回→51回へ<b>逆に遅く</b>、重負荷では<b>発散</b>します（スライド9の実測）。教科書の推奨値は大規模系統の経験則。</span></div>
+    <div class="row"><span class="x">✗</span><span>GSは時代遅れで、学ぶ価値がない</span></div>
+    <div class="row"><span class="o">✓</span><span>反復・不動点・収束率という数値解析の芯が<b>最短で体感できる教材</b>であり、実務でもNRの初期値作りや悪条件系統の「ならし運転」に現役。</span></div>
+  </div>
+
+  <details>
+    <summary>もっと詳しく：n母線のGS・PV母線・歴史</summary>
+    <div class="det">n母線では「母線2を直す→母線3を直す→…→一周して戻る」を繰り返します（直すとき<b>直したばかりの最新値</b>をすぐ使うのがGauss-Seidel、全部前回値で通すのがJacobi法）。<b>PV母線</b>では Q が未知なので、毎周「今の電圧から Q を再推定→上下限で頭打ち」という処理が要ります——この再推定を省くと間違った解に収束する、という実装バグは本サイトの共有エンジン開発でも実際に踏んで修正しました（<code>docs/algorithm_inventory.md</code> 参照）。IEEE 14母線・許容誤差10⁻⁶の実測は <b>GS 179回 vs NR 4回</b>（<a href="power_flow_compare.html">比較ツール</a>で再現可）。歴史的にはWard &amp; Hale (1956) らの定式化が出発点で、1960年代にNR＋スパース法に主役を譲りました。</div>
+  </details>
+</div>
+
+<script>
+"use strict";
+let seed=7;
+const rng=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const prefersReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ============================================================
+// 実計算コア: 2母線 (learn_newton と同一系統)
+// ============================================================
+const G=5, B=-15, BASE=100;
+let PL=0.5, QL=0.2;
+
+function calcPQ(V,d){
+  const P=V*V*G - V*(G*Math.cos(d)+B*Math.sin(d));
+  const Q=-V*V*B - V*(G*Math.sin(d)-B*Math.cos(d));
+  return {P,Q};
+}
+function mnorm(V,d){const c=calcPQ(V,d);return Math.max(Math.abs(-PL-c.P),Math.abs(-QL-c.Q));}
+// GS (加速係数ω付き)。軌跡 (re,im) と誤差を記録
+function gsSolve(om,tol,maxIt){
+  let re=1,im=0; const traj=[],errs=[]; const Ym2=G*G+B*B;
+  for(let k=0;k<maxIt;k++){
+    const V=Math.hypot(re,im), d=Math.atan2(im,re);
+    const e=mnorm(V,d); traj.push({re,im}); errs.push(e);
+    if(e<tol) return {traj,errs,conv:true,V,d,it:k};
+    const P=-PL,Q=-QL,Vm2=re*re+im*im;
+    // I = (S/V)* を成分で: S* / V* の割り算
+    const Sre=(P*re+Q*im)/Vm2, Sim=(P*im-Q*re)/Vm2;
+    const rre=Sre+G, rim=Sim+B;           // S*ノルム項 − Y21·V1 = … + y·1
+    const nre=(rre*G+rim*B)/Ym2, nim=(rim*G-rre*B)/Ym2; // ÷ Y22
+    re=re+om*(nre-re); im=im+om*(nim-im); // ω=1で素のGS
+    if(!isFinite(re)||Math.hypot(re,im)>3) return {traj,errs,conv:false,it:k+1};
+  }
+  return {traj,errs,conv:false,it:maxIt};
+}
+function nrIters(){ // 参照用NR回数
+  let V=1,d=0;
+  for(let k=0;k<40;k++){
+    const e=mnorm(V,d); if(e<1e-10) return k;
+    const c=calcPQ(V,d);
+    const a=-c.Q-V*V*B,b=c.P/V+V*G,cc=c.P-V*V*G,ee=c.Q/V-V*B;
+    const det=a*ee-b*cc,dP=-PL-c.P,dQ=-QL-c.Q;
+    d+=(ee*dP-b*dQ)/det; V+=(-cc*dP+a*dQ)/det;
+  }
+  return -1;
+}
+// 負荷スイープ: ω=1の収束比率 (後半の e_{k+1}/e_k)
+function rateOf(pl,ql){
+  const keep={p:PL,q:QL}; PL=pl;QL=ql;
+  const r=gsSolve(1.0,1e-10,3000); PL=keep.p;QL=keep.q;
+  if(!r.conv||r.errs.length<6) return null;
+  return r.errs[r.errs.length-3]/r.errs[r.errs.length-4];
+}
+const RATE_SWEEP=[0.5,1.5,2.5,3.5,4.2].map(p=>({P:p,rate:rateOf(p,0.4*p)}));
+
+let GS1=null, GS16=null, NRIT=0;
+function recompute(){GS1=gsSolve(1.0,1e-10,3000);GS16=gsSolve(1.6,1e-10,3000);NRIT=nrIters();}
+recompute();
+function newLoad(){PL=0.4+rng()*1.8;QL=PL*(0.3+rng()*0.2);recompute();}
+
+// ============================================================
+// 描画
+// ============================================================
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CW=360, CH=430;
+function drawGridBg(){ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,CW,CH);
+  ctx.strokeStyle=getCSS('--grid');ctx.lineWidth=1;
+  for(let x=20;x<CW;x+=34){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}
+  for(let y=20;y<CH;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}}
+function caption(t,y){ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';ctx.fillText(t,CW/2,y||CH-12);}
+
+function drawSystem(y0,opt){
+  y0=y0||60; opt=opt||{};
+  const x1=80,x2=280;
+  ctx.strokeStyle=getCSS('--muted');ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x1+22,y0);ctx.lineTo(x2-22,y0);ctx.stroke();
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.fillText('y = 5 − j15　(Y₂₂ = y)',(x1+x2)/2,y0-14);
+  ctx.fillStyle=getCSS('--accent');ctx.beginPath();ctx.arc(x1,y0,17,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 11px '+getCSS('--mono');ctx.fillText('B1',x1,y0+4);
+  ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');
+  ctx.fillText('スラック V=1∠0°',x1,y0+33);
+  const Vs=opt.showV&&GS1.conv? GS1.V.toFixed(4):'?';
+  ctx.fillStyle=getCSS('--neg');ctx.beginPath();ctx.arc(x2,y0,17,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 11px '+getCSS('--mono');ctx.fillText('B2',x2,y0+4);
+  ctx.fillStyle=getCSS('--muted');
+  ctx.fillText('負荷 P='+PL.toFixed(2)+', Q='+QL.toFixed(2),x2,y0+33);
+  ctx.fillStyle=opt.showV?getCSS('--upd'):getCSS('--faint');
+  ctx.fillText('|V|='+Vs,x2,y0+46);
+}
+
+// 複素平面 (V2の軌跡)
+const PLC={x:56,y:130,w:270,h:210, reMin:0.72, reMax:1.06, imMin:-0.20, imMax:0.06};
+function cx_(re){return PLC.x+(re-PLC.reMin)/(PLC.reMax-PLC.reMin)*PLC.w;}
+function cy_(im){return PLC.y+(PLC.imMax-im)/(PLC.imMax-PLC.imMin)*PLC.h;}
+function drawCPlane(opt){
+  opt=opt||{};
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(PLC.x,PLC.y,PLC.w,PLC.h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.fillText('Re(V₂) →',PLC.x+PLC.w/2,PLC.y+PLC.h+16);
+  ctx.save();ctx.translate(PLC.x-34,PLC.y+PLC.h/2);ctx.rotate(-Math.PI/2);ctx.fillText('Im(V₂) →',0,0);ctx.restore();
+  // 目盛
+  ctx.textAlign='center';
+  ctx.fillText('0.8',cx_(0.8),PLC.y+PLC.h+7);ctx.fillText('1.0',cx_(1.0),PLC.y+PLC.h+7);
+  // Im=0 線
+  ctx.strokeStyle='rgba(220,216,204,0.8)';ctx.beginPath();ctx.moveTo(PLC.x,cy_(0));ctx.lineTo(PLC.x+PLC.w,cy_(0));ctx.stroke();
+  // 解 (★)
+  if(GS1.conv){
+    const last=GS1.traj[GS1.traj.length-1];
+    ctx.fillStyle=getCSS('--warm');ctx.font='16px sans-serif';ctx.textAlign='center';
+    ctx.fillText('★',cx_(last.re),cy_(last.im)+5);
+  }
+  // 軌跡
+  if(opt.trajN!=null){
+    const n=Math.min(opt.trajN,GS1.traj.length);
+    ctx.strokeStyle=getCSS('--accent');ctx.lineWidth=1.8;ctx.beginPath();
+    for(let k=0;k<n;k++){const p=GS1.traj[k];k===0?ctx.moveTo(cx_(p.re),cy_(p.im)):ctx.lineTo(cx_(p.re),cy_(p.im));}
+    ctx.stroke();
+    for(let k=0;k<n;k++){const p=GS1.traj[k];
+      ctx.fillStyle=k===n-1?getCSS('--neg'):getCSS('--accent');
+      ctx.beginPath();ctx.arc(cx_(p.re),cy_(p.im),k===n-1?4.5:3,0,7);ctx.fill();
+      if(k<3){ctx.fillStyle=getCSS('--muted');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='left';
+        ctx.fillText('k='+k,cx_(p.re)+6,cy_(p.im)-4);}
+    }
+  }
+}
+// 誤差バー (対数)
+function drawErrBars(y0,errs,color,label,nmax){
+  const n=Math.min(errs.length,nmax||10), bw=Math.min(26,(CW-90)/Math.max(n,1));
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillText(label,40,y0-4);
+  for(let k=0;k<n;k++){
+    const e=Math.max(errs[k],1e-13);
+    const h=Math.max(3,(Math.log10(e)+13)/13.8*62);
+    ctx.fillStyle=color;
+    ctx.fillRect(46+k*bw,y0+62-h,bw*0.62,h);
+    ctx.fillStyle=getCSS('--faint');ctx.font='8.5px '+getCSS('--mono');ctx.textAlign='center';
+    ctx.fillText(k,46+k*bw+bw*0.31,y0+72);
+  }
+}
+// ω比較曲線 (対数)
+function drawOmegaCurves(y0,h){
+  const a=GS1.errs, b=GS16.errs;
+  const nIt=Math.min(Math.max(a.length,b.length),60);
+  const x0=48,w=CW-72;
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(x0,y0,w,h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='right';
+  for(const lg of [0,-4,-8]){const y=y0+(-lg)/12*h;ctx.fillText('1e'+lg,x0-3,y+3);
+    ctx.strokeStyle='rgba(220,216,204,0.6)';ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+w,y);ctx.stroke();}
+  const X=k=>x0+(nIt<=1?0:k/(nIt-1)*w);
+  const Y=e=>y0+Math.min(h,(-Math.log10(Math.max(e,1e-12)))/12*h);
+  const plot=(errs,color)=>{ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    errs.slice(0,nIt).forEach((e,k)=>{k===0?ctx.moveTo(X(k),Y(e)):ctx.lineTo(X(k),Y(e));});ctx.stroke();};
+  plot(GS16.errs,getCSS('--loss'));
+  plot(GS1.errs,getCSS('--accent'));
+  ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillStyle=getCSS('--accent');ctx.fillText('ω=1.0 ('+(GS1.conv?GS1.it+'回':'未収束')+')',x0+6,y0+12);
+  ctx.fillStyle=getCSS('--loss');ctx.fillText('ω=1.6 ('+(GS16.conv?GS16.it+'回':'発散/未収束')+')',x0+6,y0+24);
+  ctx.fillStyle=getCSS('--faint');ctx.textAlign='center';ctx.fillText('反復回数 →',x0+w/2,y0+h+13);
+}
+// 収束比率 vs 負荷
+function drawRateCurve(y0,h){
+  const x0=52,w=CW-84;
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(x0,y0,w,h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='right';
+  for(const v of [0,0.5,1.0]){const y=y0+h-(v)*h;ctx.fillText(v.toFixed(1),x0-3,y+3);
+    ctx.strokeStyle='rgba(220,216,204,0.6)';ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+w,y);ctx.stroke();}
+  ctx.strokeStyle='rgba(202,60,78,0.5)';ctx.setLineDash([3,3]);
+  ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x0+w,y0);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=getCSS('--neg');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillText('比率1 = 収束しない壁',x0+4,y0-4);
+  const Pmax=4.5;
+  ctx.strokeStyle=getCSS('--accent');ctx.lineWidth=2;ctx.beginPath();
+  RATE_SWEEP.forEach((r,i)=>{if(r.rate==null)return;
+    const x=x0+r.P/Pmax*w, y=y0+h-r.rate*h;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);});
+  ctx.stroke();
+  ctx.fillStyle=getCSS('--accent');
+  RATE_SWEEP.forEach(r=>{if(r.rate==null)return;
+    const x=x0+r.P/Pmax*w, y=y0+h-r.rate*h;
+    ctx.beginPath();ctx.arc(x,y,3.5,0,7);ctx.fill();
+    ctx.fillStyle=getCSS('--muted');ctx.font='9px '+getCSS('--mono');ctx.textAlign='center';
+    ctx.fillText(r.rate.toFixed(2),x,y-8);ctx.fillStyle=getCSS('--accent');});
+  ctx.fillStyle=getCSS('--faint');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.fillText('負荷 P (p.u.) →',x0+w/2,y0+h+14);
+}
+// Jacobi vs GS 概念図
+function drawJacobiGS(y0){
+  const rows=[['Jacobi','全母線を「前回の値」で一斉に更新','rgba(143,102,37,0.15)'],
+              ['Gauss-Seidel','直した母線の「最新値」をすぐ次に使う','rgba(25,123,108,0.15)']];
+  rows.forEach((r,i)=>{
+    const y=y0+i*64;
+    ctx.fillStyle=r[2];ctx.fillRect(36,y,CW-72,52);
+    ctx.strokeStyle=getCSS('--line');ctx.strokeRect(36,y,CW-72,52);
+    ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='left';
+    ctx.fillText(r[0],46,y+18);
+    ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--gothic');
+    ctx.fillText(r[1],46,y+38);
+    // ミニ矢印列
+    for(let k=0;k<4;k++){
+      const bx=CW-118+k*20;
+      ctx.fillStyle=i===0?getCSS('--warm'):getCSS('--accent');
+      ctx.beginPath();ctx.arc(bx,y+14,4,0,7);ctx.fill();
+      if(i===1&&k<3){ctx.strokeStyle=getCSS('--accent');ctx.lineWidth=1;
+        ctx.beginPath();ctx.moveTo(bx+4,y+14);ctx.lineTo(bx+15,y+14);ctx.stroke();}
+    }
+  });
+}
+
+// ============================================================
+// スライド (4章×14枚)
+// ============================================================
+const CHAPTERS=[
+  {t:'Ⅰ 発想',c:'var(--neg)',start:0},
+  {t:'Ⅱ 道具',c:'var(--upd)',start:4},
+  {t:'Ⅲ ライブ実験',c:'var(--loss)',start:7},
+  {t:'Ⅳ まとめ',c:'var(--accent)',start:12}];
+function chOf(i){let c=0;CHAPTERS.forEach((ch,k)=>{if(i>=ch.start)c=k;});return c;}
+let slideIdx=0,anim=false,auto=false,trajShown=0;
+const f2=x=>x.toFixed(2), f4=x=>x.toFixed(4);
+
+const SLIDES=[
+// Ⅰ 発想
+{title:'開演',legend:'1950年代の計算機に、連立方程式は重すぎた',
+ html(){return '<h3>開演：連立が解けなかった時代</h3><div class="eq curr">1956年ごろ — メモリ数キロバイト・浮動小数点は贅沢品<span class="read">読み：n母線の連立を丸ごと持つ余裕がない。それでも送電網は現に在り、電圧を知る必要があった</span></div><div class="desc">NR法（<a href="learn_newton.html">姉妹講演</a>）はヤコビアンという2×2〜数万×数万の行列を毎回作って解きます。1950年代の計算機にそれは<b>物理的に不可能</b>でした。当時の技術者の答えがこの講演の主役——<b>行列を1つも作らない</b>潮流計算、Gauss-Seidel法です。舞台は同じ2母線（P='+f2(PL)+', Q='+f2(QL)+'）。</div>';},
+ draw(){drawSystem(60,{});drawCPlane({});caption('下の枠は複素平面 — V₂を1つの複素数として追う');}},
+{title:'発想',legend:'「自分の式だけ満たすように置き直す」を全母線で繰り返す',
+ html(){return '<h3>発想：自分の式だけ満たす</h3><div class="eq curr">母線 i の収支式 1 本だけを見て、V<sub>i</sub> を「その式が合う値」に置き直す<span class="read">読み：他の母線のことは考えない。自分の収支だけ合わせる——を全母線で順番に行い、何周も回る</span></div><div class="desc">連立が解けないなら、<b>1本ずつ</b>なら解ける。母線2の収支式1本・未知数V₂1個の小さな方程式は手で解けます。「置き直すと他の母線の収支が狂う」——構いません、<b>次の周でまた直す</b>。この開き直りが収束するのか？が今日の核心です。</div>';},
+ draw(){drawSystem(60,{});drawCPlane({trajN:1});caption('緑の点=出発点 (V₂=1+j0)。ここから置き直しが始まる');}},
+{title:'更新式',legend:'GSの1歩。行列なし、割り算と掛け算だけ',
+ html(){const Sre=-PL,Sim=-QL;
+   return '<h3>更新式：GSの1歩</h3><div class="eq curr">V₂ ← (1/Y₂₂)·( S₂* / V₂* − Y₂₁·V₁ )<span class="read">読み：S₂*とV₂*の * は共役（虚部の符号反転）。「自分への注入電流 = 負荷の電流」になる電圧を、割り算1回で求めている。Y₂₂=5−j15, Y₂₁=−(5−j15), S₂=−'+f2(PL)+'−j'+f2(QL)+'</span></div><div class="desc">これがGSの全てです。<b>行列もヤコビアンもない</b>——複素数の掛け算・割り算だけ。出発点 V₂=1+j0 に1回適用すると V₂='+f4(GS1.traj[1].re)+(GS1.traj[1].im>=0?'+j':'−j')+f4(Math.abs(GS1.traj[1].im))+' に動きます（この場で実計算）。NRの1歩（傾き行列を解く）と比べて、桁違いに軽い1歩です。</div>';},
+ draw(){drawSystem(60,{});drawCPlane({trajN:2});caption('1歩目: 複素平面を対角に動く');}},
+{title:'不動点',legend:'★=解。解に着くと更新式は「同じ値」を返して止まる',
+ html(){return '<h3>なぜ回ると解に着くのか：不動点</h3><div class="eq curr">解 V₂* では:  V₂* = (1/Y₂₂)·( S₂* / (V₂*)* − Y₂₁V₁ )　（更新しても動かない）<span class="read">読み：収支が合っている点では、置き直しても同じ値が返ってくる。解は反復の<b>不動点</b>——そこでしか止まれない</span></div><div class="desc">更新のたびに点は動きますが、<b>解の上だけは動かない</b>。そして（条件が良ければ）更新写像は距離を縮める——どこから始めても点は★に吸い寄せられます。これが<b>不動点反復</b>の原理で、GSはその最も素朴な実装です。「条件が良ければ」の中身はスライド10で実測します。</div>';},
+ draw(){drawSystem(60,{});drawCPlane({trajN:3});caption('★の上では更新式が「同じ場所」を返す');}},
+// Ⅱ 道具
+{title:'共役の罠',legend:'S ではなく S* を使う理由 — 実装で最も踏みやすい罠',
+ html(){return '<h3>道具①：共役の罠（S* / V*）</h3><div class="eq curr">S = V·I*　→　I* = S/V　→　<b>I = ( S/V )* = S* / V*</b><span class="read">読み：欲しいのは電流 I。複素電力の定義 S=V·I* を I について解くと、<b>共役が2回</b>現れる。ここで * を1つ落とすと、エラーは出ないのに違う答えに収束する</span></div><div class="desc">GS実装の事故多発地帯です。S/V と S*/V* は<b>大きさが同じで角度だけ違う</b>ため、間違えても発散せず、もっともらしい嘘の解に静かに収束します。検算（電力収支）を必ず添える理由がこれ。<a href="ladder_bridge.html">橋渡し講座</a>でS=V·I*を体感してから来ると、この式は自明に見えるはずです。</div>';},
+ draw(){drawSystem(60,{});
+   ctx.fillStyle=getCSS('--text');ctx.font='700 12px '+getCSS('--mono');ctx.textAlign='center';
+   ctx.fillText('S = V·I*  の三角関係',CW/2,150);
+   const y0=180;
+   const items=[['V','電圧（いま持っている）',getCSS('--warm')],['S','電力（負荷の指定値）',getCSS('--neg')],['I','電流（欲しい）→ S* / V*',getCSS('--accent')]];
+   items.forEach((it,i)=>{const y=y0+i*52;
+     ctx.fillStyle=it[2];ctx.beginPath();ctx.arc(70,y,14,0,7);ctx.fill();
+     ctx.fillStyle='#fff';ctx.font='700 12px '+getCSS('--mono');ctx.fillText(it[0],70,y+4);
+     ctx.fillStyle=getCSS('--muted');ctx.font='11px '+getCSS('--gothic');ctx.textAlign='left';
+     ctx.fillText(it[1],96,y+4);ctx.textAlign='center';});
+   caption('*を1つ落としても「動いてしまう」から怖い');}},
+{title:'逐次の意味',legend:'Jacobi(一斉) vs GS(逐次)。GSは直した値をすぐ使う',
+ html(){return '<h3>道具②：逐次 — 最新値をすぐ使う</h3><div class="eq curr">Jacobi: 全母線を前回値で一斉更新　⇔　GS: <b>直した値をその周のうちに使う</b><span class="read">読み：母線2を直したら、母線3を直すときにもう「新しい母線2」を使う。情報が同じ周の中で伝播するぶん、GSはJacobiよりおよそ2倍速い</span></div><div class="desc">「Seidel」の名はこの<b>逐次更新</b>に付いています。今日の2母線では未知母線が1つなので差は見えませんが、n母線では毎周の情報伝播が積み重なり、収束速度に効きます。ちなみに<a href="power_flow_visualizer.html">可視化ツール</a>にはJacobi型（Gauss法）も実装されており、両者を並べて走らせられます。</div>';},
+ draw(){drawSystem(60,{});drawJacobiGS(150);caption('緑の矢印=最新値の受け渡し（GSだけにある）');}},
+{title:'PV母線の罠',legend:'発電機母線ではQが未知 — 毎周の再推定が必須',
+ html(){return '<h3>道具③：PV母線の罠（Q再推定）</h3><div class="eq curr">PV母線: P と |V| が指定、<b>Q は未知</b>　→　毎周「今の電圧から Q を計算し直す」<span class="read">読み：更新式は S=P+jQ を要求するが、発電機母線の Q は解の一部。前周の電圧から Q を推定→更新→|V|を指定値に戻す、を毎周やる</span></div><div class="desc">教科書が1行で流すこの手順、省くと<b>もっともらしく間違った解</b>に収束します——本サイトの共有エンジン開発でも実際に踏んだバグで、修正の経緯は<code>docs/algorithm_inventory.md</code>に記録してあります。IEEE 14母線（PV母線4つ）のGSが正しく回るのは、この再推定が入っているからです。</div>';},
+ draw(){drawSystem(60,{});
+   const y0=150;
+   const steps=['① 前周の電圧で Q を計算','② S = P + jQ で更新式を回す','③ |V| を指定値に戻す（角度は保持）','④ 次の周へ'];
+   steps.forEach((s,i)=>{const y=y0+i*52;
+     ctx.fillStyle='rgba(111,84,196,'+(0.10+i*0.05)+')';ctx.fillRect(40,y,CW-80,40);
+     ctx.strokeStyle=getCSS('--line');ctx.strokeRect(40,y,CW-80,40);
+     ctx.fillStyle=getCSS('--text');ctx.font='11px '+getCSS('--gothic');ctx.textAlign='left';
+     ctx.fillText(s,52,y+24);});
+   caption('PV母線1つにつき毎周この4手順',CH-14);}},
+// Ⅲ ライブ実験
+{title:'ライブ：回す',legend:'V₂が複素平面を歩いて★へ（実計算のアニメ）',
+ html(){const k=Math.min(trajShown,GS1.traj.length-1);
+   return '<h3>ライブ：収束まで回す</h3><div class="eq curr">反復 k = '+k+'　V₂ = '+f4(GS1.traj[k].re)+(GS1.traj[k].im>=0?' + j':' − j')+f4(Math.abs(GS1.traj[k].im))+'　誤差 = '+GS1.errs[k].toExponential(1)+'<span class="read">読み：置き直しの1歩ごとに、点が★へ近づく。歩幅は毎回<b>ほぼ同じ比率</b>で縮む——NRのような加速はない</span></div><div class="desc">'+(GS1.conv?'<b>'+GS1.it+'回で収束</b>（許容誤差10⁻¹⁰）。':'')+'点の間隔に注目してください。NR（<a href="learn_newton.html">姉妹講演</a>）は歩くほど歩幅の精度が上がりましたが、GSの歩幅は<b>一定の比率</b>でしか縮みません。この違いを次のスライドで数字にします。</div>';},
+ draw(){drawSystem(60,{showV:trajShown>=GS1.traj.length-1});drawCPlane({trajN:trajShown+1});
+   caption('反復 '+Math.min(trajShown,GS1.traj.length-1)+' / '+(GS1.traj.length-1));}},
+{title:'線形収束',legend:'対数バーの下がり幅が一定 = 誤差が定率で減る',
+ html(){const es=GS1.errs;const rate=es.length>5?(es[es.length-3]/es[es.length-4]):0;
+   return '<h3>線形収束：定率でしか減らない</h3><div class="eq curr"><i>e</i><sub>k+1</sub> ≈ ρ·<i>e</i><sub>k</sub>　（実測 ρ ≈ '+rate.toFixed(3)+'）<span class="read">読み：次の誤差は今の誤差の ρ 倍。ρ が小さいほど速いが、<b>比率は一定</b>——対数グラフで直線になる。NRの e²（崖）と対照的</span></div><div class="desc">この2母線は条件が良く ρ≈'+rate.toFixed(2)+' と小さいので'+GS1.it+'回で済みますが、「あと3桁欲しい」なら常に<b>同じ回数の追加</b>が要ります。IEEE 14母線ではρが1に近く、10⁻⁶到達に<b>179回</b>（<a href="power_flow_compare.html">比較ツール</a>実測）。収束の「形」が根本的に違うのです。</div>';},
+ draw(){drawSystem(60,{showV:true});drawErrBars(150,GS1.errs,getCSS('--accent'),'GSの誤差 (対数) — 下がり幅が一定');
+   ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+   const es=GS1.errs;let y=260;
+   ctx.fillText('隣り合う誤差の比率 (実測):',46,y);
+   for(let k=1;k<Math.min(es.length-1,6);k++){
+     ctx.fillText('e'+(k+1)+'/e'+k+' = '+(es[k+1]/es[k]).toFixed(3),46,y+16+(k-1)*15);}
+   caption('比率がほぼ一定 = 線形収束の署名',CH-14);}},
+{title:'A/B: 加速係数',legend:'ω=1.0(緑) vs ω=1.6(黄)。教科書の推奨が逆効果になる実測',
+ html(){return '<h3>A/B対比：加速係数ωの意外な真実</h3><div class="eq curr">V ← V + ω·(V<sub>GS</sub> − V)　／　実測: ω=1.0 → <b>'+GS1.it+'回</b>　ω=1.6 → <b>'+(GS16.conv?GS16.it+'回':'発散')+'</b><span class="read">読み：ωは歩幅の倍率。教科書は1.4〜1.6を勧めるが、この系統では<b>1.6が大幅に遅い</b>。歩幅を伸ばしすぎて★を通り過ぎ、行き来が増えるため</span></div><div class="desc">意外でしたか？　加速が効くのは<b>ρが1に近い（遅い）系統</b>で、毎歩が同じ向きに揃うとき。この2母線はρ≈'+(GS1.errs.length>5?(GS1.errs[GS1.errs.length-3]/GS1.errs[GS1.errs.length-4]).toFixed(2):'—')+'と既に速く、最適ωはほぼ1.0——伸ばせば<b>行き過ぎて振動</b>し、重負荷では発散します（🎲で負荷を上げて確かめられます）。「推奨値」は経験則であり、根拠は系統のスペクトル半径にある、が持ち帰りです。</div>';},
+ dice:true,
+ draw(){drawSystem(60,{showV:true});drawOmegaCurves(160,190);}},
+{title:'負荷と収束比率',legend:'ρの実測カーブ。崩壊に近づくほど1へ — GSも失速する',
+ html(){return '<h3>実験：崩壊に近づくとGSは失速する</h3><div class="eq curr">収束比率 ρ の実測:  P=0.5→'+ (RATE_SWEEP[0].rate||0).toFixed(2)+'　P=2.5→'+(RATE_SWEEP[2].rate||0).toFixed(2)+'　P=4.2→'+(RATE_SWEEP[4].rate||0).toFixed(2)+'<span class="read">読み：負荷を上げるとρが1へ近づく＝1歩あたりの前進が消えていく。ρ=1の壁の先は収束しない</span></div><div class="desc">このカーブは<a href="learn_newton.html">NR講演</a>の「崩壊の縁でNRが苦しむ」、<a href="ladder_l5.html">L5</a>の「det J→0」、<a href="ladder_l6.html">L6</a>の「σ_min崩落」と<b>同じ現象の別の顔</b>です。解が消えかける場所では、どんな反復も足場を失う——手法を替えても物理は逃げられない。この普遍性こそ、遅いGSをいまも教える最大の理由かもしれません。</div>';},
+ draw(){drawSystem(60,{showV:true});drawRateCurve(165,180);}},
+{title:'🎲 実験',legend:'負荷を変えてGS回数・NR回数・比率を同時観測',
+ dice:true,
+ html(){return '<h3>🎲 実験：負荷を振って全部見る</h3><div class="eq curr">P = '+f2(PL)+', Q = '+f2(QL)+'　→　GS(ω=1): '+(GS1.conv?GS1.it+'回':'未収束')+'　GS(ω=1.6): '+(GS16.conv?GS16.it+'回':'発散')+'　NR: '+NRIT+'回<span class="read">読み：負荷が重いほどGSの回数が伸び、ωの行き過ぎが致命傷になり、NRとの差が開く</span></div><div class="desc">「🎲 別の負荷」を何度か押してください。軽負荷ではGSも数回で健闘しますが、負荷が重くなるほど<b>GSだけが失速</b>していきます。NRが数回のまま涼しい顔をしているのは、傾き（ヤコビアン）という高価な情報に毎回投資しているから——安い1歩をたくさんか、高い1歩を数回か。次章で決着をつけます。</div>';},
+ draw(){drawSystem(60,{showV:true});drawCPlane({trajN:GS1.traj.length});
+   caption('P='+f2(PL)+' / GS '+(GS1.conv?GS1.it:'—')+'回 / NR '+NRIT+'回');}},
+// Ⅳ まとめ
+{title:'棲み分け',legend:'安い1歩×多数 vs 高い1歩×少数。系統規模が決める',
+ html(){return '<h3>NRとの棲み分け：計算コストの算術</h3><div class="eq curr">総コスト = 反復回数 × 1反復の重さ　／　GS: O(n²)×多数　NR: O(n³)×数回<span class="read">読み：nが小さいうちはGSの「安さ」が効くが、精度要求が上がるほど・系統が大きく条件が悪いほど、回数の暴発が安さを食い潰す</span></div><div class="desc">IEEE 14母線・10⁻⁶での実測は <b>GS 179回 vs NR 4回</b>。1反復あたりGSが仮に40倍軽くても、もう逆転されています。1960年代にスパースLU分解が実用化してNRの1歩が劇的に安くなり、勝負は決まりました。ただしGSは今も、NRの<b>初期値づくり</b>（数回だけ回してからNRに渡す）や悪条件系統のならし運転に使われます。</div>';},
+ draw(){drawSystem(60,{showV:true});
+   const y0=150;ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='left';
+   ctx.fillText('IEEE 14母線・許容誤差1e-6 (本サイト実測)',44,y0);
+   const rows=[['Gauss-Seidel','179回','1反復 O(n²)・軽い',getCSS('--loss')],
+               ['Newton-Raphson','4回','1反復 O(n³)・重い',getCSS('--upd')]];
+   rows.forEach((r,i)=>{const y=y0+22+i*56;
+     ctx.fillStyle=r[3];
+     ctx.fillRect(44,y,Math.max(20,(i===0?179:4)/179*(CW-160)),18);
+     ctx.fillStyle=getCSS('--text');ctx.font='700 10.5px '+getCSS('--mono');
+     ctx.fillText(r[0]+'  '+r[1],44,y-5);
+     ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--gothic');
+     ctx.fillText(r[2],44,y+32);});
+   caption('回数の棒がすべてを語る',CH-40);}},
+{title:'閉演',legend:'不動点・線形収束・ρという3語 — 今日の土産',
+ html(){return '<h3>閉演：持ち帰る3点</h3><div class="desc">この講演の芯は3つです。</div><div class="eq" style="margin-top:8px;"><b>① 不動点</b> — GSは解を探さない。「解でしか止まれない仕掛け」を回す<br><b>② 線形収束</b> — 誤差は定率ρでしか減らない。対数グラフの直線が署名<br><b>③ ρは物理が決める</b> — 崩壊に近づくとρ→1。加速係数の効き方もρ次第</div><div class="desc" style="margin-top:8px;">次の一歩：<a href="power_flow_compare.html">比較ツール</a>でNR・GS・FDXBを同時に走らせ距離チャートで見る → <a href="learn_newton.html">NR講演</a>で「高い1歩」の中身を見る → <a href="exercises.html">演習Stage 4</a>で収束次数を自分で測る。</div>';},
+ draw(){drawSystem(60,{showV:true});drawCPlane({trajN:GS1.traj.length});caption('ご清聴ありがとうございました 🎓');}},
+];
+
+// ============================================================
+// レンダリング + 制御
+// ============================================================
+function renderStepper(){const el=document.getElementById('stepper');const cur=chOf(slideIdx);
+  el.innerHTML=CHAPTERS.map((ch,i)=>'<div class="stp '+(i===cur?'active':(i<cur?'done':''))+'" data-i="'+i+'" style="--c:'+ch.c+'"><div class="n">'+(i<cur?'✓':(i+1))+'</div><div class="t">'+ch.t+'</div></div>').join('');
+  el.querySelectorAll('.stp').forEach(d=>d.onclick=()=>{stopAuto();goSlide(CHAPTERS[+d.dataset.i].start);});}
+function renderMini(){const m=document.getElementById('mini');const s=slideIdx;
+  if(s<=1){m.innerHTML='<div>負荷 <b>P='+f2(PL)+'</b></div><div>行列 <b>使わない</b></div>';}
+  else if(s<=3){m.innerHTML='<div>1歩の中身 <b>複素除算1回</b></div><div class="best">出発 <b>V₂=1+j0</b></div>';}
+  else if(s<=6){m.innerHTML='<div>罠 <b>S* / V* の共役</b></div><div>PV母線 <b>Q再推定</b></div>';}
+  else if(s===7){const k=Math.min(trajShown,GS1.traj.length-1);
+    m.innerHTML='<div>反復 <b>'+k+'</b>/'+(GS1.conv?GS1.it:'—')+'</div><div class="best">誤差 <b>'+GS1.errs[k].toExponential(1)+'</b></div>';}
+  else if(s===8){const es=GS1.errs;const rate=es.length>5?(es[es.length-3]/es[es.length-4]).toFixed(3):'—';
+    m.innerHTML='<div class="best">ρ実測 <b>'+rate+'</b></div><div>回数 <b>'+GS1.it+'</b></div>';}
+  else if(s===9){m.innerHTML='<div class="best">ω=1.0 <b>'+GS1.it+'回</b></div><div>ω=1.6 <b>'+(GS16.conv?GS16.it+'回':'発散')+'</b></div>';}
+  else if(s===10){m.innerHTML='<div>ρ(P=0.5) <b>'+(RATE_SWEEP[0].rate||0).toFixed(2)+'</b></div><div class="best">ρ(P=4.2) <b>'+(RATE_SWEEP[4].rate||0).toFixed(2)+'</b></div>';}
+  else if(s===11){m.innerHTML='<div>GS <b>'+(GS1.conv?GS1.it+'回':'—')+'</b></div><div class="best">NR <b>'+NRIT+'回</b></div>';}
+  else if(s===12){m.innerHTML='<div>IEEE14 GS <b>179回</b></div><div class="best">NR <b>4回</b></div>';}
+  else{m.innerHTML='<div class="best">不動点 <b>反復の芯</b></div><div>ρ <b>物理が決める</b></div>';}}
+function renderLegend(){document.getElementById('legend').textContent=SLIDES[slideIdx].legend;}
+function renderExplain(){const el=document.getElementById('explain');const ch=CHAPTERS[chOf(slideIdx)];
+  el.style.setProperty('--c',ch.c);
+  el.innerHTML='<span class="lbl">SLIDE '+(slideIdx+1)+' / '+SLIDES.length+' — '+ch.t+'</span>'+SLIDES[slideIdx].html();}
+function renderAll(){renderStepper();renderMini();renderLegend();renderExplain();
+  document.getElementById('prevBtn').disabled=(slideIdx===0);
+  document.getElementById('nextBtn').disabled=(slideIdx===SLIDES.length-1);
+  document.getElementById('diceBtn').disabled=!SLIDES[slideIdx].dice;}
+function draw_(){ctx.clearRect(0,0,CW,CH);drawGridBg();SLIDES[slideIdx].draw();}
+
+function goSlide(i){i=Math.max(0,Math.min(SLIDES.length-1,i));anim=false;slideIdx=i;
+  if(i===7)runTrajAnim(); else trajShown=GS1.traj.length;
+  renderAll();draw_();}
+function runTrajAnim(){trajShown=0;
+  if(prefersReduced){trajShown=GS1.traj.length;draw_();renderMini();renderExplain();return;}
+  anim=true;
+  function go(){if(!anim||slideIdx!==7)return;
+    trajShown=Math.min(trajShown+1,GS1.traj.length);
+    draw_();renderMini();renderExplain();
+    if(trajShown<GS1.traj.length){setTimeout(go,520);}else{anim=false;}}
+  setTimeout(go,500);}
+let autoT=null;
+function stopAuto(){auto=false;if(autoT)clearTimeout(autoT);document.getElementById('autoBtn').textContent='⏵ 自動';}
+function autoTick(){if(!auto)return;
+  if(slideIdx<SLIDES.length-1){goSlide(slideIdx+1);autoT=setTimeout(autoTick,slideIdx===7?7000:5000);}
+  else stopAuto();}
+document.getElementById('nextBtn').onclick=()=>{stopAuto();goSlide(slideIdx+1);};
+document.getElementById('prevBtn').onclick=()=>{stopAuto();goSlide(slideIdx-1);};
+document.getElementById('resetBtn').onclick=()=>{stopAuto();seed=7;PL=0.5;QL=0.2;recompute();goSlide(0);};
+document.getElementById('autoBtn').onclick=()=>{if(auto){stopAuto();return;}
+  if(slideIdx===SLIDES.length-1)goSlide(0);auto=true;document.getElementById('autoBtn').textContent='⏸ 停止';autoTick();};
+document.getElementById('diceBtn').onclick=()=>{newLoad();renderAll();draw_();};
+renderAll();draw_();
+</script>
+</body>
+</html>

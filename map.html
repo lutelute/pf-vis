@@ -8,7 +8,7 @@
 <style>
   :root{
     --bg:#faf8f1; --panel:#ffffff; --panel-2:#f2efe6; --line:#dcd8cc;
-    --ink:#1a1a17; --ink-2:#52504a; --ink-3:#737166; --accent:#197b6c;
+    --ink:#1a1a17; --ink-2:#52504a; --ink-3:#66645a; --accent:#197b6c;
     --gothic:"Hiragino Sans","Yu Gothic","Noto Sans JP",system-ui,sans-serif;
     --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -38,6 +38,10 @@
   details{margin-top:14px;background:var(--panel);border:1px solid var(--line);border-radius:2px;}
   summary{padding:12px 15px;cursor:pointer;font-family:var(--mono);font-size:12px;letter-spacing:.03em;color:var(--ink-2);} summary:hover{color:var(--ink);}
   .det{padding:0 15px 15px;font-size:12.5px;line-height:1.8;color:var(--ink-2);} .det a{color:var(--accent);}
+  @media (max-width:1000px){
+    .maphost{overflow-x:auto;}
+    .maphost canvas{min-width:980px;}
+  }
   @media print{@page{size:A3 landscape;margin:8mm;}html,body{background:#fff;}.stage{border-color:#000;}}
 </style>
 </head>
@@ -50,7 +54,7 @@
     <a href="exercises.html">✏️ 演習</a>
   </div>
   <h1>学習アトラス — 全教材の俯瞰マップ</h1>
-  <div class="lead">このサイトの<b>全16教材</b>を、<b>横＝物理の直感 ←→ 数式・実装</b>、<b>縦＝入口 ←→ 限界・研究</b> の2軸に配置した地図です。
+  <div class="lead">このサイトの<b>全19教材</b>を、<b>横＝物理の直感 ←→ 数式・実装</b>、<b>縦＝入口 ←→ 限界・研究</b> の2軸に配置した地図です。
     各教材は中身を表す<b>ミニ可視化カード</b>になっていて、<b>色と点線枠がカテゴリの領土</b>を示します。
     カードに乗ると強調、<b>クリックでそのページへ</b>。「⊹ 推奨順路」で L0→L6 の学びの道筋を重ねられます。
     昇級課題に合格した段には <b style="color:#2e7d4f">✓</b> が、演習カードには<b>自動判定の達成数</b>が表示されます（あなたのブラウザの記録から）。</div>
@@ -104,6 +108,9 @@ const M=[
   {n:'はじめに',h:'getting_started.html',c:'gate',x:0.46,y:0.24,mo:'terms'},
   {n:'入門 収束体感',h:'power_flow_intuitive_v6_fixed.html',c:'algo',x:0.32,y:0.45,mo:'spiral'},
   {n:'NR講演 16枚',h:'learn_newton.html',c:'algo',x:0.44,y:0.54,mo:'cliff'},
+  {n:'GS講演 14枚',h:'learn_gs.html',c:'algo',x:0.36,y:0.62,mo:'stairs'},
+  {n:'DC講演 13枚',h:'learn_dc.html',c:'edge',x:0.60,y:0.66,mo:'acdc'},
+  {n:'崩壊講演 13枚',h:'learn_collapse.html',c:'edge',x:0.42,y:0.87,mo:'nose'},
   {n:'過程 NR解剖',h:'power_flow_process_visualizer_v2.html',c:'algo',x:0.57,y:0.47,mo:'matrix'},
   {n:'比較 4手法',h:'power_flow_compare.html',c:'tools',x:0.67,y:0.57,mo:'curves3'},
   {n:'可視化 20手法',h:'power_flow_visualizer.html',c:'tools',x:0.73,y:0.41,mo:'cards'},
@@ -186,6 +193,14 @@ const MOT={
     for(let i=0;i<=40;i++){const t=i/40,a=t*Math.PI*3.2,r=h*0.38*(1-t*0.85);
       const px=cx+Math.cos(a)*r,py=cy+Math.sin(a)*r;i?ctx.lineTo(px,py):ctx.moveTo(px,py);}ctx.stroke();
     ctx.fillStyle='#ca3c4e';ctx.beginPath();ctx.arc(cx+h*0.38*0.15*Math.cos(Math.PI*3.2),cy,2.4,0,7);ctx.fill();},
+  stairs(x,y,w,h,c){ // GS講演: 線形収束の等間隔階段
+    ctx.strokeStyle=MUT;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x+5,y+4);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+w-4,y+h-5);ctx.stroke();
+    ctx.strokeStyle=c;ctx.lineWidth=1.6;ctx.beginPath();
+    for(let i=0;i<6;i++){const px=x+8+i*(w-14)/6,py=y+h*0.18+i*(h*0.62)/6;
+      i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);ctx.lineTo(px+(w-14)/6,py);}
+    ctx.stroke();
+    ctx.fillStyle=c;for(let i=0;i<6;i++){const px=x+8+i*(w-14)/6,py=y+h*0.18+i*(h*0.62)/6;
+      ctx.beginPath();ctx.arc(px,py,1.7,0,7);ctx.fill();}},
   cliff(x,y,w,h,c){ // NR講演: 2次収束の崖（片対数の階段落ち） vs 直線
     ctx.strokeStyle=MUT;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x+5,y+4);ctx.lineTo(x+5,y+h-5);ctx.lineTo(x+w-4,y+h-5);ctx.stroke();
     ctx.strokeStyle='#8f6625';ctx.lineWidth=1.3;ctx.beginPath();ctx.moveTo(x+8,y+h*0.2);ctx.lineTo(x+w-6,y+h*0.62);ctx.stroke();

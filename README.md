@@ -34,8 +34,12 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 博士課程（L6: NR収束領域basinの実測＋研究5軸の文献地図）まで、同じ物理を言葉を変えながら登る縦の道。
 全7段公開中・各段に自動判定の昇級課題つき（[設計](./docs/LADDER.md)）。
 
-**🎤 [講演スタイル教材](https://lutelute.github.io/pf-vis/learn_newton.html)** — ブループリント形式（[仕様](./docs/BLUEPRINT.md)）の章立てスライド教材。
-第1弾「Newton-Raphson潮流計算」全16枚: 2母線の実計算でミスマッチの地図→ヤコビアン導出→2次収束の実証→検算まで1本の物語で通す。
+**🎤 講演スタイル教材** — ブループリント形式（[仕様](./docs/BLUEPRINT.md)）の章立てスライド講義・全4本:
+[NR法](https://lutelute.github.io/pf-vis/learn_newton.html)（16枚: 2次収束の実証）・
+[Gauss-Seidel](https://lutelute.github.io/pf-vis/learn_gs.html)（14枚: 不動点と線形収束、加速係数の意外な実測）・
+[DC潮流](https://lutelute.github.io/pf-vis/learn_dc.html)（13枚: 3つの割り切りと誤差スイープ）・
+[電圧崩壊](https://lutelute.github.io/pf-vis/learn_collapse.html)（13枚: 解の消滅をPV曲線実トレースで）。
+数式は全て実数値つき・計算は全てその場の本物。
 
 ### 教材としての仕掛け
 

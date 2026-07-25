@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DC潮流 — 割り切りの技術</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#737166;
+    --accent:#197b6c; --warm:#8f6625; --neg:#ca3c4e; --loss:#c2891b; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);-webkit-font-smoothing:antialiased;line-height:1.6;}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;line-height:1.9;}
+  .nav a{color:var(--accent);text-decoration:none;margin-right:14px;} .nav a:hover{text-decoration:underline;}
+  .lecture-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--accent);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:25px;margin:0 0 5px;letter-spacing:.02em;}
+  .lead{color:var(--muted);font-size:13.5px;max-width:730px;margin-bottom:14px;}
+  .lead a{color:var(--accent);} .lead b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 108px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:2px;}
+  .prow span:last-child{color:var(--muted);} .prow b{color:var(--text);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .stepper{display:flex;background:var(--panel-2);border-bottom:1px solid var(--line);}
+  .stp{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;cursor:pointer;position:relative;border-right:1px solid var(--line);transition:.18s;}
+  .stp:last-child{border-right:none;}
+  .stp .n{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;background:#fff;color:var(--faint);border:1px solid var(--line);transition:.18s;}
+  .stp .t{font-size:12px;color:var(--faint);transition:.18s;}
+  .stp.done .n{background:#e4f4ef;color:var(--accent);border-color:var(--accent);} .stp.done .t{color:var(--muted);}
+  .stp.active{background:var(--panel);}
+  .stp.active .n{background:var(--c);color:#fff;border-color:var(--c);font-weight:700;}
+  .stp.active .t{color:var(--text);font-weight:600;}
+  .stp.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--c);}
+  .body{display:grid;grid-template-columns:1fr 1fr;}
+  .vis{padding:16px;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;}
+  canvas{display:block;width:100%;max-width:360px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .mini{display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:10px;flex-wrap:wrap;align-self:flex-start;}
+  .mini b{color:var(--text);font-weight:600;} .mini .best b{color:var(--accent);}
+  .legend{font-size:11.5px;color:var(--faint);margin-top:6px;align-self:flex-start;}
+  .explain{padding:18px 18px 16px;}
+  .explain .lbl{display:inline-block;font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--c,var(--accent));border:1px solid var(--line);border-radius:6px;padding:2px 8px;margin-bottom:10px;}
+  .explain h3{font-family:var(--mincho);font-size:17px;margin:0 0 8px;}
+  .eq{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:8px 0;line-height:1.9;}
+  .eq.curr{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12px;color:var(--muted);}
+  .desc{font-size:13px;color:var(--muted);} .desc b{color:var(--text);} .desc a{color:var(--accent);}
+  .bar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--line);background:var(--panel-2);flex-wrap:wrap;}
+  button{font-family:var(--gothic);font-size:13.5px;border-radius:9px;padding:9px 15px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--faint);} button:disabled{opacity:.4;cursor:default;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .bar .spacer{flex:1;}
+  .aha{margin-top:18px;background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .aha-h{font-weight:700;color:var(--warm);margin-bottom:4px;font-size:13px;}
+  .aha b{color:var(--text);}
+  .myth{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .myth-h{font-weight:700;color:var(--neg);margin-bottom:6px;font-size:13px;}
+  .myth .row{display:flex;gap:10px;padding:3px 0;}
+  .myth .x{color:var(--neg);font-weight:700;flex:0 0 14px;} .myth .o{color:var(--accent);font-weight:700;flex:0 0 14px;}
+  .myth b{color:var(--text);}
+  details{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;}
+  summary{padding:13px 16px;cursor:pointer;font-size:13.5px;color:var(--muted);} summary:hover{color:var(--text);}
+  .det{padding:0 16px 16px;font-size:13px;color:var(--muted);} .det a{color:var(--accent);} .det b{color:var(--text);}
+  @media(max-width:760px){.body{grid-template-columns:1fr;}.vis{border-right:none;border-bottom:1px solid var(--line);}.stp .t{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="learn_newton.html">🎓 NR講演</a>
+    <a href="dc_accuracy_analysis.html">📐 DC精度検証ツール</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="lecture-tag">⚡ 講演 — 全13枚</div>
+  <h1>DC潮流 — 割り切りの技術</h1>
+  <div class="lead">反復なし・一発で解ける潮流計算があります。<b>3つの大胆な割り切り</b>で非線形を捨てた<b>DC潮流</b>——電力市場も送電計画も、その約定計算の裏では毎分これが数千回走っています。何を捨てて速さを買ったのか、捨てたものはいつ牙をむくのか。<b>全て実計算</b>で見せます。</div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>実務で最も多く実行されている潮流計算は、実はNRでなく<b>DC</b>だから。速さの理由と限界を知らずに結果を読むのは危険。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>V=1・sinδ≈δ・損失無視の3点セットで<b>一次方程式</b>に落とす。答えは一発、その代わり電圧と損失の情報はゼロ。</span></div>
+    <div class="prow"><span class="pq">どこで使われる?</span><span>電力市場の約定・混雑管理・N-1スクリーニング・送電計画の初期検討。</span></div>
+  </div>
+
+  <div class="stage">
+    <div class="stepper" id="stepper"></div>
+    <div class="body">
+      <div class="vis">
+        <canvas id="cv" width="360" height="430"></canvas>
+        <div class="mini" id="mini"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="explain" id="explain"></div>
+    </div>
+    <div class="bar">
+      <button id="prevBtn">◀ 前へ</button>
+      <button class="primary" id="nextBtn">次へ ▶</button>
+      <button id="autoBtn">⏵ 自動</button>
+      <button id="resetBtn">↻ 最初から</button>
+      <span class="spacer"></span>
+      <button id="diceBtn">🎲 別の負荷</button>
+    </div>
+  </div>
+
+  <div class="aha">
+    <div class="aha-h">💡 見方が変わる一文</div>
+    <p style="margin:0">DC潮流は「不正確なAC潮流」ではなく、<b>別の問いに答える道具</b>です。「電圧は大丈夫か」には一言も答えない代わりに、「<b>この取引をしたら潮流はどの線に乗るか</b>」へ一瞬で答える。道具の正しさは、問いとの組み合わせで決まります。</p>
+  </div>
+
+  <div class="myth">
+    <div class="myth-h">⚠ よくある誤解</div>
+    <div class="row"><span class="x">✗</span><span>DCは誤差が数%あるから、実務では使いものにならない</span></div>
+    <div class="row"><span class="o">✓</span><span>位相角と有効潮流だけなら通常運転域で<b>平均1°未満</b>（本サイトのIEEE 14母線検証）。市場・混雑管理はこの精度と<b>数千倍の速さ</b>の交換を選んでいる。</span></div>
+    <div class="row"><span class="x">✗</span><span>負荷が重くても誤差の性質は同じ</span></div>
+    <div class="row"><span class="o">✓</span><span>誤差は負荷とともに<b>加速度的に育つ</b>（スライド9の実測: P=0.2puで0.09°→P=4.0puで3.4°）。電圧が下がる状況こそACが必要な場面で、そこでDCは<b>最も嘘をつく</b>。</span></div>
+  </div>
+
+  <details>
+    <summary>もっと詳しく：B行列・分布係数・このページの計算</summary>
+    <div class="det">n母線のDC潮流は <b>B′·δ = P</b> という一次方程式で、B′は枝の 1/x を並べた行列（<a href="power_flow_compare.html">比較ツール</a>のFDXB法のB′と同じ作り）。一度LU分解すれば、負荷パターンを変えるたびに前進後退代入だけで解が出るため、<b>数千ケースの一括評価</b>（N-1スクリーニングや市場約定）に向きます。さらに「どの取引がどの線に何%乗るか」を線形係数（PTDF: 送電分布係数）として事前計算できるのはDCならでは。IEEE 14母線でのAC vs DCの誤差統計は<a href="dc_accuracy_analysis.html">DC精度検証ツール</a>が実測します（平均位相角誤差1°未満は検証テストで担保）。このページの2母線の数値はすべてその場の実計算です。</div>
+  </details>
+</div>
+
+<script>
+"use strict";
+let seed=7;
+const rng=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const prefersReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ============================================================
+// 実計算コア: 2母線 (共通系統 z=0.02+j0.06)
+// ============================================================
+const G=5, B=-15, XL=0.06, RL=0.02, BASE=100;
+let PL=0.5, QL=0.2;
+
+function calcPQ(V,d){
+  const P=V*V*G - V*(G*Math.cos(d)+B*Math.sin(d));
+  const Q=-V*V*B - V*(G*Math.sin(d)-B*Math.cos(d));
+  return {P,Q};
+}
+function mnorm(V,d,pl,ql){const c=calcPQ(V,d);return Math.max(Math.abs(-pl-c.P),Math.abs(-ql-c.Q));}
+function acSolve(pl,ql){ // NR (厳密なAC解)
+  let V=1,d=0;
+  for(let k=0;k<60;k++){
+    const e=mnorm(V,d,pl,ql); if(e<1e-10) return {V,d,it:k};
+    const c=calcPQ(V,d);
+    const a=-c.Q-V*V*B,b=c.P/V+V*G,cc=c.P-V*V*G,ee=c.Q/V-V*B;
+    const det=a*ee-b*cc,dP=-pl-c.P,dQ=-ql-c.Q;
+    d+=(ee*dP-b*dQ)/det; V+=(-cc*dP+a*dQ)/det;
+    if(V<0.05||V>2) return null;
+  }
+  return null;
+}
+function dcDelta(pl){return -pl*XL;} // DC: δ = −P·x, V=1固定
+function slackP(V,d){return G - V*(G*Math.cos(d)-B*Math.sin(d));}
+
+// 負荷スイープ (実計算・ロード時)
+const SWEEP=[];
+for(let p=0.1;p<=4.21;p+=0.1){
+  const s=acSolve(p,0.4*p);
+  if(s)SWEEP.push({P:p,dAC:s.d,dDC:dcDelta(p),V:s.V});
+}
+let AC=null;
+function recompute(){AC=acSolve(PL,QL);}
+recompute();
+function newLoad(){PL=0.3+rng()*3.2;QL=0.4*PL;recompute();}
+
+const R2D=180/Math.PI;
+const f2=x=>x.toFixed(2), f4=x=>x.toFixed(4), deg=d=>(d*R2D).toFixed(2);
+
+// ============================================================
+// 描画
+// ============================================================
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CW=360, CH=430;
+function drawGridBg(){ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,CW,CH);
+  ctx.strokeStyle=getCSS('--grid');ctx.lineWidth=1;
+  for(let x=20;x<CW;x+=34){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}
+  for(let y=20;y<CH;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}}
+function caption(t,y){ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';ctx.fillText(t,CW/2,y||CH-12);}
+
+function drawSystem(y0,opt){
+  y0=y0||60; opt=opt||{};
+  const x1=80,x2=280;
+  ctx.strokeStyle=getCSS('--muted');ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x1+22,y0);ctx.lineTo(x2-22,y0);ctx.stroke();
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.fillText(opt.dcMode?'x = 0.06 だけ（r は無視）':'z = 0.02 + j0.06',(x1+x2)/2,y0-14);
+  if(opt.dcMode){ctx.fillStyle='rgba(202,60,78,0.7)';ctx.font='10px '+getCSS('--gothic');
+    ctx.fillText('r=0.02 ✗捨てた',(x1+x2)/2,y0+18);}
+  ctx.fillStyle=getCSS('--accent');ctx.beginPath();ctx.arc(x1,y0,17,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 11px '+getCSS('--mono');ctx.fillText('B1',x1,y0+4);
+  ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');
+  ctx.fillText('スラック',x1,y0+33);
+  ctx.fillStyle=getCSS('--neg');ctx.beginPath();ctx.arc(x2,y0,17,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 11px '+getCSS('--mono');ctx.fillText('B2',x2,y0+4);
+  ctx.fillStyle=getCSS('--muted');
+  ctx.fillText('P='+f2(PL)+(opt.dcMode?'（Qは見ない）':', Q='+f2(QL)),x2,y0+33);
+}
+// 角度の実数値比較バー
+function drawAngleBars(y0){
+  const dAC=AC?AC.d*R2D:0, dDC=dcDelta(PL)*R2D;
+  const rows=[['AC (NR厳密)',dAC,getCSS('--upd')],['DC (一発)',dDC,getCSS('--loss')]];
+  const maxA=Math.max(Math.abs(dAC),Math.abs(dDC),0.5);
+  ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillText('δ₂ の比較（実計算）',44,y0);
+  rows.forEach((r,i)=>{const y=y0+22+i*52;
+    ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');ctx.fillText(r[0],44,y-4);
+    ctx.fillStyle=r[2];
+    ctx.fillRect(44,y,Math.abs(r[1])/maxA*(CW-140),16);
+    ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');
+    ctx.fillText(r[1].toFixed(3)+'°',50+Math.abs(r[1])/maxA*(CW-140),y+12);});
+  const diff=Math.abs(dAC-dDC);
+  ctx.fillStyle=diff>1?getCSS('--neg'):getCSS('--accent');ctx.font='700 11px '+getCSS('--mono');
+  ctx.fillText('差 = '+diff.toFixed(3)+'°'+(diff>1?' ⚠':' ✓'),44,y0+22+2*52);
+}
+// スイープカーブ: δAC vs δDC (+現在点)
+function drawSweep(y0,h,opt){
+  opt=opt||{};
+  const x0=52,w=CW-84, Pmax=4.3;
+  const dMin=-18;
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(x0,y0,w,h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='right';
+  for(const v of [0,-8,-16]){const y=y0+(v/dMin)*h;ctx.fillText(v+'°',x0-3,y+3);
+    ctx.strokeStyle='rgba(220,216,204,0.6)';ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+w,y);ctx.stroke();}
+  const X=p=>x0+p/Pmax*w, Y=d=>y0+(d*R2D/dMin)*h;
+  const plot=(key,color,dash)=>{ctx.strokeStyle=color;ctx.lineWidth=2;if(dash)ctx.setLineDash([4,3]);
+    ctx.beginPath();SWEEP.forEach((s,i)=>{i===0?ctx.moveTo(X(s.P),Y(s[key])):ctx.lineTo(X(s.P),Y(s[key]));});
+    ctx.stroke();ctx.setLineDash([]);};
+  plot('dAC',getCSS('--upd'));
+  plot('dDC',getCSS('--loss'),true);
+  ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillStyle=getCSS('--upd');ctx.fillText('AC (実線)',x0+6,y0+12);
+  ctx.fillStyle=getCSS('--loss');ctx.fillText('DC (破線)',x0+6,y0+24);
+  if(opt.marker&&AC){
+    ctx.fillStyle=getCSS('--neg');
+    ctx.beginPath();ctx.arc(X(PL),Y(AC.d),4.5,0,7);ctx.fill();
+    ctx.beginPath();ctx.arc(X(PL),Y(dcDelta(PL)),4.5,0,7);ctx.fill();
+    ctx.strokeStyle=getCSS('--neg');ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(X(PL),Y(AC.d));ctx.lineTo(X(PL),Y(dcDelta(PL)));ctx.stroke();
+  }
+  ctx.fillStyle=getCSS('--faint');ctx.textAlign='center';ctx.fillText('負荷 P (p.u.) →',x0+w/2,y0+h+14);
+}
+// 電圧カーブ: V_AC vs DCのV=1仮定
+function drawVCurve(y0,h){
+  const x0=52,w=CW-84, Pmax=4.3;
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(x0,y0,w,h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='right';
+  for(const v of [1.0,0.85,0.7]){const y=y0+(1.05-v)/(1.05-0.65)*h;ctx.fillText(v.toFixed(2),x0-3,y+3);
+    ctx.strokeStyle='rgba(220,216,204,0.6)';ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+w,y);ctx.stroke();}
+  const X=p=>x0+p/Pmax*w, Y=v=>y0+(1.05-v)/(1.05-0.65)*h;
+  ctx.strokeStyle=getCSS('--loss');ctx.setLineDash([4,3]);ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(X(0),Y(1));ctx.lineTo(X(4.2),Y(1));ctx.stroke();ctx.setLineDash([]);
+  ctx.strokeStyle=getCSS('--upd');ctx.lineWidth=2;ctx.beginPath();
+  SWEEP.forEach((s,i)=>{i===0?ctx.moveTo(X(s.P),Y(s.V)):ctx.lineTo(X(s.P),Y(s.V));});ctx.stroke();
+  ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillStyle=getCSS('--loss');ctx.fillText('DCの世界: V=1のまま',x0+6,y0+14);
+  ctx.fillStyle=getCSS('--upd');ctx.fillText('現実(AC): Vは落ちる',x0+6,y0+30);
+  ctx.fillStyle=getCSS('--faint');ctx.textAlign='center';ctx.fillText('負荷 P (p.u.) →',x0+w/2,y0+h+14);
+}
+// 3つの割り切りカード
+function drawCuts(y0,highlight){
+  const cuts=[['① |V| = 1.0','電圧はどこも公称値と見なす','電圧低下の情報を捨てる'],
+              ['② sinδ ≈ δ','角度が小さいと見なして線形化','重負荷の大角度で崩れる'],
+              ['③ r = 0','線路抵抗と損失を無視する','損失 (I²R) の情報を捨てる']];
+  cuts.forEach((c,i)=>{const y=y0+i*74;
+    const hl=(highlight===i);
+    ctx.fillStyle=hl?'rgba(25,123,108,0.14)':'rgba(60,60,52,0.05)';
+    ctx.fillRect(36,y,CW-72,62);
+    ctx.strokeStyle=hl?getCSS('--accent'):getCSS('--line');ctx.lineWidth=hl?1.6:1;
+    ctx.strokeRect(36,y,CW-72,62);
+    ctx.fillStyle=getCSS('--text');ctx.font='700 12px '+getCSS('--mono');ctx.textAlign='left';
+    ctx.fillText(c[0],48,y+20);
+    ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--gothic');
+    ctx.fillText(c[1],48,y+37);
+    ctx.fillStyle='rgba(202,60,78,0.85)';
+    ctx.fillText('代償: '+c[2],48,y+53);});
+}
+
+// ============================================================
+// スライド (4章×13枚)
+// ============================================================
+const CHAPTERS=[
+  {t:'Ⅰ 動機',c:'var(--neg)',start:0},
+  {t:'Ⅱ 割り切り',c:'var(--upd)',start:3},
+  {t:'Ⅲ ライブ実験',c:'var(--loss)',start:7},
+  {t:'Ⅳ 使いどころ',c:'var(--accent)',start:11}];
+function chOf(i){let c=0;CHAPTERS.forEach((ch,k)=>{if(i>=ch.start)c=k;});return c;}
+let slideIdx=0,auto=false;
+
+const SLIDES=[
+// Ⅰ 動機
+{title:'開演',legend:'市場の裏側では、潮流計算が毎分数千回走っている',
+ html(){return '<h3>開演：1秒で千回解きたい</h3><div class="eq curr">電力市場の約定・N-1安全審査 — 「もし〇〇なら潮流はどうなる?」を<b>数千ケース</b>評価<span class="read">読み：発電計画の候補ごと・設備故障の想定ごとに潮流を解き直す。1ケースに1秒かけたら市場が止まる</span></div><div class="desc">NR法（<a href="learn_newton.html">姉妹講演</a>）は数回の反復で解けますが、毎回ヤコビアンを組んで連立を解く「高い1歩」です。市場運営や故障スクリーニングのように<b>ケース数が主役</b>の世界では、まだ重い。そこで問いを変えます——<b>答えの精度を少し譲って、反復そのものを消せないか？</b></div>';},
+ draw(){drawSystem(60,{});
+   ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='center';
+   ctx.fillText('「もし」の山',CW/2,150);
+   for(let i=0;i<24;i++){
+     const x=50+(i%6)*45, y=175+Math.floor(i/6)*40;
+     ctx.fillStyle='rgba(25,123,108,'+(0.10+0.03*(i%5))+')';
+     ctx.fillRect(x,y,38,30);
+     ctx.strokeStyle=getCSS('--line');ctx.strokeRect(x,y,38,30);
+     ctx.fillStyle=getCSS('--faint');ctx.font='8.5px '+getCSS('--mono');
+     ctx.fillText('case',x+19,y+18);}
+   caption('全部にNRを回すか？ それとも…');}},
+{title:'非線形の値段',legend:'重いのは反復ではなく「非線形であること」自体',
+ html(){return '<h3>重さの正体：非線形という値段</h3><div class="eq curr">非線形 → 反復が要る → ヤコビアン構築＋線形求解 × 反復回数<span class="read">読み：sin・cos と電圧の積が入っている限り、どんな上手な方法でも反復からは逃げられない。重さの根は方程式の形そのもの</span></div><div class="desc">では、方程式の形を変えてしまえばどうでしょう。<b>非線形の原因は3つ</b>だけです——電圧の大きさが動くこと、sinδ・cosδ、そして損失を生む抵抗。この3つを「捨てても構わない場面」なら、方程式は一次式になり、<b>反復は消えます</b>。次章でその3つの割り切りを1つずつ見ます。</div>';},
+ draw(){drawSystem(60,{});
+   ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='center';
+   ctx.fillText('非線形の3つの根',CW/2,150);
+   const items=['|V| が動く','sinδ・cosδ','抵抗 r (損失)'];
+   items.forEach((s,i)=>{const y=175+i*66;
+     ctx.fillStyle='rgba(202,60,78,0.12)';ctx.fillRect(60,y,CW-120,48);
+     ctx.strokeStyle='rgba(202,60,78,0.5)';ctx.strokeRect(60,y,CW-120,48);
+     ctx.fillStyle=getCSS('--text');ctx.font='700 12px '+getCSS('--mono');
+     ctx.fillText(s,CW/2,y+28);});
+   caption('この3つを捨てれば一次方程式');}},
+{title:'問いを選ぶ',legend:'「電圧は?」を捨て「潮流はどこへ?」だけ答えることにする',
+ html(){return '<h3>先に問いを選ぶ</h3><div class="eq curr">捨てる問い: 「電圧は大丈夫か」「損失は何MWか」<br>残す問い: 「<b>有効電力はどの線をどれだけ流れるか</b>」<span class="read">読み：市場・混雑管理で毎分要るのは後者だけ。前者は日々の運用計画でACを回して確かめる、と役割分担する</span></div><div class="desc">割り切りは<b>問いの選択</b>です。混雑管理が知りたいのは「この取引でどの送電線が混むか」であって、電圧の小数第3位ではない。答える問いを絞ったからこそ、大胆な近似が<b>正当化</b>されます。ここを曖昧にしたままDCの数字を電圧の議論に流用する——のが最悪の事故で、スライド10で実際に見ます。</div>';},
+ draw(){drawSystem(60,{});drawCuts(140,-1);caption('3枚のカードを、次章で1枚ずつめくる');}},
+// Ⅱ 割り切り
+{title:'割り切り①',legend:'|V|=1固定 — 電圧という未知数を消す',
+ html(){return '<h3>割り切り①：|V| = 1.0 とみなす</h3><div class="eq curr">未知数 (|V|, δ) → <b>δ だけ</b>　／　Qの式も同時に消える<span class="read">読み：通常運転の電圧は0.95〜1.05に収まっているから、1.0と置いても数%の話——という賭け。未知数が半分になり、無効電力の式ごと不要になる</span></div><div class="desc">実測（右の実計算）では P='+f2(PL)+' のときAC解は V='+(AC?f4(AC.V):'—')+'。1.0 との差 '+(AC?((1-AC.V)*100).toFixed(1):'—')+'% が、この割り切りが背負う誤差の種です。軽負荷なら小さく、重負荷では育つ——ここが後半の伏線になります。</div>';},
+ draw(){drawSystem(60,{});drawCuts(140,0);}},
+{title:'割り切り②',legend:'sinδ≈δ — 小角度近似で三角関数を消す',
+ html(){const d=AC?AC.d:0;
+   return '<h3>割り切り②：sinδ ≈ δ</h3><div class="eq curr">P = (V₁V₂/x)·sinδ　→　P ≈ δ/x　（V=1と合わせて）<span class="read">読み：角度が小さいうちは sinδ と δ はほぼ同じ（δ=0.1 radで誤差0.17%）。三角関数が消え、PとδがまっすぐつながるP∝δの世界になる</span></div><div class="desc">いまの負荷でのAC解は δ='+deg(d)+'°（'+(AC?AC.d.toFixed(4):'—')+' rad）。このとき sinδ='+(AC?Math.sin(AC.d).toFixed(4):'—')+' で、δとの差は'+(AC?(Math.abs((Math.sin(AC.d)-AC.d)/AC.d)*100).toFixed(2):'—')+'%。<a href="ladder_l2.html">L2</a>で見た「P∝sinδの山」の<b>麓の直線部分だけを使う</b>近似です。山の上の方（大角度）に行くほど、直線は山から離れます。</div>';},
+ draw(){drawSystem(60,{});drawCuts(140,1);}},
+{title:'割り切り③',legend:'r=0 — 損失を捨てて「入り=出」の世界にする',
+ html(){return '<h3>割り切り③：抵抗 r = 0 とみなす</h3><div class="eq curr">z = 0.02 + j0.06 → <b>x = 0.06 だけ</b>　／　損失 = 0 の世界<span class="read">読み：送電線はx（リアクタンス）がr（抵抗）の数倍という性質を使い、rを捨てる。すると送った電力がそのまま届く「無損失」の世界になる</span></div><div class="desc">これで<a href="ladder_l0.html">L0</a>の「つくる＝つかう＋うしなう」から<b>「うしなう」が消えます</b>。IEEE 14母線の実損失は<b>13.393 MW</b>（本サイト検証値）——DCの世界ではこれが0になる。総発電量の見積もりがそのぶん狂うため、実務のDCツールは損失を別途補正項で戻すことがあります。</div>';},
+ draw(){drawSystem(60,{dcMode:true});drawCuts(140,2);}},
+{title:'一次方程式',legend:'3枚のカードを切ると、潮流計算は割り算1回になる',
+ html(){const dDC=dcDelta(PL);
+   return '<h3>ご褒美：一次方程式</h3><div class="eq curr">δ = −P·x = −'+f2(PL)+' × 0.06 = '+dDC.toFixed(4)+' rad = '+deg(dDC)+'°　（反復ゼロ）<span class="read">読み：2母線なら文字どおり掛け算1回。n母線でも B′·δ = P という一次方程式で、LU分解1回のあとはケースごとに代入だけ</span></div><div class="desc">3つの割り切りの見返りがこれです。<b>初期値も収束判定も要らない</b>。n母線の係数行列B′は枝の1/xを並べるだけで、<a href="power_flow_compare.html">比較ツール</a>のFDXB法のB′と同じ作りです。答えは一発——ではその答えは<b>どれだけ本当か</b>。次章、実測で突き合わせます。</div>';},
+ draw(){drawSystem(60,{dcMode:true});
+   ctx.fillStyle=getCSS('--text');ctx.font='700 13px '+getCSS('--mono');ctx.textAlign='center';
+   ctx.fillText('δ = −P·x',CW/2,170);
+   ctx.font='11px '+getCSS('--mono');ctx.fillStyle=getCSS('--muted');
+   ctx.fillText('= −'+f2(PL)+' × 0.06',CW/2,196);
+   ctx.fillStyle=getCSS('--accent');ctx.font='700 15px '+getCSS('--mono');
+   ctx.fillText('= '+deg(dcDelta(PL))+'°',CW/2,226);
+   ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--gothic');
+   ctx.fillText('反復 0 回・行列 0 個（2母線の場合）',CW/2,254);
+   caption('これが「一発」の中身');}},
+// Ⅲ ライブ実験
+{title:'突き合わせ',legend:'同じ負荷をACとDCで解いて並べる（実計算）',
+ dice:true,
+ html(){const dAC=AC?AC.d*R2D:0, dDC=dcDelta(PL)*R2D;
+   return '<h3>ライブ：ACと突き合わせる</h3><div class="eq curr">AC: δ = '+dAC.toFixed(3)+'°, V = '+(AC?f4(AC.V):'—')+'　⇔　DC: δ = '+dDC.toFixed(3)+'°, V = 1（仮定）<span class="read">読み：同じ負荷 P='+f2(PL)+' を、NR（反復・厳密）とDC（一発・近似）の両方でこの場で解いた。差 '+Math.abs(dAC-dDC).toFixed(3)+'° が「割り切りの代金」</span></div><div class="desc">🎲で負荷を変えて差を観察してください。通常負荷（P≲1）では<b>コンマ数度</b>——混雑の判定を変えるほどの差ではありません。これがDCが市場で使われ続ける根拠です。ただし負荷を上げていくと……次のスライドで差の「育ち方」を一望します。</div>';},
+ draw(){drawSystem(60,{});drawAngleBars(150);
+   caption('🎲で負荷を変えると両方の解が更新される');}},
+{title:'誤差の育ち方',legend:'AC(実線)とDC(破線)の乖離が負荷とともに開く実測カーブ',
+ dice:true,
+ html(){return '<h3>誤差の育ち方：スイープ実測</h3><div class="eq curr">P=0.2: 差0.09°　P=1.0: 差0.31°　P=4.0: 差<b>3.37°</b>　（左図・全点実計算）<span class="read">読み：軽負荷では2本の線はほぼ重なり、重負荷で急に割れる。V低下とsinδの曲がりという2つの誤差源が、負荷とともに同時に育つため</span></div><div class="desc">これがこの講演の中心の図です。<b>誤差は一定ではなく、系統が苦しいほど加速度的に育つ</b>。しかも興味深いことに中負荷帯では2つの誤差源が部分的に打ち消し合い、単調ですらありません（P=2付近の接近）。近似の誤差は「何%」と一言で言えるものではない——<b>運転点の関数</b>なのです。</div>';},
+ draw(){drawSystem(60,{});drawSweep(140,200,{marker:true});
+   caption('●=いまの負荷での AC/DC 解の位置');}},
+{title:'A/B: 軽負荷 vs 重負荷',legend:'同じ道具が、場面次第で良薬にも毒にもなる',
+ html(){const l=SWEEP.find(s=>Math.abs(s.P-0.5)<0.05), h=SWEEP[SWEEP.length-1];
+   return '<h3>A/B対比：軽負荷 vs 重負荷</h3><div class="eq curr">A（P=0.5）: 差 '+(l?Math.abs(l.dAC-l.dDC).toFixed(3):'—')+'°・V='+(l?l.V.toFixed(3):'—')+'　⇔　B（P='+(h?h.P.toFixed(1):'—')+'）: 差 '+(h?Math.abs(h.dAC-h.dDC).toFixed(2):'—')+'°・V='+(h?h.V.toFixed(3):'—')+'<span class="read">読み：Aは混雑スクリーニングに十分な精度。BはV='+(h?h.V.toFixed(2):'—')+'まで電圧が落ちた危険な運転点で、そこでDCは最も外れる</span></div><div class="desc">残酷な組み合わせに気づいてください——<b>ACの答えが本当に必要になる（電圧が危ない）場面ほど、DCの誤差は最大になる</b>。だから実務の使い分けは「軽負荷ならDC」ではなく「<b>電圧・無効電力が論点になった瞬間にDCを捨てる</b>」。判断基準は負荷率でなく、問いの種類です。</div>';},
+ draw(){drawSystem(60,{});drawSweep(140,200,{});
+   const l=SWEEP.find(s=>Math.abs(s.P-0.5)<0.05), h=SWEEP[SWEEP.length-1];
+   const x0=52,w=CW-84,Pmax=4.3;
+   [[l,'A'],[h,'B']].forEach(([s,tag])=>{if(!s)return;
+     const x=x0+s.P/Pmax*w;
+     ctx.fillStyle='rgba(26,26,23,0.75)';ctx.beginPath();ctx.arc(x,152,9,0,7);ctx.fill();
+     ctx.fillStyle='#fff';ctx.font='700 10px '+getCSS('--mono');ctx.textAlign='center';ctx.fillText(tag,x,155);});
+   caption('A=通常運転 / B=崩壊の縁');}},
+{title:'見えないもの',legend:'DCの世界のV=1直線と、現実のV降下カーブ',
+ html(){return '<h3>DCに見えないもの</h3><div class="eq curr">DCの回答: V = 1.000（常に）　損失 = 0 MW（常に）　Q = 計算対象外<span class="read">読み：これは誤差ではなく<b>盲目</b>。どれだけ電圧が落ちていても、DCの世界では1.0のまま——警報は原理的に鳴らない</span></div><div class="desc">左図の黄色い破線がDCの世界です。現実（紫）がV=0.7まで落ちても、破線は<b>1.0のまま微動だにしない</b>。<a href="ladder_l5.html">L5</a>で見た電圧崩壊——解が消えるあの現象は、DCの世界には存在すらしません（一次方程式は常に解を持つので）。「DCで解けた」は「解が存在する」の証拠にならない、という深い落とし穴です。</div>';},
+ draw(){drawSystem(60,{});drawVCurve(140,200);
+   caption('破線は何が起きても1.0 — 盲目の正体');}},
+// Ⅳ 使いどころ
+{title:'使いどころ',legend:'DCが主役の現場と、出入り禁止の現場',
+ html(){return '<h3>使いどころの地図</h3><div class="eq curr">◎ 市場約定・混雑管理・N-1一次審査・PTDF（分布係数）<br>✗ 電圧解析・無効電力計画・損失評価・崩壊余裕<span class="read">読み：上段は「有効電力がどの線に乗るか」の問い＝DCの土俵。下段は電圧・Q・損失が主役＝ACの土俵</span></div><div class="desc">実務の電力市場（例えば地域間取引の約定計算）はDCベースが標準で、<b>速さが市場の成立条件</b>だからです。一方で系統運用者は同じ日のうちにAC潮流も回し、電圧・安定余裕を別途確認します。二刀流が正解であって、どちらか一方が「正しい」のではありません。精度の定量比較は<a href="dc_accuracy_analysis.html">DC精度検証ツール</a>（IEEE 14母線・平均角度誤差1°未満を検証テストで担保）でどうぞ。</div>';},
+ draw(){drawSystem(60,{});
+   const rows=[['◎ DCの土俵','潮流配分・混雑・大量ケース','rgba(25,123,108,0.13)',getCSS('--accent')],
+               ['✗ 出入り禁止','電圧・無効電力・損失・崩壊','rgba(202,60,78,0.10)',getCSS('--neg')]];
+   rows.forEach((r,i)=>{const y=150+i*92;
+     ctx.fillStyle=r[2];ctx.fillRect(36,y,CW-72,76);
+     ctx.strokeStyle=r[3];ctx.strokeRect(36,y,CW-72,76);
+     ctx.fillStyle=r[3];ctx.font='700 12px '+getCSS('--mono');ctx.textAlign='left';
+     ctx.fillText(r[0],48,y+26);
+     ctx.fillStyle=getCSS('--muted');ctx.font='11px '+getCSS('--gothic');
+     ctx.fillText(r[1],48,y+52);});
+   caption('境界線は負荷率でなく「問いの種類」');}},
+{title:'閉演',legend:'3つの割り切り・誤差は運転点の関数・問いで道具を選ぶ',
+ html(){return '<h3>閉演：持ち帰る3点</h3><div class="desc">この講演の芯は3つです。</div><div class="eq" style="margin-top:8px;"><b>① 3つの割り切り</b> — V=1・sinδ≈δ・r=0。捨てたのは「電圧・損失・Q」という問いそのもの<br><b>② 誤差は運転点の関数</b> — 軽負荷0.09°、重負荷3.4°。一言の「誤差何%」は存在しない<br><b>③ 問いが道具を選ぶ</b> — 潮流配分ならDC、電圧が論点になった瞬間にAC</div><div class="desc" style="margin-top:8px;">次の一歩：<a href="dc_accuracy_analysis.html">DC精度検証ツール</a>でIEEE 14母線の誤差統計を実測 → <a href="power_flow_compare.html">比較ツール</a>でDCと4手法を同時実行 → <a href="exercises.html">演習Stage 6</a>でDC近似を手計算で再現。</div>';},
+ draw(){drawSystem(60,{});drawSweep(140,200,{marker:true});caption('ご清聴ありがとうございました 🎓');}},
+];
+
+// ============================================================
+// レンダリング + 制御
+// ============================================================
+function renderStepper(){const el=document.getElementById('stepper');const cur=chOf(slideIdx);
+  el.innerHTML=CHAPTERS.map((ch,i)=>'<div class="stp '+(i===cur?'active':(i<cur?'done':''))+'" data-i="'+i+'" style="--c:'+ch.c+'"><div class="n">'+(i<cur?'✓':(i+1))+'</div><div class="t">'+ch.t+'</div></div>').join('');
+  el.querySelectorAll('.stp').forEach(d=>d.onclick=()=>{stopAuto();goSlide(CHAPTERS[+d.dataset.i].start);});}
+function renderMini(){const m=document.getElementById('mini');const s=slideIdx;
+  const dAC=AC?AC.d*R2D:0, dDC=dcDelta(PL)*R2D;
+  if(s<=2){m.innerHTML='<div>ケース数 <b>数千/分</b></div><div>NRの1歩 <b>高い</b></div>';}
+  else if(s<=5){m.innerHTML='<div>割り切り <b>'+(s-2)+' / 3</b></div><div class="best">未知数 <b>'+(s>=4?'δだけ':'|V|とδ')+'</b></div>';}
+  else if(s===6){m.innerHTML='<div class="best">DC解 <b>'+deg(dcDelta(PL))+'°</b></div><div>反復 <b>0回</b></div>';}
+  else if(s===7){m.innerHTML='<div>AC <b>'+dAC.toFixed(2)+'°</b></div><div class="best">DC <b>'+dDC.toFixed(2)+'°</b></div>';}
+  else if(s===8||s===9){m.innerHTML='<div>差(P=0.2) <b>0.09°</b></div><div class="best">差(P=4.0) <b>3.37°</b></div>';}
+  else if(s===10){m.innerHTML='<div>AC電圧 <b>'+(AC?f4(AC.V):'—')+'</b></div><div class="best">DCの答え <b>常に1.000</b></div>';}
+  else{m.innerHTML='<div class="best">DCの土俵 <b>潮流配分</b></div><div>ACの土俵 <b>電圧・Q</b></div>';}}
+function renderLegend(){document.getElementById('legend').textContent=SLIDES[slideIdx].legend;}
+function renderExplain(){const el=document.getElementById('explain');const ch=CHAPTERS[chOf(slideIdx)];
+  el.style.setProperty('--c',ch.c);
+  el.innerHTML='<span class="lbl">SLIDE '+(slideIdx+1)+' / '+SLIDES.length+' — '+ch.t+'</span>'+SLIDES[slideIdx].html();}
+function renderAll(){renderStepper();renderMini();renderLegend();renderExplain();
+  document.getElementById('prevBtn').disabled=(slideIdx===0);
+  document.getElementById('nextBtn').disabled=(slideIdx===SLIDES.length-1);
+  document.getElementById('diceBtn').disabled=!SLIDES[slideIdx].dice;}
+function draw_(){ctx.clearRect(0,0,CW,CH);drawGridBg();SLIDES[slideIdx].draw();}
+function goSlide(i){i=Math.max(0,Math.min(SLIDES.length-1,i));slideIdx=i;renderAll();draw_();}
+let autoT=null;
+function stopAuto(){auto=false;if(autoT)clearTimeout(autoT);document.getElementById('autoBtn').textContent='⏵ 自動';}
+function autoTick(){if(!auto)return;
+  if(slideIdx<SLIDES.length-1){goSlide(slideIdx+1);autoT=setTimeout(autoTick,5000);}
+  else stopAuto();}
+document.getElementById('nextBtn').onclick=()=>{stopAuto();goSlide(slideIdx+1);};
+document.getElementById('prevBtn').onclick=()=>{stopAuto();goSlide(slideIdx-1);};
+document.getElementById('resetBtn').onclick=()=>{stopAuto();seed=7;PL=0.5;QL=0.2;recompute();goSlide(0);};
+document.getElementById('autoBtn').onclick=()=>{if(auto){stopAuto();return;}
+  if(slideIdx===SLIDES.length-1)goSlide(0);auto=true;document.getElementById('autoBtn').textContent='⏸ 停止';autoTick();};
+document.getElementById('diceBtn').onclick=()=>{newLoad();renderAll();draw_();};
+renderAll();draw_();
+</script>
+</body>
+</html>

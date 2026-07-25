@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>電圧崩壊 — 解が消える瞬間</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#737166;
+    --accent:#197b6c; --warm:#8f6625; --neg:#ca3c4e; --loss:#c2891b; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);-webkit-font-smoothing:antialiased;line-height:1.6;}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;line-height:1.9;}
+  .nav a{color:var(--accent);text-decoration:none;margin-right:14px;} .nav a:hover{text-decoration:underline;}
+  .lecture-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--accent);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:25px;margin:0 0 5px;letter-spacing:.02em;}
+  .lead{color:var(--muted);font-size:13.5px;max-width:730px;margin-bottom:14px;}
+  .lead a{color:var(--accent);} .lead b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 108px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:2px;}
+  .prow span:last-child{color:var(--muted);} .prow b{color:var(--text);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .stepper{display:flex;background:var(--panel-2);border-bottom:1px solid var(--line);}
+  .stp{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;cursor:pointer;position:relative;border-right:1px solid var(--line);transition:.18s;}
+  .stp:last-child{border-right:none;}
+  .stp .n{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;background:#fff;color:var(--faint);border:1px solid var(--line);transition:.18s;}
+  .stp .t{font-size:12px;color:var(--faint);transition:.18s;}
+  .stp.done .n{background:#e4f4ef;color:var(--accent);border-color:var(--accent);} .stp.done .t{color:var(--muted);}
+  .stp.active{background:var(--panel);}
+  .stp.active .n{background:var(--c);color:#fff;border-color:var(--c);font-weight:700;}
+  .stp.active .t{color:var(--text);font-weight:600;}
+  .stp.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--c);}
+  .body{display:grid;grid-template-columns:1fr 1fr;}
+  .vis{padding:16px;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;}
+  canvas{display:block;width:100%;max-width:360px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .mini{display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:10px;flex-wrap:wrap;align-self:flex-start;}
+  .mini b{color:var(--text);font-weight:600;} .mini .best b{color:var(--accent);}
+  .legend{font-size:11.5px;color:var(--faint);margin-top:6px;align-self:flex-start;}
+  .explain{padding:18px 18px 16px;}
+  .explain .lbl{display:inline-block;font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--c,var(--accent));border:1px solid var(--line);border-radius:6px;padding:2px 8px;margin-bottom:10px;}
+  .explain h3{font-family:var(--mincho);font-size:17px;margin:0 0 8px;}
+  .eq{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:8px 0;line-height:1.9;}
+  .eq.curr{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12px;color:var(--muted);}
+  .desc{font-size:13px;color:var(--muted);} .desc b{color:var(--text);} .desc a{color:var(--accent);}
+  .bar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--line);background:var(--panel-2);flex-wrap:wrap;}
+  button{font-family:var(--gothic);font-size:13.5px;border-radius:9px;padding:9px 15px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--faint);} button:disabled{opacity:.4;cursor:default;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .bar .spacer{flex:1;}
+  .aha{margin-top:18px;background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .aha-h{font-weight:700;color:var(--warm);margin-bottom:4px;font-size:13px;}
+  .aha b{color:var(--text);}
+  .myth{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .myth-h{font-weight:700;color:var(--neg);margin-bottom:6px;font-size:13px;}
+  .myth .row{display:flex;gap:10px;padding:3px 0;}
+  .myth .x{color:var(--neg);font-weight:700;flex:0 0 14px;} .myth .o{color:var(--accent);font-weight:700;flex:0 0 14px;}
+  .myth b{color:var(--text);}
+  details{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;}
+  summary{padding:13px 16px;cursor:pointer;font-size:13.5px;color:var(--muted);} summary:hover{color:var(--text);}
+  .det{padding:0 16px 16px;font-size:13px;color:var(--muted);} .det a{color:var(--accent);} .det b{color:var(--text);}
+  @media(max-width:760px){.body{grid-template-columns:1fr;}.vis{border-right:none;border-bottom:1px solid var(--line);}.stp .t{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="ladder_l5.html">🪜 L5 連続潮流</a>
+    <a href="ladder_l6.html">🪜 L6 研究入口</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="lecture-tag">⚡ 講演 — 全13枚</div>
+  <h1>電圧崩壊 — 解が消える瞬間</h1>
+  <div class="lead">送電網の重大停電の一群は、機器の故障でなく<b>数学的な事件</b>として起きます——負荷を増やしていくと、ある点で潮流方程式の<b>解そのものが消える</b>のです。2つあった解が近づき、合体し、消滅する瞬間を、<b>全て実計算</b>で追いかけます。<a href="ladder_l5.html">L5</a>の実装を講演として語り直す一篇です。</div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>電圧安定性は系統運用の生命線。「あと何MW耐えられるか」に答える道具の原理だから。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>負荷を増やすと高圧解と低圧解が接近し、<b>ノーズ点で合体して消える</b>。消える点では det J = 0。</span></div>
+    <div class="prow"><span class="pq">どこで使われる?</span><span>電圧安定性評価（PV/QVカーブ）・オンライン余裕監視・系統計画の限界検討。</span></div>
+  </div>
+
+  <div class="stage">
+    <div class="stepper" id="stepper"></div>
+    <div class="body">
+      <div class="vis">
+        <canvas id="cv" width="360" height="430"></canvas>
+        <div class="mini" id="mini"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="explain" id="explain"></div>
+    </div>
+    <div class="bar">
+      <button id="prevBtn">◀ 前へ</button>
+      <button class="primary" id="nextBtn">次へ ▶</button>
+      <button id="autoBtn">⏵ 自動</button>
+      <button id="resetBtn">↻ 最初から</button>
+    </div>
+  </div>
+
+  <div class="aha">
+    <div class="aha-h">💡 見方が変わる一文</div>
+    <p style="margin:0">電圧崩壊は「電圧が下がりすぎる」現象ではありません——「<b>どんな電圧でも収支が合わなくなる</b>」現象です。下がった電圧は症状にすぎず、病気の本体は<b>解の消滅</b>。だから対策も「電圧を上げる」ではなく「解を存在させ続ける」（負荷を減らす・無効電力を送る）になります。</p>
+  </div>
+
+  <div class="myth">
+    <div class="myth-h">⚠ よくある誤解</div>
+    <div class="row"><span class="x">✗</span><span>電圧が正常（1.0付近）なら、崩壊はまだ遠い</span></div>
+    <div class="row"><span class="o">✓</span><span>無効電力補償が効いた系統は<b>普段どおりの電圧のまま</b>ノーズに接近できてしまう（スライド10の実測: ノーズ電圧0.55→0.67）。電圧の低さは信頼できる警報ではない。</span></div>
+    <div class="row"><span class="x">✗</span><span>NRが収束しなかったら、解は存在しない</span></div>
+    <div class="row"><span class="o">✓</span><span>非収束は「この初期値から届かない」ことしか意味しない。ノーズ付近では収束領域が痩せ、<b>解があるのに逃す</b>ことが起きる（スライド9の実測）。存在の判定には連続潮流など別の道具が要る。</span></div>
+  </div>
+
+  <details>
+    <summary>もっと詳しく：連続潮流・limit-induced bifurcation・動的側面</summary>
+    <div class="det">このページのPV曲線は「λで歩くとノーズで破綻するから<b>Vを媒介変数にして歩く</b>」連続手法で全点を実計算しています（一般版がpredictor-corrector型の<b>連続潮流 CPF</b>、<a href="ladder_l5.html">L5</a>で実装を公開）。実系統ではこの静的な絵に2つの重要な修正が入ります。①発電機の無効電力上限に当たると曲線が<b>滑らかなノーズの手前で折れる</b>（limit-induced bifurcation）——余裕はPV曲線の見た目より小さいことがある。②崩壊の時間発展はOLTCや誘導電動機の動特性が支配する<b>動的現象</b>で、時間シミュレーションの領分。研究の入口は<a href="ladder_l6.html">L6</a>の文献地図（Dobson &amp; Chiang 1989、Van Cutsem &amp; Vournas 1998）へ。</div>
+  </details>
+</div>
+
+<script>
+"use strict";
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const prefersReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ============================================================
+// 実計算コア: 2母線 (G=5, B=-15)。L5と同一
+// ============================================================
+const G=5, B=-15, BASE=100;
+function inj(V,d){
+  const P=V*V*G - V*(G*Math.cos(d)+B*Math.sin(d));
+  const Q=-V*V*B - V*(G*Math.sin(d)-B*Math.cos(d));
+  return {P,Q};
+}
+function detJ(V,d){
+  const c=inj(V,d);
+  const a=-c.Q-V*V*B, b=c.P/V+V*G, cc=c.P-V*V*G, e=c.Q/V-V*B;
+  return a*e-b*cc;
+}
+function solveDelta(V,P0,Q0){
+  const h=d=>{const c=inj(V,d); return c.P*Q0-c.Q*P0;};
+  let lo=-1.35, hi=-1e-6;
+  if(h(lo)*h(hi)>0) return null;
+  for(let k=0;k<80;k++){const mid=(lo+hi)/2; (h(mid)*h(hi)<=0)?(lo=mid):(hi=mid);}
+  return (lo+hi)/2;
+}
+function trace(P0,Q0){
+  const pts=[];
+  for(let V=1.06;V>=0.15;V-=0.004){
+    const d=solveDelta(V,P0,Q0);
+    if(d===null)continue;
+    const c=inj(V,d), lam=-c.P/P0;
+    if(lam<0)continue;
+    pts.push({V,d,PL:lam*P0*BASE,det:detJ(V,d)});
+  }
+  let nose=pts[0], noseIdx=0;
+  pts.forEach((p,i)=>{if(p.PL>nose.PL){nose=p;noseIdx=i;}});
+  return {pts,nose,noseIdx};
+}
+const CURVE=trace(0.5,0.2);       // 誘導性 tanφ=0.4
+const CURVE_C=trace(0.5,-0.1);    // 補償あり tanφ=-0.2
+// NR (初期値指定)
+function nrFrom(V0,d0,PL,QL){
+  let V=V0,d=d0;
+  for(let k=0;k<30;k++){
+    const c=inj(V,d), dP=-PL-c.P, dQ=-QL-c.Q;
+    if(Math.max(Math.abs(dP),Math.abs(dQ))<1e-10) return {V,d,it:k,conv:true};
+    const a=-c.Q-V*V*B, b=c.P/V+V*G, cc=c.P-V*V*G, e=c.Q/V-V*B;
+    const det=a*e-b*cc; if(Math.abs(det)<1e-12) return {conv:false,it:k};
+    d+=(e*dP-b*dQ)/det; V+=(-cc*dP+a*dQ)/det;
+    if(!isFinite(V)||V<=0.01||V>3||Math.abs(d)>3) return {conv:false,it:k+1};
+  }
+  return {conv:false,it:30};
+}
+// 上枝/下枝の解 (指定PLで)
+function branches(PLmw){
+  const {pts,noseIdx}=CURVE;
+  let up=null,ub=1e9, lo=null,lb=1e9;
+  for(let i=0;i<=noseIdx;i++){const d=Math.abs(pts[i].PL-PLmw);if(d<ub){ub=d;up=pts[i];}}
+  for(let i=noseIdx;i<pts.length;i++){const d=Math.abs(pts[i].PL-PLmw);if(d<lb){lb=d;lo=pts[i];}}
+  return {up:(ub<6?up:null), lo:(lb<6?lo:null)};
+}
+const NOSE=CURVE.nose, NOSE_C=CURVE_C.nose;
+const f1=x=>x.toFixed(1), f2=x=>x.toFixed(2), f3=x=>x.toFixed(3);
+
+// ライブ実験用の負荷進行 (スライド7)
+const LAMBDA_STEPS=[120,220,320,390,430,NOSE.PL-2,NOSE.PL+40];
+let lamIdx=0;
+
+// ============================================================
+// 描画
+// ============================================================
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CW=360, CH=430;
+function drawGridBg(){ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,CW,CH);
+  ctx.strokeStyle=getCSS('--grid');ctx.lineWidth=1;
+  for(let x=20;x<CW;x+=34){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}
+  for(let y=20;y<CH;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}}
+function caption(t,y){ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';ctx.fillText(t,CW/2,y||CH-12);}
+
+// PVカーブ描画 (メイン)
+const PLOT={x:52,y:40,w:280,h:250,pMax:760,vMin:0.15,vMax:1.08};
+function px(P){return PLOT.x+P/PLOT.pMax*PLOT.w;}
+function py(V){return PLOT.y+(PLOT.vMax-V)/(PLOT.vMax-PLOT.vMin)*PLOT.h;}
+function drawPV(opt){
+  opt=opt||{};
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(PLOT.x,PLOT.y,PLOT.w,PLOT.h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='center';
+  for(const P of [0,200,400,600]) ctx.fillText(P,px(P),PLOT.y+PLOT.h+14);
+  ctx.fillText('負荷 P (MW) →',PLOT.x+PLOT.w/2,PLOT.y+PLOT.h+27);
+  ctx.textAlign='right';
+  for(const V of [0.4,0.7,1.0]) ctx.fillText(V.toFixed(1),PLOT.x-5,py(V)+3);
+  ctx.save();ctx.translate(PLOT.x-34,PLOT.y+PLOT.h/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';
+  ctx.fillText('電圧 V (p.u.)',0,0);ctx.restore();
+  const drawCurve=(C,col,alpha)=>{
+    const {pts,noseIdx}=C;
+    ctx.globalAlpha=alpha!=null?alpha:1;
+    ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.setLineDash([]);
+    ctx.beginPath();
+    for(let i=0;i<=noseIdx;i++){const p=pts[i];i===0?ctx.moveTo(px(p.PL),py(p.V)):ctx.lineTo(px(p.PL),py(p.V));}
+    ctx.stroke();
+    if(opt.lower!==false){
+      ctx.setLineDash([5,4]);ctx.beginPath();
+      for(let i=noseIdx;i<pts.length;i++){const p=pts[i];i===noseIdx?ctx.moveTo(px(p.PL),py(p.V)):ctx.lineTo(px(p.PL),py(p.V));}
+      ctx.stroke();ctx.setLineDash([]);
+    }
+    ctx.globalAlpha=1;
+  };
+  if(opt.comp)drawCurve(CURVE_C,getCSS('--accent'),0.9);
+  drawCurve(CURVE,getCSS('--neg'),opt.comp?0.45:1);
+  // ノーズ
+  if(opt.nose!==false){
+    ctx.fillStyle=getCSS('--neg');
+    ctx.beginPath();ctx.moveTo(px(NOSE.PL)+8,py(NOSE.V));ctx.lineTo(px(NOSE.PL)-2,py(NOSE.V)-6);ctx.lineTo(px(NOSE.PL)-2,py(NOSE.V)+6);ctx.closePath();ctx.fill();
+    ctx.font='700 10px '+getCSS('--mono');ctx.textAlign='right';
+    ctx.fillText('ノーズ '+f1(NOSE.PL)+'MW',px(NOSE.PL)-4,py(NOSE.V)-10);
+  }
+  if(opt.comp){
+    ctx.fillStyle=getCSS('--accent');
+    ctx.beginPath();ctx.moveTo(px(NOSE_C.PL)+8,py(NOSE_C.V));ctx.lineTo(px(NOSE_C.PL)-2,py(NOSE_C.V)-6);ctx.lineTo(px(NOSE_C.PL)-2,py(NOSE_C.V)+6);ctx.closePath();ctx.fill();
+    ctx.font='700 10px '+getCSS('--mono');ctx.textAlign='right';
+    ctx.fillText(f1(NOSE_C.PL)+'MW / V='+f2(NOSE_C.V),px(NOSE_C.PL)-4,py(NOSE_C.V)-10);
+  }
+  // 2解マーカー
+  if(opt.PL!=null){
+    const {up,lo}=branches(opt.PL);
+    if(up){ctx.fillStyle=getCSS('--upd');ctx.beginPath();ctx.arc(px(up.PL),py(up.V),5.5,0,7);ctx.fill();
+      ctx.font='700 10px '+getCSS('--mono');ctx.textAlign='left';
+      ctx.fillText('高圧解 V='+f3(up.V),px(up.PL)+9,py(up.V)-3);}
+    if(lo&&opt.lower!==false){ctx.fillStyle='rgba(111,84,196,0.55)';ctx.beginPath();ctx.arc(px(lo.PL),py(lo.V),5,0,7);ctx.fill();
+      ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+      ctx.fillText('低圧解 V='+f3(lo.V),px(lo.PL)+9,py(lo.V)+10);}
+    if(!up&&!lo){ctx.fillStyle=getCSS('--neg');ctx.font='700 11px '+getCSS('--gothic');ctx.textAlign='center';
+      ctx.fillText('⚠ 解なし',px(Math.min(opt.PL,740)),PLOT.y+34);}
+  }
+}
+// |det J| 帯
+function drawDetBand(y0,h){
+  const {pts,noseIdx}=CURVE;
+  const maxDet=Math.max(...pts.slice(0,noseIdx+1).map(p=>Math.abs(p.det)));
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--gothic');ctx.textAlign='left';
+  ctx.fillText('|det J| 上枝に沿った実測（右端=ノーズで0）',PLOT.x,y0-6);
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(PLOT.x,y0,PLOT.w,h);
+  ctx.strokeStyle=getCSS('--upd');ctx.lineWidth=2;ctx.beginPath();
+  for(let i=0;i<=noseIdx;i++){
+    const p=pts[i];
+    const x=px(p.PL), y=y0+h-(Math.abs(p.det)/maxDet)*(h-6)-3;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+}
+
+// ============================================================
+// スライド (4章×13枚)
+// ============================================================
+const CHAPTERS=[
+  {t:'Ⅰ 異変',c:'var(--neg)',start:0},
+  {t:'Ⅱ 正体',c:'var(--upd)',start:3},
+  {t:'Ⅲ ライブ実験',c:'var(--loss)',start:7},
+  {t:'Ⅳ 実務と研究',c:'var(--accent)',start:11}];
+function chOf(i){let c=0;CHAPTERS.forEach((ch,k)=>{if(i>=ch.start)c=k;});return c;}
+let slideIdx=0,auto=false;
+
+const SLIDES=[
+// Ⅰ 異変
+{title:'開演',legend:'ある種の大停電は「方程式の事件」として起きる',
+ html(){return '<h3>開演：解が消えるという停電</h3><div class="eq curr">機器は壊れていない。それでも系統全体の電圧が滑り落ちて戻らない<span class="read">読み：世界の重大停電の一群（電圧崩壊型）は、送電線や発電機の故障そのものではなく「負荷に対して解が存在しなくなる」ことが引き金になる</span></div><div class="desc">今日の主役は装置ではなく<b>方程式</b>です。負荷をゆっくり増やすだけで、潮流方程式の解が<b>2つ→1つ→ゼロ</b>と減っていく。その一部始終を、実計算のPV曲線の上で目撃します。まず、この赤い曲線の意味から始めましょう。</div>';},
+ draw(){drawPV({nose:false,lower:false});caption('負荷を増やすと電圧はどうなるか — の完全な地図');}},
+{title:'2つの解',legend:'同じ負荷に、解が2つある（●高圧解と●低圧解）',
+ html(){const {up,lo}=branches(200);
+   return '<h3>異変の種：解は最初から2つある</h3><div class="eq curr">P = 200 MW に対し:  高圧解 V = '+(up?f3(up.V):'—')+'　と　低圧解 V = '+(lo?f3(lo.V):'—')+'（両方とも収支が合う）<span class="read">読み：同じ負荷を支える電圧が2通りある。高い電圧×小さい電流か、低い電圧×大きい電流か——どちらも数学的には正しい</span></div><div class="desc">普段は気づきませんが、潮流方程式の解は<b>2つ</b>あります。系統が実際に運転できるのは上の解だけ（下の解は電流過大で、制御をかけると不安定化する）。今は2つの解が遠く離れていて、平和です。この平和が負荷とともに壊れていくのが今日の物語です。</div>';},
+ draw(){drawPV({PL:200});caption('実線=運転できる上枝 / 破線=もう1つの解の枝');}},
+{title:'曲線の名前',legend:'この折り返す曲線がPVカーブ。電圧安定性解析の主役',
+ html(){return '<h3>PV曲線 — 折り返す理由</h3><div class="eq curr">横軸 P（負荷）・縦軸 V（電圧）。上枝と下枝が<b>右端でつながる</b><span class="read">読み：2つの解は別々の線ではなく、1本の曲線の上半分と下半分。つながる先端こそ、これから起きる事件の現場</span></div><div class="desc">この曲線は1点1点が<b>実計算</b>です（Vを媒介変数に、負荷方向の一致条件からδとλを解く連続手法——λで歩くと先端で破綻するため。実装は<a href="ladder_l5.html">L5</a>で公開）。曲線が右へ行くほど2つの解の間隔が縮むことに注目してください。先端の▼に着くと何が起きるか。</div>';},
+ draw(){drawPV({PL:350});caption('▼=曲線の先端。上下の枝がここで出会う');}},
+// Ⅱ 正体
+{title:'接近',legend:'負荷が増えるほど2解の間隔 |ΔV| が縮む（実測）',
+ html(){const a=branches(200),b=branches(420);
+   const g1=a.up&&a.lo?Math.abs(a.up.V-a.lo.V):0, g2=b.up&&b.lo?Math.abs(b.up.V-b.lo.V):0;
+   return '<h3>正体①：2つの解が近づく</h3><div class="eq curr">2解の間隔 |ΔV|:  P=200 → '+f3(g1)+'　⇒　P=420 → '+f3(g2)+'（実測）<span class="read">読み：負荷を2倍にすると、2つの解の距離は1/'+(g2>0?(g1/g2).toFixed(1):'—')+'に。互いに歩み寄っている</span></div><div class="desc">200MWでは'+f3(g1)+'あった間隔が、420MWでは'+f3(g2)+'。放っておけば<b>ぶつかる</b>のは時間の問題です。2つの解の合体——数学はこの瞬間に固有の名前を与えています。その前に、合体点で系統の「感度」に何が起きるかを見ておきましょう。</div>';},
+ draw(){drawPV({PL:420});caption('●と●の間隔が縮んでいく');}},
+{title:'det J = 0',legend:'紫の帯=|det J|の実測。ノーズでゼロに触れる',
+ html(){return '<h3>正体②：ヤコビアンが特異になる</h3><div class="eq curr">ノーズ点で det J = 0　（下の帯は上枝に沿った |det J| の実測）<span class="read">読み：det J は「系統の応答の効き目」。ゼロ＝どの向きに電圧を動かしても収支のズレを打ち消せない方向が生まれる＝<a href="learn_newton.html">NR</a>の足場が消える</span></div><div class="desc">帯の右端を見てください——ノーズに向かって|det J|が<b>実測でゼロに落ちていきます</b>。<a href="learn_newton.html">NR講演</a>で「崩壊の縁でNRが苦しむ」と言った現象の理論的正体がこれ。解が消える点と、計算が壊れる点は、<b>同じ一つの点</b>なのです。</div>';},
+ draw(){drawPV({PL:430});drawDetBand(330,60);}},
+{title:'サドルノード',legend:'2解の合体・消滅=サドルノード分岐（力学系の一般理論）',
+ html(){return '<h3>正体③：サドルノード分岐という名前</h3><div class="eq curr">パラメータ（負荷）を動かす → 安定解と不安定解が合体して消える = <b>saddle-node bifurcation</b><span class="read">読み：この筋書きは電力系統の専売ではない。人口動態も化学反応もレーザーも、同じ数学で「解の消滅」を起こす——力学系理論の定石</span></div><div class="desc">名前がつくと、他分野の道具が全部使えるようになります。分岐理論は「消える直前の振る舞い」（臨界減速・感度の発散）まで予言し、それは<a href="ladder_l6.html">L6</a>のσ_min崩落やGSの失速（<a href="learn_gs.html">GS講演</a>スライド11）として実測済みです。物理は一つ、言葉が増えただけ。</div>';},
+ draw(){drawPV({PL:NOSE.PL-4});caption('▼が分岐点。ここで2つの●が1つになり、消える');}},
+{title:'消滅の意味',legend:'ノーズの先=解なし。どんな電圧でも収支が合わない',
+ html(){return '<h3>正体④：「解なし」の物理的意味</h3><div class="eq curr">P &gt; '+f1(NOSE.PL)+' MW　→　どの (V, δ) でも収支が合わない = <b>系統はこの負荷を支えられない</b><span class="read">読み：電圧を上げても下げても、送れる電力が需要に届かない。現実の系統では電圧が滑り落ち、保護装置が動き、停電に至る</span></div><div class="desc">「解なし」は抽象的な話ではありません。方程式に解がない状態で現実の系統がどう振る舞うか——電圧は静定せず滑り続け、タップ切替器が空回りし、やがて保護が系統を切り離す。<b>数学の不在が、物理の崩壊として現れる</b>。これが電圧崩壊の正体です。</div>';},
+ draw(){drawPV({PL:NOSE.PL+60});caption('P='+f1(NOSE.PL+60)+'MW: 曲線のどこにも届かない');}},
+// Ⅲ ライブ実験
+{title:'ライブ：ノーズへ',legend:'負荷を段階的に上げ、運転点がノーズへ滑る（実計算）',
+ html(){const PLmw=LAMBDA_STEPS[Math.min(lamIdx,LAMBDA_STEPS.length-1)];
+   const {up,lo}=branches(PLmw);
+   const gap=up&&lo?Math.abs(up.V-lo.V):null;
+   return '<h3>ライブ：ノーズまで歩く</h3><div class="eq curr">負荷 = '+f1(PLmw)+' MW　'+(up?('高圧解 V='+f3(up.V)+(gap!=null?'　|ΔV|='+f3(gap):'')):'<b>解なし</b>')+'<span class="read">読み：「次へ」を押すたびに負荷が1段上がる。●が右へ滑り、2解が近づき、ノーズを越えた瞬間に消える</span></div><div class="desc">'+(up?(PLmw>NOSE.PL-20?'<b>ノーズ直前です。</b>2解はほぼ触れ合い、det Jはゼロ寸前——次の1段で消えます。':'まだ余裕があります。ボタンでもう1段、負荷を上げてください。'):'<b>消えました。</b>いま画面のどこにも解はありません。これが'+f1(NOSE.PL)+'MWの壁の向こう側です。「前へ」で戻れます——現実の系統には、この「戻る」ボタンがありません。')+'</div>';},
+ draw(){const PLmw=LAMBDA_STEPS[Math.min(lamIdx,LAMBDA_STEPS.length-1)];
+   drawPV({PL:PLmw});drawDetBand(330,60);
+   caption('段階 '+(Math.min(lamIdx,LAMBDA_STEPS.length-1)+1)+' / '+LAMBDA_STEPS.length);}},
+{title:'A/B: 初期値依存',legend:'同じ負荷・違う初期値のNRを4本実走（実計算）',
+ html(){const PLpu=4.3, QLpu=1.72;
+   const runs=[['フラットスタート (1.0, 0°)',nrFrom(1,0,PLpu,QLpu)],
+               ['低め (0.6, -30°)',nrFrom(0.6,-0.52,PLpu,QLpu)],
+               ['さらに低め (0.45, -32°)',nrFrom(0.45,-0.56,PLpu,QLpu)],
+               ['深い所 (0.3, -46°)',nrFrom(0.3,-0.8,PLpu,QLpu)]];
+   let rows='';
+   runs.forEach(r=>{const s=r[1];
+     rows+=r[0]+' → '+(s.conv?('V='+f3(s.V)+' ('+s.it+'回)'):'<b>発散</b>')+'<br>';});
+   return '<h3>A/B対比：ノーズ際の初期値依存</h3><div class="eq curr">負荷430MW（ノーズまで'+f1(NOSE.PL-430)+'MW）でNRを4つの初期値から実走:<br>'+rows+'<span class="read">読み：同じ方程式なのに、出発点次第で<b>着く解が変わる</b>。収束領域の境界が運転解のすぐそばまで来ている証拠（さらに際どい負荷では発散も起きる）</span></div><div class="desc">平時なら「フラットスタートで一発」のNRが、ノーズ際では<b>出発点に運命を左右される</b>ようになります。低圧解に静かに収束した数値をそのまま信じると、運転判断を誤る——収束チェックだけでなく<b>どちらの解か</b>の確認が要る領域です。「収束しなかった＝解がない」と誤読すると、余裕の過小評価にも過大評価にもなり得る——存在の判定は連続潮流の仕事です。収束領域の全景地図は<a href="ladder_l6.html">L6のbasin実験</a>で描けます。</div>';},
+ draw(){drawPV({PL:430});
+   ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--gothic');ctx.textAlign='center';
+   ctx.fillText('430MW: 2解が接近し、初期値の「盆地」が痩せる',CW/2,352);
+   caption('数値は左の実走結果 — 全てその場の実計算');}},
+{title:'A/B: 補償の逆説',legend:'補償でノーズは伸びる(緑)。だがノーズ電圧も上がる',
+ html(){return '<h3>A/B対比：無効電力補償の逆説</h3><div class="eq curr">補償なし: ノーズ '+f1(NOSE.PL)+' MW / V='+f2(NOSE.V)+'　⇔　補償あり: '+f1(NOSE_C.PL)+' MW / V=<b>'+f2(NOSE_C.V)+'</b><span class="read">読み：コンデンサでQを地産地消するとノーズは'+f1(NOSE_C.PL-NOSE.PL)+'MW伸びる。だが崩壊点の電圧も'+f2(NOSE.V)+'→'+f2(NOSE_C.V)+'へ上がる</span></div><div class="desc">補償は余裕を買う正攻法です。しかし緑の曲線をよく見てください——<b>普段と大差ない電圧のまま崩壊点に到達できてしまう</b>。「電圧がまだ高いから安全」という経験則が、補償の効いた系統では通用しない。計器の読みではなく<b>余裕（ノーズまでの距離）そのもの</b>を監視すべき理由です。</div>';},
+ draw(){drawPV({comp:true,lower:false});caption('緑=補償あり: 長いが「高電圧のまま」崖に着く');}},
+// Ⅳ 実務と研究
+{title:'余裕の監視',legend:'答えるべき問いは「電圧いくつ?」でなく「あと何MW?」',
+ html(){const m=NOSE.PL-350;
+   return '<h3>実務：余裕を測る</h3><div class="eq curr">安定余裕 = ノーズ '+f1(NOSE.PL)+' − 現在 350 = <b>'+f1(m)+' MW</b>　（実測の例）<span class="read">読み：いまの運転点から崖までの水平距離。運用はこれを常に一定以上に保つ（代表的な考え方はピークの5〜10%等、系統ごとの基準による）</span></div><div class="desc">実務の電圧安定性監視は、PV曲線を（想定故障ごとに）引き直して<b>余裕のMW</b>を追いかけます。道具は連続潮流（CPF）に加えQV曲線・モーダル解析（Jの固有値）の三点セット。発電機のQ上限で曲線が途中で折れる<b>limit-induced bifurcation</b>があるため、滑らかなノーズだけ見ると危険側に誤る——詳しくは「もっと詳しく」欄へ。</div>';},
+ draw(){drawPV({PL:350});
+   const {up}=branches(350);
+   if(up){ctx.strokeStyle=getCSS('--accent');ctx.lineWidth=2;ctx.setLineDash([4,3]);
+     ctx.beginPath();ctx.moveTo(px(350),py(up.V));ctx.lineTo(px(NOSE.PL),py(up.V));ctx.stroke();ctx.setLineDash([]);
+     ctx.fillStyle=getCSS('--accent');ctx.font='700 10.5px '+getCSS('--mono');ctx.textAlign='center';
+     ctx.fillText('余裕 '+f1(NOSE.PL-350)+' MW',(px(350)+px(NOSE.PL))/2,py(up.V)-8);}
+   drawDetBand(330,60);}},
+{title:'研究への接続',legend:'この講演の一枚一枚が、研究テーマの入口になっている',
+ html(){return '<h3>研究への接続</h3><div class="eq curr">分岐理論（消滅の一般論）・収束理論（basinの痩せ）・CPFの大規模化・リアルタイム余裕推定<span class="read">読み：今日「見た」現象のそれぞれに、開いている研究の問いが対応している</span></div><div class="desc">スライド5の分岐は<b>Dobson &amp; Chiang (1989)</b>から続く理論の入口、スライド9の初期値依存は<b>Newton-Kantorovich</b>収束理論とbasin構造（<a href="ladder_l6.html">L6の実験</a>）、余裕のリアルタイム推定は現在進行形の研究です。文献地図と「開いている問い」の一覧はL6に整備してあります——この講演を出口まで歩いた人は、もう入口に立っています。</div>';},
+ draw(){drawPV({comp:true,lower:false});drawDetBand(330,60);}},
+{title:'閉演',legend:'解は2つ→1つ→ゼロ。det J=0。余裕をMWで測る',
+ html(){return '<h3>閉演：持ち帰る3点</h3><div class="desc">この講演の芯は3つです。</div><div class="eq" style="margin-top:8px;"><b>① 解は消える</b> — 2つの解が接近・合体・消滅する（サドルノード分岐）。崩壊=解の不在<br><b>② 計算も同じ場所で壊れる</b> — det J→0。NRの苦戦・GSの失速・basinの痩せは全て同じ点の症状<br><b>③ 余裕はMWで測る</b> — 電圧の読みは警報にならない（補償の逆説）。ノーズまでの距離が本物の指標</div><div class="desc" style="margin-top:8px;">次の一歩：<a href="ladder_l5.html">L5</a>で自分の手でPV曲線をトレース → <a href="ladder_l6.html">L6</a>でbasinとσ_minの実験＋文献地図 → <a href="power_flow_intuitive_v6_fixed.html">入門ツール</a>の「電圧崩壊直前」ケースでNRの苦戦を体感。</div>';},
+ draw(){drawPV({PL:350,comp:true});caption('ご清聴ありがとうございました 🎓');}},
+];
+
+// ============================================================
+// レンダリング + 制御
+// ============================================================
+function renderStepper(){const el=document.getElementById('stepper');const cur=chOf(slideIdx);
+  el.innerHTML=CHAPTERS.map((ch,i)=>'<div class="stp '+(i===cur?'active':(i<cur?'done':''))+'" data-i="'+i+'" style="--c:'+ch.c+'"><div class="n">'+(i<cur?'✓':(i+1))+'</div><div class="t">'+ch.t+'</div></div>').join('');
+  el.querySelectorAll('.stp').forEach(d=>d.onclick=()=>{stopAuto();goSlide(CHAPTERS[+d.dataset.i].start);});}
+function renderMini(){const m=document.getElementById('mini');const s=slideIdx;
+  if(s===0){m.innerHTML='<div>主役 <b>方程式</b></div><div>曲線 <b>全点実計算</b></div>';}
+  else if(s<=2){const {up,lo}=branches(200);
+    m.innerHTML='<div class="best">高圧解 <b>'+(up?f3(up.V):'—')+'</b></div><div>低圧解 <b>'+(lo?f3(lo.V):'—')+'</b></div>';}
+  else if(s<=6){m.innerHTML='<div class="best">ノーズ <b>'+f1(NOSE.PL)+' MW</b></div><div>det J <b>→ 0</b></div>';}
+  else if(s===7){const PLmw=LAMBDA_STEPS[Math.min(lamIdx,LAMBDA_STEPS.length-1)];
+    m.innerHTML='<div>負荷 <b>'+f1(PLmw)+' MW</b></div><div class="best">余裕 <b>'+f1(Math.max(0,NOSE.PL-PLmw))+' MW</b></div>';}
+  else if(s===8){m.innerHTML='<div>負荷 <b>430 MW</b></div><div class="best">運命 <b>初期値しだい</b></div>';}
+  else if(s===9){m.innerHTML='<div>ノーズ <b>'+f1(NOSE.PL)+'→'+f1(NOSE_C.PL)+'</b></div><div class="best">ノーズ電圧 <b>'+f2(NOSE.V)+'→'+f2(NOSE_C.V)+'</b></div>';}
+  else if(s===10){m.innerHTML='<div>現在 <b>350 MW</b></div><div class="best">余裕 <b>'+f1(NOSE.PL-350)+' MW</b></div>';}
+  else{m.innerHTML='<div class="best">分岐理論へ <b>L6</b></div><div>実装へ <b>L5</b></div>';}}
+function renderLegend(){document.getElementById('legend').textContent=SLIDES[slideIdx].legend;}
+function renderExplain(){const el=document.getElementById('explain');const ch=CHAPTERS[chOf(slideIdx)];
+  el.style.setProperty('--c',ch.c);
+  el.innerHTML='<span class="lbl">SLIDE '+(slideIdx+1)+' / '+SLIDES.length+' — '+ch.t+'</span>'+SLIDES[slideIdx].html();}
+function renderAll(){renderStepper();renderMini();renderLegend();renderExplain();
+  document.getElementById('prevBtn').disabled=(slideIdx===0&&lamIdx===0);
+  document.getElementById('nextBtn').disabled=(slideIdx===SLIDES.length-1);}
+function draw_(){ctx.clearRect(0,0,CW,CH);drawGridBg();SLIDES[slideIdx].draw();}
+function goSlide(i){i=Math.max(0,Math.min(SLIDES.length-1,i));
+  if(i!==7)lamIdx=0;
+  slideIdx=i;renderAll();draw_();}
+// スライド7は「次へ」で負荷段階が進む
+function nextAction(){
+  if(slideIdx===7&&lamIdx<LAMBDA_STEPS.length-1){lamIdx++;renderAll();draw_();return;}
+  goSlide(slideIdx+1);
+}
+function prevAction(){
+  if(slideIdx===7&&lamIdx>0){lamIdx--;renderAll();draw_();return;}
+  goSlide(slideIdx-1);
+}
+let autoT=null;
+function stopAuto(){auto=false;if(autoT)clearTimeout(autoT);document.getElementById('autoBtn').textContent='⏵ 自動';}
+function autoTick(){if(!auto)return;
+  if(slideIdx<SLIDES.length-1||(slideIdx===7&&lamIdx<LAMBDA_STEPS.length-1)){
+    nextAction();autoT=setTimeout(autoTick,slideIdx===7?2600:5000);}
+  else stopAuto();}
+document.getElementById('nextBtn').onclick=()=>{stopAuto();nextAction();};
+document.getElementById('prevBtn').onclick=()=>{stopAuto();prevAction();};
+document.getElementById('resetBtn').onclick=()=>{stopAuto();lamIdx=0;goSlide(0);};
+document.getElementById('autoBtn').onclick=()=>{if(auto){stopAuto();return;}
+  if(slideIdx===SLIDES.length-1)goSlide(0);auto=true;document.getElementById('autoBtn').textContent='⏸ 停止';autoTick();};
+renderAll();draw_();
+</script>
+</body>
+</html>

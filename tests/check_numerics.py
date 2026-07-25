@@ -154,6 +154,61 @@ def main():
         check("スライド16枚", r["slides"] == 16, f"slides={r['slides']}")
         check("GS参照解も収束", r["gsConv"])
 
+        # ---------- learn_gs (GS講演) ----------
+        print("\n■ GS講演 (learn_gs)")
+        page.goto(f"{BASE}/learn_gs.html")
+        page.wait_for_timeout(500)
+        r = page.evaluate("""() => ({
+            slides: SLIDES.length, gs1: GS1.it, gs16: GS16.conv ? GS16.it : -1,
+            nr: NRIT, conv: GS1.conv,
+            rate0: RATE_SWEEP[0].rate, rate4: RATE_SWEEP[4].rate
+        })""")
+        check("スライド14枚", r["slides"] == 14)
+        check("GS(ω=1.0): 7回収束 (P=0.5)", r["conv"] and r["gs1"] == 7, f"it={r['gs1']}")
+        check("GS(ω=1.6): 51回 (加速が逆効果)", r["gs16"] == 51, f"it={r['gs16']}")
+        check("NR: 3回 (対比)", r["nr"] == 3)
+        check("収束比率ρ: 負荷で悪化 (0.04→0.65)",
+              abs(r["rate0"] - 0.036) < 0.01 and abs(r["rate4"] - 0.653) < 0.02,
+              f"ρ={r['rate0']:.3f}→{r['rate4']:.3f}")
+
+        # ---------- learn_dc (DC講演) ----------
+        print("\n■ DC講演 (learn_dc)")
+        page.goto(f"{BASE}/learn_dc.html")
+        page.wait_for_timeout(500)
+        r = page.evaluate("""() => {
+            const s = SWEEP.find(x => Math.abs(x.P - 0.5) < 0.05);
+            const h = SWEEP[SWEEP.length - 1];
+            const R = 180 / Math.PI;
+            return { slides: SLIDES.length, n: SWEEP.length,
+                     dAC: s.dAC * R, dDC: s.dDC * R,
+                     diffH: Math.abs(h.dAC - h.dDC) * R, vH: h.V };
+        }""")
+        check("スライド13枚", r["slides"] == 13)
+        check("AC解 δ=-1.525° (P=0.5, 既存検証値と一致)", abs(r["dAC"] + 1.525) < 0.01, f"δ={r['dAC']:.3f}")
+        check("DC解 δ=-1.719° (=-P·x)", abs(r["dDC"] + 1.719) < 0.01, f"δ={r['dDC']:.3f}")
+        check("重負荷で誤差拡大 (P≈4.2で>3°)", r["diffH"] > 3.0, f"diff={r['diffH']:.2f}°")
+        check("重負荷でV低下 (DCは見えない)", r["vH"] < 0.75, f"V={r['vH']:.3f}")
+
+        # ---------- learn_collapse (崩壊講演) ----------
+        print("\n■ 崩壊講演 (learn_collapse)")
+        page.goto(f"{BASE}/learn_collapse.html")
+        page.wait_for_timeout(500)
+        r = page.evaluate("""() => {
+            const flat = nrFrom(1, 0, 4.3, 1.72), deep = nrFrom(0.3, -0.8, 4.3, 1.72);
+            return { slides: SLIDES.length,
+                     nose: CURVE.nose.PL, noseC: CURVE_C.nose.PL,
+                     noseV: CURVE.nose.V, noseVC: CURVE_C.nose.V,
+                     upV: flat.conv ? flat.V : null, loV: deep.conv ? deep.V : null };
+        }""")
+        check("スライド13枚", r["slides"] == 13)
+        check("ノーズ ≈ 446 MW (L5と一致)", abs(r["nose"] - 446) < 5, f"nose={r['nose']:.1f}")
+        check("補償ノーズ ≈ 690 MW", abs(r["noseC"] - 690) < 6, f"nose={r['noseC']:.1f}")
+        check("補償でノーズ電圧上昇 (0.55→0.67)", r["noseVC"] > r["noseV"] + 0.08)
+        check("初期値A/B: フラット→上枝0.644 / 深い→下枝0.455",
+              r["upV"] is not None and abs(r["upV"] - 0.644) < 0.01
+              and r["loV"] is not None and abs(r["loV"] - 0.455) < 0.01,
+              f"up={r['upV']}, lo={r['loV']}")
+
         # ---------- map (学習アトラス) ----------
         print("\n■ 学習アトラス (map)")
         page.goto(f"{BASE}/map.html")
@@ -164,7 +219,7 @@ def main():
             spineOk: SPINE.every(n => M.some(m => m.n === n)),
             motOk: M.every(m => typeof MOT[m.mo] === 'function')
         })""")
-        check("カード16枚", r["cards"] == 16, f"cards={r['cards']}")
+        check("カード19枚 (16教材+講演3)", r["cards"] == 19, f"cards={r['cards']}")
         check("推奨順路の全項目がカードに存在", r["spineOk"])
         check("全カードにミニ可視化が定義", r["motOk"])
         import os as _os
