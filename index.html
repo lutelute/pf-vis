@@ -313,5 +313,22 @@
     </div>
 
     <script src="scripts/main.js"></script>
+    <script>
+    // 学習ラダー: 昇級課題の合格状況（各ページがlocalStorageに保存）を修了バッジで表示
+    (function(){
+        ['l0','l1','l2','l5','l6'].forEach(function(k){
+            try {
+                var s = JSON.parse(localStorage.getItem('pfvis_ladder_' + k) || '{}');
+                if (!(s.q1 && s.q2 && s.q3)) return;
+                var a = document.querySelector('#ladder a[href="ladder_' + k + '.html"]');
+                if (!a) return;
+                var b = document.createElement('span');
+                b.textContent = '✓修了';
+                b.style.cssText = 'color:var(--accent-green);font-weight:700;font-size:0.85em;margin-left:6px;';
+                a.after(b);
+            } catch (e) {}
+        });
+    })();
+    </script>
 </body>
 </html>

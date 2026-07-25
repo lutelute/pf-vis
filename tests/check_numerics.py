@@ -165,6 +165,19 @@ def main():
         check("2倍→約4.2倍の損失", abs((r["f100"] - 100) / (r["f50"] - 50) - 4.23) < 0.1)
         check("限界超え (d=505) で解なし", r["fOver"] is None)
 
+        # 昇級課題の進捗永続化: 保存→リロード→復元
+        page.evaluate("() => localStorage.setItem('pfvis_ladder_l0',"
+                      " JSON.stringify({q1:true,q2:true,q3:true}))")
+        page.reload()
+        page.wait_for_timeout(400)
+        r = page.evaluate("""() => ({
+            mark: document.getElementById('q1m').textContent,
+            unlocked: document.getElementById('nextbox').textContent.includes('修了')
+        })""")
+        check("進捗復元: 合格マーク再現", "✅" in r["mark"])
+        check("進捗復元: 修了ボックス解放", r["unlocked"])
+        page.evaluate("() => localStorage.removeItem('pfvis_ladder_l0')")
+
         # ---------- ladder_l1 ----------
         print("\n■ ラダーL1 (ladder_l1)")
         page.goto(f"{BASE}/ladder_l1.html")

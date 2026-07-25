@@ -415,6 +415,24 @@ function checkRadio(id,correct){
   const sel=document.querySelector('input[name='+id+']:checked');
   done(id,!!sel&&sel.value===correct);
 }
+
+// ============================================================
+// 進捗の保存・復元（昇級課題の合格をブラウザに記憶）・Enter判定
+// ============================================================
+(function(){
+  const KEY='pfvis_ladder_l6';
+  const orig=done;
+  done=function(id,ok){orig(id,ok);
+    try{localStorage.setItem(KEY,JSON.stringify(quizState));}catch(e){}};
+  try{
+    const s=JSON.parse(localStorage.getItem(KEY)||'{}');
+    ['q1','q2','q3'].forEach(id=>{if(s[id])orig(id,true);});
+  }catch(e){}
+  document.querySelectorAll('.qcheck input[type=text]').forEach(inp=>{
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();
+      const b=inp.closest('.qcheck').querySelector('button');if(b)b.click();}});
+  });
+})();
 </script>
 </body>
 </html>
