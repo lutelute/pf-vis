@@ -136,6 +136,24 @@ def main():
             check(f"損失 {expected} MW を表示", expected in r["bal"], f"case={r['caseName']}")
         check("実数値ヤコビアンを表示", r["jacCells"] > 0, f"cells={r['jacCells']}")
 
+        # ---------- learn_newton (講演スタイル教材) ----------
+        print("\n■ 講演: Newton-Raphson (learn_newton)")
+        page.goto(f"{BASE}/learn_newton.html")
+        page.wait_for_timeout(600)
+        r = page.evaluate("""() => ({
+            V: NR.V, dDeg: NR.d * 180 / Math.PI, it: NR.it, conv: NR.conv,
+            slides: SLIDES.length,
+            j0: (() => { const J = jac(1, 0); return [J.a, J.b, J.c, J.e]; })(),
+            gsConv: GS.conv
+        })""")
+        check("NR収束 (既定負荷 P=0.5)", r["conv"])
+        check("V = 0.9771 ± 0.001", abs(r["V"] - 0.9771) < 0.001, f"V={r['V']:.4f}")
+        check("δ = -1.525° ± 0.01", abs(r["dDeg"] + 1.525) < 0.01, f"δ={r['dDeg']:.3f}")
+        check("フラットスタートJ = [15,5,-5,15]",
+              all(abs(a - b) < 0.01 for a, b in zip(r["j0"], [15, 5, -5, 15])), f"J={r['j0']}")
+        check("スライド16枚", r["slides"] == 16, f"slides={r['slides']}")
+        check("GS参照解も収束", r["gsConv"])
+
         # ---------- dc_accuracy ----------
         print("\n■ DC潮流精度検証 (dc_accuracy)")
         page.goto(f"{BASE}/dc_accuracy_analysis.html")

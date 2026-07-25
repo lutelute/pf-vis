@@ -26,6 +26,7 @@ PAGES = [
     ("DC潮流精度検証", "dc_accuracy_analysis.html"),
     ("演習問題", "exercises.html"),
     ("はじめに", "getting_started.html"),
+    ("講演: Newton-Raphson", "learn_newton.html"),
 ]
 
 

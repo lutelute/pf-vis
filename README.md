@@ -26,6 +26,9 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 **✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、難易度表示つき）。
 数値入力の自動判定（22入力欄・達成状況はブラウザに保存）と考察問題の自己評価チェックリスト付き。
 
+**🎤 [講演スタイル教材](https://lutelute.github.io/pf-vis/learn_newton.html)** — ブループリント形式（[仕様](./docs/BLUEPRINT.md)）の章立てスライド教材。
+第1弾「Newton-Raphson潮流計算」全16枚: 2母線の実計算でミスマッチの地図→ヤコビアン導出→2次収束の実証→検算まで1本の物語で通す。
+
 ### 教材としての仕掛け
 
 - **学習ガイドバー**: 各ツールページ先頭に学習目標・前後の導線・演習/用語集リンクを常設

@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Newton-Raphson潮流計算 — 解けない方程式を、傾きで解く</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
+    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --loss:#c2891b; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);-webkit-font-smoothing:antialiased;line-height:1.6;}
+  .wrap{max-width:1000px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;line-height:1.9;}
+  .nav a{color:var(--accent);text-decoration:none;margin-right:14px;} .nav a:hover{text-decoration:underline;}
+  .lecture-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--upd);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:25px;margin:0 0 5px;letter-spacing:.02em;}
+  .lead{color:var(--muted);font-size:13.5px;max-width:730px;margin-bottom:14px;}
+  .lead a{color:var(--accent);} .lead b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 108px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:2px;}
+  .prow span:last-child{color:var(--muted);} .prow b{color:var(--text);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;}
+  .stepper{display:flex;background:var(--panel-2);border-bottom:1px solid var(--line);}
+  .stp{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 6px;cursor:pointer;position:relative;border-right:1px solid var(--line);transition:.18s;}
+  .stp:last-child{border-right:none;}
+  .stp .n{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;background:#fff;color:var(--faint);border:1px solid var(--line);transition:.18s;}
+  .stp .t{font-size:12px;color:var(--faint);transition:.18s;}
+  .stp.done .n{background:#e4f4ef;color:var(--accent);border-color:var(--accent);} .stp.done .t{color:var(--muted);}
+  .stp.active{background:var(--panel);}
+  .stp.active .n{background:var(--c);color:#fff;border-color:var(--c);font-weight:700;}
+  .stp.active .t{color:var(--text);font-weight:600;}
+  .stp.active:after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--c);}
+  .body{display:grid;grid-template-columns:1fr 1fr;}
+  .vis{padding:16px;border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;}
+  canvas{display:block;width:100%;max-width:360px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .mini{display:flex;gap:18px;font-family:var(--mono);font-size:12px;color:var(--muted);margin-top:10px;flex-wrap:wrap;align-self:flex-start;}
+  .mini b{color:var(--text);font-weight:600;} .mini .best b{color:var(--accent);}
+  .legend{font-size:11.5px;color:var(--faint);margin-top:6px;align-self:flex-start;}
+  .explain{padding:18px 18px 16px;}
+  .explain .lbl{display:inline-block;font-size:11px;font-family:var(--mono);letter-spacing:.08em;color:var(--c,var(--accent));border:1px solid var(--line);border-radius:6px;padding:2px 8px;margin-bottom:10px;}
+  .explain h3{font-family:var(--mincho);font-size:17px;margin:0 0 8px;}
+  .eq{font-family:var(--mono);font-size:12.5px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 13px;margin:8px 0;line-height:1.9;}
+  .eq.curr{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c);}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12px;color:var(--muted);}
+  .desc{font-size:13px;color:var(--muted);} .desc b{color:var(--text);} .desc a{color:var(--accent);}
+  .bar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-top:1px solid var(--line);background:var(--panel-2);flex-wrap:wrap;}
+  button{font-family:var(--gothic);font-size:13.5px;border-radius:9px;padding:9px 15px;border:1px solid var(--line);background:var(--panel);color:var(--text);cursor:pointer;transition:.15s;}
+  button:hover:not(:disabled){border-color:var(--faint);} button:disabled{opacity:.4;cursor:default;}
+  button.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+  .bar .spacer{flex:1;}
+  .aha{margin-top:18px;background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .aha-h{font-weight:700;color:var(--warm);margin-bottom:4px;font-size:13px;}
+  .aha b{color:var(--text);}
+  .myth{margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:13px 16px;font-size:13px;color:var(--muted);}
+  .myth-h{font-weight:700;color:var(--neg);margin-bottom:6px;font-size:13px;}
+  .myth .row{display:flex;gap:10px;padding:3px 0;}
+  .myth .x{color:var(--neg);font-weight:700;flex:0 0 14px;} .myth .o{color:var(--accent);font-weight:700;flex:0 0 14px;}
+  .myth b{color:var(--text);}
+  details{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;}
+  summary{padding:13px 16px;cursor:pointer;font-size:13.5px;color:var(--muted);} summary:hover{color:var(--text);}
+  .det{padding:0 16px 16px;font-size:13px;color:var(--muted);} .det a{color:var(--accent);} .det b{color:var(--text);}
+  @media(max-width:760px){.body{grid-template-columns:1fr;}.vis{border-right:none;border-bottom:1px solid var(--line);}.stp .t{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="getting_started.html">🚪 はじめに</a>
+    <a href="power_flow_process_visualizer_v2.html">🔍 計算過程ステップ表示</a>
+    <a href="exercises.html">✏️ 演習</a>
+  </div>
+  <div class="lecture-tag">⚡ 講演 — 全16枚</div>
+  <h1>Newton-Raphson潮流計算 — 解けない方程式を、傾きで解く</h1>
+  <div class="lead">潮流計算の心臓部・<b>Newton-Raphson法</b>を、最小の系統（2母線）で最初から最後まで通します。数式は全て<b>実数値つき</b>、計算は全て<b>この場の本物</b>。誤差の桁が反復のたびに倍々で減る「2次収束」を、自分の目で確かめてください。<a href="getting_started.html">前提知識はこちら</a>。</div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>NR法は潮流計算の<b>事実上の標準</b>。MATPOWERも実務ツールも、心臓部はこの反復です。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>非線形方程式を「<b>今の場所の傾きで線形化して解く</b>」を繰り返す方法。誤差の桁が反復ごとに倍々で減る。</span></div>
+    <div class="prow"><span class="pq">どこで使われる?</span><span>系統運用・設備計画のあらゆる潮流計算、最適潮流(OPF)や安定度解析の内側ループ。</span></div>
+  </div>
+
+  <div class="stage">
+    <div class="stepper" id="stepper"></div>
+    <div class="body">
+      <div class="vis">
+        <canvas id="cv" width="360" height="430"></canvas>
+        <div class="mini" id="mini"></div>
+        <div class="legend" id="legend"></div>
+      </div>
+      <div class="explain" id="explain"></div>
+    </div>
+    <div class="bar">
+      <button id="prevBtn">◀ 前へ</button>
+      <button class="primary" id="nextBtn">次へ ▶</button>
+      <button id="autoBtn">⏵ 自動</button>
+      <button id="resetBtn">↻ 最初から</button>
+      <span class="spacer"></span>
+      <button id="diceBtn">🎲 別の負荷</button>
+    </div>
+  </div>
+
+  <div class="aha">
+    <div class="aha-h">💡 見方が変わる一文</div>
+    <p style="margin:0">NR法は非線形方程式を「解いて」いません——<b>今の場所の傾きで作った一次方程式を、繰り返し解いている</b>だけです。非線形を一発で解く魔法はなく、線形を賢く何度も解く工学がある。ヤコビアンとは「その場所の傾きの表」の名前にすぎません。</p>
+  </div>
+
+  <div class="myth">
+    <div class="myth-h">⚠ よくある誤解</div>
+    <div class="row"><span class="x">✗</span><span>NR法は万能で、必ず収束する</span></div>
+    <div class="row"><span class="o">✓</span><span>初期点と運転条件次第で<b>発散もする</b>。フラットスタート＋通常負荷では極めて安定だが、電圧崩壊の縁（<a href="power_flow_intuitive_v6_fixed.html" style="color:var(--accent)">入門ツール</a>の臨界ケース）では反復が暴れ、実装は減衰やバックトラッキングで守る。</span></div>
+    <div class="row"><span class="x">✗</span><span>反復回数が少ない ＝ 計算が速い</span></div>
+    <div class="row"><span class="o">✓</span><span>速さは「<b>反復回数 × 1反復の重さ</b>」。NRは毎反復ヤコビアン構築＋線形求解（O(n³)）が要り、GSの1反復（O(n²)）よりずっと重い。それでも桁違いに少ない回数で済むから、実務はNRを選ぶ。</span></div>
+  </div>
+
+  <details>
+    <summary>もっと詳しく：n母線への一般化・実務のNR・このページの計算の正体</summary>
+    <div class="det">このページの2母線では未知数が (|V₂|, δ₂) の2個でヤコビアンは2×2ですが、n母線では未知数が「非スラック母線のδ＋PQ母線の|V|」となり、IEEE 14母線で<b>22×22</b>になります（<a href="exercises.html">演習Q3-3</a>）。実務系統（数千〜数万母線）ではヤコビアンの大半が0（<b>スパース</b>）で、スパースLU分解と行列の並べ替えが速さの鍵。本リポジトリの<a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>では14母線の実数値ヤコビアンをクリックで解剖でき、<a href="power_flow_compare.html">アルゴリズム同時比較</a>では「真の解への距離」と実測収束次数p（NR≈2.0）を確認できます。このページの計算は全て実計算で、共有エンジン（MATPOWER公式解と照合済み、詳細は<code>docs/quality_rubric.md</code>）と同じ定式化です。文中のIEEE 14母線の数値（NR 4回・GS 179回・損失13.393 MW）は検証テストの実測値です。</div>
+  </details>
+</div>
+
+<script>
+"use strict";
+// ============================================================
+// 乱数 (シード付き mulberry32) — Math.random() は使わない
+// ============================================================
+let seed=7;
+const rng=()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const prefersReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ============================================================
+// 実計算コア: 2母線潮流 (Node.jsで検証済み)
+//   母線1 = スラック V=1.0∠0°、母線2 = PQ負荷 (P_L, Q_L 消費)
+//   線路 z = 0.02 + j0.06 → y = G + jB = 5 − j15
+// ============================================================
+const G=5, B=-15, XLINE=0.06, BASE=100; // BASE=100 MVA
+let PL=0.5, QL=0.2;                      // 負荷 (p.u.) — 🎲で変わる
+
+function calcPQ(V,d){ // 母線2の注入電力 (計算値)
+  const P=V*V*G - V*(G*Math.cos(d)+B*Math.sin(d));
+  const Q=-V*V*B - V*(G*Math.sin(d)-B*Math.cos(d));
+  return {P,Q};
+}
+function mism(V,d){ const c=calcPQ(V,d); return {dP:-PL-c.P, dQ:-QL-c.Q}; }
+function mnorm(V,d){ const m=mism(V,d); return Math.max(Math.abs(m.dP),Math.abs(m.dQ)); }
+function jac(V,d){ // 2×2 ヤコビアン (極形式・教科書公式)
+  const c=calcPQ(V,d);
+  return {a:-c.Q-V*V*B, b:c.P/V+V*G, c:c.P-V*V*G, e:c.Q/V-V*B};
+}
+function nrSolve(tol,maxIt){ // NR: 全反復の軌跡を記録
+  let V=1,d=0; const traj=[];
+  for(let k=0;k<maxIt;k++){
+    const e=mnorm(V,d); traj.push({V,d,err:e});
+    if(e<tol) return {traj,conv:true,V,d,it:k};
+    const J=jac(V,d), m=mism(V,d), det=J.a*J.e-J.b*J.c;
+    if(Math.abs(det)<1e-12) return {traj,conv:false,V,d,it:k};
+    const dd=( J.e*m.dP - J.b*m.dQ)/det;
+    const dv=(-J.c*m.dP + J.a*m.dQ)/det;
+    d+=dd; V+=dv;
+    if(V<0.05||V>2||Math.abs(d)>1.5) return {traj,conv:false,V,d,it:k+1};
+  }
+  return {traj,conv:false,V,d,it:maxIt};
+}
+function gsSolve(tol,maxIt){ // GS (複素直交形): A/B比較用
+  let re=1,im=0; const errs=[]; const Ym2=G*G+B*B;
+  for(let k=0;k<maxIt;k++){
+    const V=Math.hypot(re,im), d=Math.atan2(im,re);
+    const e=mnorm(V,d); errs.push(e);
+    if(e<tol) return {errs,conv:true,V,d,it:k};
+    const P=-PL,Q=-QL,Vm2=re*re+im*im;
+    const Sre=(P*re+Q*im)/Vm2, Sim=(P*im-Q*re)/Vm2;
+    const rre=Sre+G, rim=Sim+B; // −Y21·V1 = y·1 = G+jB
+    re=(rre*G+rim*B)/Ym2; im=(rim*G-rre*B)/Ym2;
+  }
+  return {errs,conv:false,it:maxIt};
+}
+function slackP(V,d){ return G - V*(G*Math.cos(d)-B*Math.sin(d)); } // スラック注入(p.u.)
+function dcDelta(){ return -PL*XLINE; } // DC: δ = −P·x (rad)
+
+// 現在の解 (負荷が変わるたびに再計算)
+let NR=null, GS=null;
+function recompute(){ NR=nrSolve(1e-10,40); GS=gsSolve(1e-10,400); }
+recompute();
+function newLoad(){ PL=0.4+rng()*1.8; QL=PL*(0.3+rng()*0.2); recompute(); }
+
+// ============================================================
+// 描画
+// ============================================================
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+const CW=360, CH=430;
+function drawGridBg(){ctx.fillStyle=getCSS('--panel-2');ctx.fillRect(0,0,CW,CH);
+  ctx.strokeStyle=getCSS('--grid');ctx.lineWidth=1;
+  for(let x=20;x<CW;x+=34){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke();}
+  for(let y=20;y<CH;y+=34){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(CW,y);ctx.stroke();}}
+function caption(t,y){ctx.fillStyle=getCSS('--faint');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';ctx.fillText(t,CW/2,y||CH-12);}
+
+// --- 2母線系統図 (上部) ---
+function drawSystem(y0,opt){
+  y0=y0||60; opt=opt||{};
+  const x1=80,x2=280;
+  // 線路
+  ctx.strokeStyle=getCSS('--muted');ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(x1+22,y0);ctx.lineTo(x2-22,y0);ctx.stroke();
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.fillText('z = 0.02 + j0.06',(x1+x2)/2,y0-24);
+  ctx.fillText('y = 1/z = 5 − j15',(x1+x2)/2,y0-11);
+  // 潮流の矢印
+  if(opt.flow){
+    ctx.fillStyle=getCSS('--accent');
+    const t=opt.animT!=null?opt.animT:0.5;
+    const ax=x1+30+(x2-x1-60)*t;
+    ctx.beginPath();ctx.moveTo(ax,y0);ctx.lineTo(ax-9,y0-5);ctx.lineTo(ax-9,y0+5);ctx.closePath();ctx.fill();
+  }
+  // バス1 (スラック)
+  ctx.fillStyle=getCSS('--accent');ctx.beginPath();ctx.arc(x1,y0,17,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 11px '+getCSS('--mono');ctx.fillText('B1',x1,y0+4);
+  ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');
+  ctx.fillText('スラック',x1,y0+33);ctx.fillText('V=1.0∠0°',x1,y0+46);
+  // バス2 (負荷)
+  const Vs=opt.showV? NR.V.toFixed(4):'?', Ds=opt.showV? (NR.d*180/Math.PI).toFixed(2)+'°':'?';
+  ctx.fillStyle=getCSS('--neg');ctx.beginPath();ctx.arc(x2,y0,17,0,7);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='700 11px '+getCSS('--mono');ctx.fillText('B2',x2,y0+4);
+  ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');
+  ctx.fillText('負荷 P='+PL.toFixed(2)+', Q='+QL.toFixed(2),x2,y0+33);
+  ctx.fillStyle=opt.showV?getCSS('--upd'):getCSS('--faint');
+  ctx.fillText('|V|='+Vs+'  δ='+Ds,x2,y0+46);
+}
+
+// --- V-δ 平面 (ミスマッチノルムの実等高線 + 軌跡) ---
+const PLANE={x:52,y:130,w:280,h:190, dMin:-0.45, dMax:0.1, vMin:0.55, vMax:1.15};
+function px(d){return PLANE.x+(d-PLANE.dMin)/(PLANE.dMax-PLANE.dMin)*PLANE.w;}
+function py(V){return PLANE.y+(PLANE.vMax-V)/(PLANE.vMax-PLANE.vMin)*PLANE.h;}
+function drawPlane(opt){
+  opt=opt||{};
+  // 等高線 (実計算): log10(ミスマッチノルム) を濃淡で
+  const NX=56,NY=40;
+  for(let i=0;i<NX;i++)for(let j=0;j<NY;j++){
+    const d=PLANE.dMin+(i+0.5)/NX*(PLANE.dMax-PLANE.dMin);
+    const V=PLANE.vMin+(j+0.5)/NY*(PLANE.vMax-PLANE.vMin);
+    const e=mnorm(V,d);
+    const lv=Math.max(-4,Math.min(0.8,Math.log10(e+1e-12)));
+    const t=(lv+4)/4.8; // 0(解の近く)〜1(遠い)
+    ctx.fillStyle='rgba(31,158,138,'+(0.42*(1-t)).toFixed(3)+')';
+    ctx.fillRect(px(d)-PLANE.w/NX/2+PLANE.w/NX*0, py(V)-PLANE.h/NY/2, PLANE.w/NX+1, PLANE.h/NY+1);
+  }
+  // 枠と軸
+  ctx.strokeStyle=getCSS('--line');ctx.lineWidth=1;ctx.strokeRect(PLANE.x,PLANE.y,PLANE.w,PLANE.h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='center';
+  ctx.fillText('δ (位相角) →',PLANE.x+PLANE.w/2,PLANE.y+PLANE.h+16);
+  ctx.save();ctx.translate(PLANE.x-32,PLANE.y+PLANE.h/2);ctx.rotate(-Math.PI/2);ctx.fillText('|V| (電圧) →',0,0);ctx.restore();
+  ctx.textAlign='left';
+  ctx.fillText('0.55',PLANE.x-30,py(0.55)+3);ctx.fillText('1.0',PLANE.x-24,py(1.0)+3);
+  ctx.textAlign='center';
+  ctx.fillText('-20°',px(-20*Math.PI/180),PLANE.y+PLANE.h+7);ctx.fillText('0°',px(0),PLANE.y+PLANE.h+7);
+  // 真の解 (星)
+  if(opt.star!==false && NR.conv){
+    const sx=px(NR.d),sy=py(NR.V);
+    ctx.fillStyle=getCSS('--warm');ctx.font='16px sans-serif';ctx.textAlign='center';ctx.fillText('★',sx,sy+5);
+  }
+  // 軌跡
+  if(opt.trajN!=null){
+    const n=Math.min(opt.trajN,NR.traj.length);
+    ctx.strokeStyle=getCSS('--upd');ctx.lineWidth=2;ctx.beginPath();
+    for(let k=0;k<n;k++){const p=NR.traj[k];const x=px(p.d),y=py(p.V);k===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
+    ctx.stroke();
+    for(let k=0;k<n;k++){const p=NR.traj[k];
+      ctx.fillStyle=k===n-1?getCSS('--neg'):getCSS('--upd');
+      ctx.beginPath();ctx.arc(px(p.d),py(p.V),k===n-1?5:3.5,0,7);ctx.fill();
+      if(k<3){ctx.fillStyle=getCSS('--muted');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='left';
+        ctx.fillText('k='+k,px(p.d)+7,py(p.V)-4);}
+    }
+  }
+  // 接線矢印 (傾きの図解)
+  if(opt.tangent){
+    const p=NR.traj[0];const x=px(p.d),y=py(p.V);
+    ctx.strokeStyle=getCSS('--neg');ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+52,y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x,y+40);ctx.stroke();
+    ctx.fillStyle=getCSS('--neg');ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+    ctx.fillText('∂/∂δ',x+30,y-5);ctx.fillText('∂/∂V',x+5,y+38);
+  }
+}
+
+// --- 誤差バー (対数) ---
+function drawErrBars(y0,errs,color,label){
+  const n=Math.min(errs.length,10), bw=Math.min(26,(CW-90)/Math.max(n,1));
+  ctx.fillStyle=getCSS('--faint');ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillText(label,40,y0-4);
+  for(let k=0;k<n;k++){
+    const e=Math.max(errs[k],1e-13);
+    const h=Math.max(3,(Math.log10(e)+13)/13.8*62);
+    ctx.fillStyle=color;
+    ctx.fillRect(46+k*bw,y0+62-h,bw*0.62,h);
+    ctx.fillStyle=getCSS('--faint');ctx.font='8.5px '+getCSS('--mono');ctx.textAlign='center';
+    ctx.fillText(k,46+k*bw+bw*0.31,y0+72);
+  }
+}
+
+// --- ヤコビアン2×2セル ---
+function drawJacCells(y0,V,d){
+  const J=jac(V,d);
+  const cells=[[J.a,'∂P/∂δ'],[J.b,'∂P/∂V'],[J.c,'∂Q/∂δ'],[J.e,'∂Q/∂V']];
+  const cs=74,x0=CW/2-cs-8;
+  const maxAbs=Math.max(...cells.map(c=>Math.abs(c[0])));
+  cells.forEach((c,i)=>{
+    const cx=x0+(i%2)*(cs+16), cy=y0+Math.floor(i/2)*(cs*0.72+14);
+    const t=Math.abs(c[0])/maxAbs;
+    ctx.fillStyle=c[0]>=0?'rgba(31,158,138,'+(0.12+0.4*t)+')':'rgba(207,79,95,'+(0.12+0.4*t)+')';
+    ctx.fillRect(cx,cy,cs,cs*0.72);
+    ctx.strokeStyle=getCSS('--line');ctx.strokeRect(cx,cy,cs,cs*0.72);
+    ctx.fillStyle=getCSS('--text');ctx.font='700 15px '+getCSS('--mono');ctx.textAlign='center';
+    ctx.fillText(c[0].toFixed(1),cx+cs/2,cy+cs*0.40);
+    ctx.fillStyle=getCSS('--muted');ctx.font='9.5px '+getCSS('--mono');
+    ctx.fillText(c[1],cx+cs/2,cy+cs*0.62);
+  });
+}
+
+// --- NR vs GS 収束曲線 (対数) ---
+function drawCurves(y0,h){
+  const nrE=NR.traj.map(t=>t.err), gsE=GS.errs;
+  const nIt=Math.max(nrE.length,Math.min(gsE.length,30));
+  const x0=48,w=CW-72;
+  ctx.strokeStyle=getCSS('--line');ctx.strokeRect(x0,y0,w,h);
+  ctx.fillStyle=getCSS('--faint');ctx.font='9.5px '+getCSS('--mono');ctx.textAlign='right';
+  for(const lg of [0,-4,-8]){const y=y0+( -lg)/12*h;ctx.fillText('1e'+lg,x0-3,y+3);
+    ctx.strokeStyle='rgba(220,216,204,0.6)';ctx.beginPath();ctx.moveTo(x0,y);ctx.lineTo(x0+w,y);ctx.stroke();}
+  const X=k=>x0+(nIt<=1?0:k/(nIt-1)*w);
+  const Y=e=>y0+Math.min(h,(-Math.log10(Math.max(e,1e-12)))/12*h);
+  const plot=(errs,color)=>{ctx.strokeStyle=color;ctx.lineWidth=2;ctx.beginPath();
+    errs.slice(0,nIt).forEach((e,k)=>{k===0?ctx.moveTo(X(k),Y(e)):ctx.lineTo(X(k),Y(e));});ctx.stroke();
+    ctx.fillStyle=color;errs.slice(0,nIt).forEach((e,k)=>{ctx.beginPath();ctx.arc(X(k),Y(e),2.5,0,7);ctx.fill();});};
+  plot(gsE,getCSS('--loss'));
+  plot(nrE,getCSS('--upd'));
+  ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillStyle=getCSS('--upd');ctx.fillText('NR ('+NR.it+'回)',x0+6,y0+12);
+  ctx.fillStyle=getCSS('--loss');ctx.fillText('GS ('+(GS.conv?GS.it+'回':'未収束')+')',x0+6,y0+24);
+  ctx.fillStyle=getCSS('--faint');ctx.textAlign='center';ctx.fillText('反復回数 →',x0+w/2,y0+h+13);
+}
+
+// --- 収支図 ---
+function drawBalance(y0){
+  const P1=slackP(NR.V,NR.d), loss=P1-PL;
+  const x0=40,w=CW-80;
+  ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='left';
+  ctx.fillText('電力収支 (×'+BASE+' MVA基準)',x0,y0);
+  const rows=[['スラック発電 P₁',P1,getCSS('--accent')],['負荷 P_L',PL,getCSS('--neg')],['損失 (P₁−P_L)',loss,getCSS('--loss')]];
+  rows.forEach((r,i)=>{
+    const y=y0+18+i*28;
+    ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');ctx.fillText(r[0],x0,y+11);
+    ctx.fillStyle=r[2];
+    ctx.fillRect(x0+118,y,Math.max(3,r[1]/Math.max(P1,0.01)*(w-160)),14);
+    ctx.fillStyle=getCSS('--text');ctx.textAlign='left';
+    ctx.fillText((r[1]*BASE).toFixed(2)+' MW',x0+124+Math.max(3,r[1]/Math.max(P1,0.01)*(w-160)),y+11);
+  });
+  ctx.fillStyle=getCSS('--accent');ctx.font='700 10.5px '+getCSS('--mono');
+  ctx.fillText('検算: '+(P1*BASE).toFixed(2)+' = '+(PL*BASE).toFixed(2)+' + '+(loss*BASE).toFixed(2)+' ✓',x0,y0+18+3*28+8);
+}
+
+// ============================================================
+// スライド定義 (4章×16枚)
+// ============================================================
+const CHAPTERS=[
+  {t:'Ⅰ 問題',c:'var(--neg)',start:0},
+  {t:'Ⅱ 道具',c:'var(--upd)',start:4},
+  {t:'Ⅲ ライブ実験',c:'var(--loss)',start:8},
+  {t:'Ⅳ まとめ',c:'var(--accent)',start:13}];
+function chOf(i){let c=0;CHAPTERS.forEach((ch,k)=>{if(i>=ch.start)c=k;});return c;}
+let slideIdx=0,anim=false,auto=false,animT=0,trajShown=0;
+const f2=x=>x.toFixed(2), f4=x=>x.toFixed(4), deg=d=>(d*180/Math.PI).toFixed(2);
+
+const SLIDES=[
+// ============ Ⅰ 問題 ============
+{title:'開演',legend:'2つの母線と1本の線路 — 今日の全舞台',
+ html(){return '<h3>開演：最小の系統で、心臓部を見る</h3><div class="eq curr">未知数: |<i>V</i>₂| と <i>δ</i>₂ の 2 つ　／　方程式: P の収支と Q の収支の 2 本<span class="read">読み：母線2の電圧の「大きさ」と「位相角」を、電力の収支が合うように決めたい。式2本・未知数2個 — 数は合っているのに、一発では解けません</span></div><div class="desc">ようこそ。今日の舞台は<b>2母線1線路</b>の最小系統です。母線1は電圧が決まっているスラック、母線2は P='+f2(PL)+', Q='+f2(QL)+' p.u. を消費する負荷。問いはただ一つ——<b>母線2の電圧はいくらになるか</b>。この最小の問いの中に、実務の潮流計算の全てが入っています。</div>';},
+ draw(){drawSystem(60,{});drawPlane({star:false});caption('下の緑の濃淡は後で説明します（実は答えの地図）');}},
+{title:'解きたい式',legend:'収支式。sin・cos と電圧同士の積が非線形の正体',
+ html(){return '<h3>解きたい式：電力の収支</h3><div class="eq curr"><i>P</i>₂(<i>V</i>,<i>δ</i>) = <i>V</i>²G − <i>V</i>(G cos<i>δ</i> + B sin<i>δ</i>) = −'+f2(PL)+'<br><i>Q</i>₂(<i>V</i>,<i>δ</i>) = −<i>V</i>²B − <i>V</i>(G sin<i>δ</i> − B cos<i>δ</i>) = −'+f2(QL)+'<span class="read">読み：G=5, B=−15 は線路の通しやすさ（アドミタンス）。左辺は「電圧が決める流入」、右辺は「負荷の消費」。両者が釣り合う (<i>V</i>, <i>δ</i>) を探す</span></div><div class="desc">これが潮流方程式です。よく見てください——<b>sin・cos</b> があり、<b>V が2乗や積</b>で入っている。つまり<b>非線形</b>。連立一次方程式のように移項して一発で解く、ができない形です。G=5, B=−15 の導出は<a href="exercises.html">演習Q2-1</a>で手計算できます。</div>';},
+ draw(){drawSystem(60,{});drawPlane({star:false});caption('平面の各点 (δ, V) で収支のズレを実計算した地図が下の濃淡');}},
+{title:'ミスマッチ',legend:'緑が濃い=収支のズレが小さい。★=ズレがゼロの点（解）',
+ html(){const m=mism(1,0);return '<h3>ミスマッチ：ズレを測る物差し</h3><div class="eq curr">Δ<i>P</i> = 指定値 − 計算値 = '+m.dP.toFixed(3)+'　Δ<i>Q</i> = '+m.dQ.toFixed(3)+'　（フラットスタート V=1, δ=0 で）<span class="read">読み：いまの (V, δ) の当てずっぽうでは、電力の収支がこれだけ合っていない。このズレ＝<b>ミスマッチ</b>を全部ゼロにするのが目標</span></div><div class="desc">V=1.0, δ=0°（<b>フラットスタート</b>）と当てずっぽうを置くと、収支は '+Math.abs(m.dP).toFixed(2)+' p.u.（='+(Math.abs(m.dP)*BASE).toFixed(0)+' MW 分）ズレます。下の平面は<b>あらゆる (δ, V) でこのズレを実計算した地図</b>——緑が濃いほどズレが小さく、★がズレゼロの点＝解です。潮流計算とは「この地図で★を探すこと」。</div>';},
+ draw(){drawSystem(60,{});drawPlane({trajN:1});caption('紫の点=フラットスタート地点、★=解');}},
+{title:'なぜ一発で解けないか',legend:'非線形=地図の等高線が歪んでいる。直線的に解へ飛べない',
+ html(){return '<h3>なぜ一発で解けないか</h3><div class="eq curr">線形なら:  <i>x</i> = A⁻¹<i>b</i> で一発　⇔　非線形:  逆算の公式がない<span class="read">読み：一次方程式は「傾きが一定」だから逆算できる。sin や積が入ると傾きが場所ごとに変わり、閉じた公式で解へ飛べない</span></div><div class="desc">地図の緑の濃淡が<b>歪んでいる</b>のが見えますか？　これが非線形の姿です。傾きが場所ごとに違うから、「移項して割る」式の逆算ができない。残された道は——<b>今いる場所の情報だけを頼りに、一歩ずつ★へ近づく</b>こと。その最速の歩き方が Newton-Raphson 法です。</div>';},
+ draw(){drawSystem(60,{});drawPlane({trajN:1});caption('歪んだ地図を、どう歩けば最短で★に着くか？');}},
+// ============ Ⅱ 道具 ============
+{title:'傾きという道具',legend:'赤い矢印=フラットスタート地点での「傾き」の方向',
+ html(){return '<h3>道具：その場所の「傾き」を測る</h3><div class="eq curr">∂<i>P</i>/∂<i>δ</i>, ∂<i>P</i>/∂<i>V</i>, ∂<i>Q</i>/∂<i>δ</i>, ∂<i>Q</i>/∂<i>V</i><span class="read">読み：「δ を少し動かすと P はどれだけ変わる?」——4 通りの<b>感度</b>。今いる場所でこの4つを測れば、その近くでの方程式の振る舞いが分かる</span></div><div class="desc">歪んだ地図でも、<b>足元だけ見れば平ら</b>です（地球が丸くても足元は平らなのと同じ）。足元の傾き＝「入力を少し動かすと出力がどれだけ動くか」を4通り測る。これを2×2の表に並べたものに名前がついています——<b>ヤコビアン</b>。仰々しい名前ですが、正体は<b>ただの傾きの表</b>です。</div>';},
+ draw(){drawSystem(60,{});drawPlane({trajN:1,tangent:true});caption('足元の傾きが分かれば、足元では一次方程式になる');}},
+{title:'ヤコビアンの中身',legend:'フラットスタートでの2×2ヤコビアン（実数値）。緑=正・赤=負',
+ html(){const J=jac(1,0);return '<h3>ヤコビアンの中身を全部見る</h3><div class="eq curr">J = [ ∂P/∂δ  ∂P/∂V ]   [ '+J.a.toFixed(0)+'   '+J.b.toFixed(0)+' ]<br>    [ ∂Q/∂δ  ∂Q/∂V ] = [ '+J.c.toFixed(0)+'  '+J.e.toFixed(0)+' ]<span class="read">読み：フラットスタート（V=1, δ=0）では計算値 P=Q=0 なので、公式から ∂P/∂δ = −V²B = 15、∂P/∂V = VG = 5 …と<b>手で出せる</b>数</span></div><div class="desc">実数値を見てください。<b>対角（15, 15）が非対角（5, −5）より大きい</b>——「P は δ に、Q は V に強く効く」。この2母線の時点で、高速分離法（Fast Decoupled）の分離近似の根拠がもう見えています。この導出は<a href="exercises.html">演習Q2-2</a>で、14母線の22×22版は<a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>で確かめられます。</div>';},
+ draw(){drawSystem(60,{});drawJacCells(160,1,0);caption('∂P/∂δ=15 の意味: δが1°進むと P が約 '+(15*Math.PI/180*BASE).toFixed(0)+' MW 増える感度',CH-30);}},
+{title:'線形化して解く',legend:'足元の一次方程式を解いた「修正量」だけ進む',
+ html(){const J=jac(1,0),m=mism(1,0),det=J.a*J.e-J.b*J.c;
+   const dd=(J.e*m.dP-J.b*m.dQ)/det, dv=(-J.c*m.dP+J.a*m.dQ)/det;
+   return '<h3>線形化して解く：修正量 Δ</h3><div class="eq curr">J · [Δ<i>δ</i>; Δ<i>V</i>] = [Δ<i>P</i>; Δ<i>Q</i>]　→　Δ<i>δ</i> = '+dd.toFixed(4)+' rad, Δ<i>V</i> = '+dv.toFixed(4)+'<span class="read">読み：「傾き × 動く量 = ズレ」の一次方程式を解くと、ズレを打ち消すための<b>動くべき量</b>が出る。2×2 なら逆行列で手計算できる（<a href="exercises.html">演習Q2-3</a>）</span></div><div class="desc">ヤコビアン（傾き）とミスマッチ（ズレ）が揃えば、あとは<b>一次方程式</b>です。解いた答え Δδ='+dd.toFixed(3)+' rad（='+(dd*180/Math.PI).toFixed(2)+'°）, ΔV='+dv.toFixed(3)+' だけ進む——これが NR の 1 歩。足元は平らという近似で出した歩幅なので、1歩で★ちょうどには着きません。でも、驚くほど近くまで行きます。</div>';},
+ draw(){drawSystem(60,{});drawPlane({trajN:2});caption('1歩目: 紫の線分が「線形化して解いた歩幅」');}},
+{title:'1反復の成果',legend:'ミスマッチ(対数バー)が1歩で2桁近く縮んだ',
+ html(){const e0=NR.traj[0].err, e1=NR.traj[1]?NR.traj[1].err:0;
+   return '<h3>1反復の成果を検算する</h3><div class="eq curr">ミスマッチ:  '+e0.toExponential(1)+'  →  '+e1.toExponential(1)+'　（1歩で 1/'+Math.round(e0/Math.max(e1,1e-15))+'）<span class="read">読み：当てずっぽう地点のズレと、1歩進んだ後のズレ。近似で出した歩幅なのに、ズレが桁で縮んでいる</span></div><div class="desc">1歩の後の位置は V='+f4(NR.traj[1].V)+', δ='+deg(NR.traj[1].d)+'°。真の解（V='+f4(NR.V)+', δ='+deg(NR.d)+'°）に<b>もうほぼ着いています</b>。「足元は平ら」という嘘は、解に近いほど嘘でなくなる——だから歩くほど1歩の精度が上がる。この正のスパイラルが次のスライドの主役です。</div>';},
+ draw(){drawSystem(60,{showV:false});drawPlane({trajN:2});drawErrBars(346,NR.traj.slice(0,2).map(t=>t.err),getCSS('--upd'),'ミスマッチ (対数): k=0 → k=1');}},
+// ============ Ⅲ ライブ実験 ============
+{title:'ライブ：収束まで回す',legend:'反復のたびに点が★へ吸い込まれる（実計算のアニメ）',
+ html(){const k=Math.min(trajShown,NR.traj.length-1);const p=NR.traj[k];
+   return '<h3>ライブ：収束まで回す</h3><div class="eq curr">反復 k = '+k+'　V = '+f4(p.V)+'　δ = '+deg(p.d)+'°　ミスマッチ = '+p.err.toExponential(1)+'<span class="read">読み：measure（ズレを測る）→ linearize（傾きを測る）→ solve（一次方程式）→ update（進む）。この4拍子を、ズレが許容値を切るまで繰り返す</span></div><div class="desc">同じ4拍子をただ繰り返します。点が★へ吸い込まれ、<b>'+NR.it+'回で収束</b>（許容誤差10⁻¹⁰）。反復のたびに1歩が正確になっていくのを、次のスライドで数字として取り出します。</div>';},
+ draw(){drawSystem(60,{showV:trajShown>=NR.traj.length-1});drawPlane({trajN:trajShown+1});
+   caption('反復 '+Math.min(trajShown,NR.traj.length-1)+' / '+(NR.traj.length-1));}},
+{title:'2次収束の証拠',legend:'誤差(対数バー)の下がり幅が反復ごとに倍々で伸びる',
+ html(){const es=NR.traj.map(t=>t.err);
+   let ratios='';
+   for(let k=1;k<Math.min(es.length,5);k++){ratios+=(k>1?' → ':'')+es[k].toExponential(1);}
+   return '<h3>2次収束：誤差の桁が倍々で減る</h3><div class="eq curr"><i>e</i><sub>k+1</sub> ≈ C·<i>e</i><sub>k</sub>²　（実測: '+es[0].toExponential(1)+' → '+ratios+'）<span class="read">読み：次の誤差は今の誤差の<b>2乗</b>に比例。誤差の指数（桁）を見ると −1 → −2 → −5 → −11 のように<b>倍々で深くなる</b></span></div><div class="desc">対数バーの下がり方が<b>加速</b>しているのが2次収束の姿です。「あと3桁精度が欲しい」ならNRは+1回で足ります。この性質は系統が大きくなっても保たれ、IEEE 14母線でも<b>4回</b>、数万母線の実系統でも数回〜10回程度。<a href="power_flow_compare.html">比較ツール</a>では実測収束次数 p≈2.0 が自動表示されます。</div>';},
+ draw(){drawSystem(60,{showV:true});drawErrBars(150,NR.traj.map(t=>t.err),getCSS('--upd'),'NRのミスマッチ (対数)');
+   ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';
+   const es=NR.traj.map(t=>t.err);
+   let y=260;ctx.fillText('誤差の指数(桁):',46,y);
+   es.slice(0,6).forEach((e,k)=>{ctx.fillText('k='+k+':  1e'+Math.ceil(Math.log10(Math.max(e,1e-13))),46,y+16+k*15);});
+   caption('下がり幅が広がっていく＝加速収束',CH-14);}},
+{title:'A/B: GSと比べる',legend:'紫=NR(崖) vs 黄=GS(直線)。同じ問題・同じ許容誤差',
+ html(){return '<h3>A/B対比：Gauss-Seidel と競争させる</h3><div class="eq curr">NR: '+NR.it+'回（2次収束）　⇔　GS: '+(GS.conv?GS.it+'回':'未収束')+'（線形収束）<span class="read">読み：GS は連立を解かず1母線ずつ更新する軽い方法。誤差は<b>一定の比率</b>でしか減らない（対数グラフで直線）。NR は<b>崖</b></span></div><div class="desc">同じ問題を <a href="power_flow_intuitive_v6_fixed.html">Gauss-Seidel法</a>にも解かせました。この小さな2母線でも形の違いは歴然——<b>NRの崖 vs GSの直線</b>。系統が大きいほど差は開き、IEEE 14母線・許容誤差10⁻⁶ では <b>NR 4回 vs GS 179回</b>（<a href="power_flow_compare.html">比較ツール</a>の実測）。ただし1反復の重さはGSがずっと軽い——誤解⚠の2つ目を思い出してください。</div>';},
+ draw(){drawSystem(60,{showV:true});drawCurves(160,190);}},
+{title:'🎲 負荷を変えて実験',legend:'🎲で負荷が変わる。地図・★・軌跡・反復数がすべて実計算で更新',
+ dice:true,
+ html(){return '<h3>🎲 実験：負荷を変えると何が変わるか</h3><div class="eq curr">負荷 P = '+f2(PL)+', Q = '+f2(QL)+' p.u.　→　解 V = '+f4(NR.V)+', δ = '+deg(NR.d)+'°　（NR '+NR.it+'回 / GS '+(GS.conv?GS.it+'回':'未収束')+'）<span class="read">読み：負荷が重いほど電圧は下がり、位相は遅れ、★は地図の左下（解の存在領域の縁）へ動く</span></div><div class="desc">「🎲 別の負荷」を何度か押してください。<b>負荷が重いほど V が下がり、GS の反復が伸びる</b>のが見えます。地図の★が緑の谷の縁へ寄っていく——これ以上負荷を増やすと解そのものが消える（<b>電圧崩壊</b>）。その瀬戸際は<a href="power_flow_intuitive_v6_fixed.html">入門ツール</a>の「電圧崩壊直前」で体験できます。</div>';},
+ draw(){drawSystem(60,{showV:true});drawPlane({trajN:NR.traj.length});
+   caption('P='+f2(PL)+' / V='+f4(NR.V)+' / NR '+NR.it+'回・GS '+(GS.conv?GS.it:'—')+'回');}},
+{title:'解の検算',legend:'発電=負荷+損失が合えば、解は物理的に正しい',
+ dice:true,
+ html(){const P1=slackP(NR.V,NR.d),loss=P1-PL;
+   return '<h3>解の検算：収支は合っているか</h3><div class="eq curr">P₁ = '+ (P1*BASE).toFixed(2)+' MW = 負荷 '+(PL*BASE).toFixed(2)+' + 損失 '+(loss*BASE).toFixed(2)+' MW ✓<span class="read">読み：スラック母線の発電（計算で決まった値）が、負荷と線路損失の合計に一致する。<b>解を信じてよい根拠</b>はこの検算</span></div><div class="desc">数値解は必ず<b>検算</b>で締めます。ミスマッチが10⁻¹⁰まで落ち、独立に計算した電力収支も合う——二重の根拠が揃って初めて「解けた」と言えます。損失 '+(loss*BASE).toFixed(2)+' MW は線路抵抗 r=0.02 が生む実損です（DC近似はこれを無視します）。実務ページ<a href="power_flow_matpower_v2.html">MATPOWER準拠実装</a>でも同じ検算パネルが動いています。</div>';},
+ draw(){drawSystem(60,{showV:true});drawBalance(160);
+   drawErrBars(300,NR.traj.map(t=>t.err),getCSS('--upd'),'ミスマッチ(対数) — 最終 '+NR.traj[NR.traj.length-1].err.toExponential(1));}},
+// ============ Ⅳ まとめ ============
+{title:'DC近似との距離',legend:'DC(1発・近似) vs NR(反復・厳密)。差=近似で捨てたもの',
+ dice:true,
+ html(){const dDC=dcDelta();
+   return '<h3>隣人：DC潮流との距離</h3><div class="eq curr">DC:  <i>δ</i> = −P·x = '+ (dDC*180/Math.PI).toFixed(2)+'°（1発）　⇔　NR:  δ = '+deg(NR.d)+'°, V = '+f4(NR.V)+'<span class="read">読み：V=1固定・sinδ≈δ・損失無視と割り切ると一次方程式になり反復不要。その代償が角度の差と「電圧・損失の情報ゼロ」</span></div><div class="desc">NRの対極が<b>DC潮流</b>です。答えは一発、しかし V の低下（'+f4(NR.V)+'）も損失も見えない。負荷が軽いほど差は小さく、重いほど開きます（🎲で確認）。「速いが粗い DC」と「重いが正確な NR」の使い分けは<a href="dc_accuracy_analysis.html">DC精度検証ツール</a>で定量化できます。</div>';},
+ draw(){drawSystem(60,{showV:true});drawPlane({trajN:NR.traj.length});
+   const xd=px(dcDelta()),yd=py(1.0);
+   ctx.fillStyle=getCSS('--loss');ctx.beginPath();ctx.arc(xd,yd,5,0,7);ctx.fill();
+   ctx.font='10px '+getCSS('--mono');ctx.textAlign='left';ctx.fillText('DC解',xd+8,yd-4);
+   caption('黄=DC解(V=1仮定の高さにいる) / ★=真の解');}},
+{title:'実務のNR',legend:'2母線→数万母線でも同じ4拍子。変わるのは行列の大きさと疎さ',
+ html(){return '<h3>実務のNR：何が同じで何が違うか</h3><div class="eq curr">2母線: J は 2×2　→　IEEE14: 22×22　→　実系統: 数万×数万（ほぼ全部 0）<span class="read">読み：4拍子（測る→傾き→解く→進む）は全く同じ。大きくなるのはヤコビアンで、実系統では<b>スパース性</b>（0だらけ）を使った専用の解き方が主役になる</span></div><div class="desc">今日の4拍子は、そのまま実務のNRです。IEEE 14母線なら J は22×22で<b>4回収束・損失13.393 MW</b>（本サイトの<a href="power_flow_matpower_v2.html">検証済み実装</a>）。数万母線では J のほぼ全てが0になるので、<b>スパースLU分解</b>と並べ替えが計算時間を決めます。22×22の実数値ヤコビアンは<a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>でクリック解剖できます。</div>';},
+ draw(){drawSystem(60,{showV:true});
+   const y0=150;ctx.fillStyle=getCSS('--text');ctx.font='700 11px '+getCSS('--mono');ctx.textAlign='left';
+   ctx.fillText('スケールの階段',48,y0);
+   const rows=[['今日',' 2 母線','J: 2×2','数μ秒'],['IEEE14','14 母線','J: 22×22','4回・13.393MW'],['実系統','数万母線','J: 疎行列','スパースLUが鍵']];
+   rows.forEach((r,i)=>{const y=y0+22+i*40;
+     ctx.fillStyle='rgba(31,158,138,'+(0.12+i*0.1)+')';ctx.fillRect(48,y-13,CW-96,30);
+     ctx.strokeStyle=getCSS('--line');ctx.strokeRect(48,y-13,CW-96,30);
+     ctx.fillStyle=getCSS('--text');ctx.font='700 10.5px '+getCSS('--mono');ctx.fillText(r[0],56,y+5);
+     ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--mono');
+     ctx.fillText(r[1],120,y+5);ctx.fillText(r[2],196,y+5);ctx.fillText(r[3],262,y+5);});
+   caption('4拍子は不変。大きさと疎さだけが変わる',CH-90);}},
+{title:'閉演',legend:'4拍子・2次収束・検算 — 今日の3点',
+ html(){return '<h3>閉演：持ち帰る3点</h3><div class="desc">今日の講演の芯は3つです。</div><div class="eq" style="margin-top:8px;"><b>① 4拍子</b> — 測る(ΔP,ΔQ) → 傾き(J) → 一次方程式 → 進む。NRはこれだけ<br><b>② 2次収束</b> — 誤差の桁が倍々で減る。だから実務は数回で終わる<br><b>③ 検算</b> — ミスマッチ+電力収支の二重の根拠が揃って「解けた」</div><div class="desc" style="margin-top:8px;">次の一歩：<a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>で22×22のJをクリック解剖 → <a href="power_flow_compare.html">比較ツール</a>で8手法と距離チャート → <a href="exercises.html">演習Stage 2</a>で今日の計算を紙で再現（J=[[15,5],[−5,15]]、あなたはもう出せます）。</div>';},
+ draw(){drawSystem(60,{showV:true});drawPlane({trajN:NR.traj.length});caption('ご清聴ありがとうございました 🎓');}},
+];
+
+// ============================================================
+// レンダリング + 制御 (gnnflow.html 方式)
+// ============================================================
+function renderStepper(){const el=document.getElementById('stepper');const cur=chOf(slideIdx);
+  el.innerHTML=CHAPTERS.map((ch,i)=>'<div class="stp '+(i===cur?'active':(i<cur?'done':''))+'" data-i="'+i+'" style="--c:'+ch.c+'"><div class="n">'+(i<cur?'✓':(i+1))+'</div><div class="t">'+ch.t+'</div></div>').join('');
+  el.querySelectorAll('.stp').forEach(d=>d.onclick=()=>{stopAuto();goSlide(CHAPTERS[+d.dataset.i].start);});}
+function renderMini(){const m=document.getElementById('mini');const s=slideIdx;
+  if(s<=1){m.innerHTML='<div>負荷 <b>P='+f2(PL)+'</b> p.u.</div><div>未知数 <b>|V₂|, δ₂</b></div>';}
+  else if(s<=3){m.innerHTML='<div>ミスマッチ <b>'+mnorm(1,0).toExponential(1)+'</b></div><div>目標 <b>&lt; 1e-10</b></div>';}
+  else if(s<=7){const J=jac(1,0);m.innerHTML='<div>J対角 <b>'+J.a.toFixed(0)+', '+J.e.toFixed(0)+'</b></div><div>非対角 <b>'+J.b.toFixed(0)+', '+J.c.toFixed(0)+'</b></div>';}
+  else if(s===8){const k=Math.min(trajShown,NR.traj.length-1);m.innerHTML='<div>反復 <b>'+k+'</b>/'+NR.it+'</div><div class="best">誤差 <b>'+NR.traj[k].err.toExponential(1)+'</b></div>';}
+  else if(s===9){m.innerHTML='<div class="best">NR <b>'+NR.it+'回</b></div><div>最終誤差 <b>'+NR.traj[NR.traj.length-1].err.toExponential(1)+'</b></div>';}
+  else if(s===10){m.innerHTML='<div class="best">NR <b>'+NR.it+'回</b></div><div>GS <b>'+(GS.conv?GS.it+'回':'未収束')+'</b></div>';}
+  else if(s===11){m.innerHTML='<div>P <b>'+f2(PL)+'</b></div><div class="best">V <b>'+f4(NR.V)+'</b></div>';}
+  else if(s===12){const P1=slackP(NR.V,NR.d);m.innerHTML='<div class="best">収支残差 <b>'+((P1-PL-(P1-PL))*BASE).toFixed(2)+' MW</b></div><div>損失 <b>'+((P1-PL)*BASE).toFixed(2)+' MW</b></div>';}
+  else if(s===13){m.innerHTML='<div>DC <b>'+(dcDelta()*180/Math.PI).toFixed(2)+'°</b></div><div class="best">NR <b>'+deg(NR.d)+'°</b></div>';}
+  else{m.innerHTML='<div class="best">NR <b>'+NR.it+'回で収束</b></div><div>2次収束 <b>実証済み</b></div>';}}
+function renderLegend(){document.getElementById('legend').textContent=SLIDES[slideIdx].legend;}
+function renderExplain(){const el=document.getElementById('explain');const ch=CHAPTERS[chOf(slideIdx)];
+  el.style.setProperty('--c',ch.c);
+  el.innerHTML='<span class="lbl">SLIDE '+(slideIdx+1)+' / '+SLIDES.length+' — '+ch.t+'</span>'+SLIDES[slideIdx].html();}
+function renderAll(){renderStepper();renderMini();renderLegend();renderExplain();
+  document.getElementById('prevBtn').disabled=(slideIdx===0);
+  document.getElementById('nextBtn').disabled=(slideIdx===SLIDES.length-1);
+  document.getElementById('diceBtn').disabled=!SLIDES[slideIdx].dice;}
+function draw_(){ctx.clearRect(0,0,CW,CH);drawGridBg();SLIDES[slideIdx].draw();}
+
+function goSlide(i){i=Math.max(0,Math.min(SLIDES.length-1,i));anim=false;slideIdx=i;
+  if(i===8)runTrajAnim(); else trajShown=NR.traj.length;
+  renderAll();draw_();}
+function runTrajAnim(){trajShown=0;
+  if(prefersReduced){trajShown=NR.traj.length;draw_();renderMini();renderExplain();return;}
+  anim=true;
+  function go(){if(!anim||slideIdx!==8)return;
+    trajShown=Math.min(trajShown+1,NR.traj.length);
+    draw_();renderMini();renderExplain();
+    if(trajShown<NR.traj.length){setTimeout(go,650);}else{anim=false;}}
+  setTimeout(go,500);}
+let autoT=null;
+function stopAuto(){auto=false;if(autoT)clearTimeout(autoT);document.getElementById('autoBtn').textContent='⏵ 自動';}
+function autoTick(){if(!auto)return;
+  if(slideIdx<SLIDES.length-1){goSlide(slideIdx+1);autoT=setTimeout(autoTick,slideIdx===8?6000:5000);}
+  else stopAuto();}
+document.getElementById('nextBtn').onclick=()=>{stopAuto();goSlide(slideIdx+1);};
+document.getElementById('prevBtn').onclick=()=>{stopAuto();goSlide(slideIdx-1);};
+document.getElementById('resetBtn').onclick=()=>{stopAuto();seed=7;PL=0.5;QL=0.2;recompute();goSlide(0);};
+document.getElementById('autoBtn').onclick=()=>{if(auto){stopAuto();return;}
+  if(slideIdx===SLIDES.length-1)goSlide(0);auto=true;document.getElementById('autoBtn').textContent='⏸ 停止';autoTick();};
+document.getElementById('diceBtn').onclick=()=>{newLoad();renderAll();draw_();};
+renderAll();draw_();
+</script>
+</body>
+</html>
