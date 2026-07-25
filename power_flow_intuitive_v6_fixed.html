@@ -712,6 +712,24 @@
         
         // 収束判定
         if (currentError < tol) {
+            // 実測収束次数 p ≈ ln(e_{k+1}/e_k)/ln(e_k/e_{k-1}) を誤差履歴から推定
+            const hist = state.errorHistory.filter(e => isFinite(e) && e > 1e-14);
+            const ps = [];
+            for (let k = hist.length - 1; k >= 2 && ps.length < 3; k--) {
+                const e2 = hist[k], e1 = hist[k - 1], e0 = hist[k - 2];
+                if (e2 >= e1 || e1 >= e0) continue;
+                const den = Math.log(e1 / e0);
+                if (Math.abs(den) < 1e-12) continue;
+                const p = Math.log(e2 / e1) / den;
+                if (isFinite(p) && p > 0 && p < 5) ps.push(p);
+            }
+            if (ps.length > 0) {
+                const p = ps.reduce((a, b) => a + b, 0) / ps.length;
+                const d = Object.assign({}, DIAGNOSIS.CONVERGED);
+                d.desc = DIAGNOSIS.CONVERGED.desc +
+                    ` 実測収束次数 p ≈ ${p.toFixed(2)}（${p >= 1.6 ? '2次収束' : p >= 1.25 ? '超線形' : '線形収束'}）。`;
+                return d;
+            }
             return DIAGNOSIS.CONVERGED;
         }
         
@@ -1409,7 +1427,7 @@
             }
             
             if (result.converged) {
-                logDiagnosis(DIAGNOSIS.CONVERGED);
+                logDiagnosis(diagnoseConvergence() || DIAGNOSIS.CONVERGED);
                 break;
             }
             
@@ -1468,7 +1486,7 @@
         drawAll();
         
         if (result.converged) {
-            logDiagnosis(DIAGNOSIS.CONVERGED);
+            logDiagnosis(diagnoseConvergence() || DIAGNOSIS.CONVERGED);
         } else {
             // ステップごとに診断
             const diagnosis = diagnoseConvergence();
