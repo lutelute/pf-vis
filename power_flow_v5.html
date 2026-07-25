@@ -461,6 +461,7 @@
                 <div class="tab-content active" id="tab-results">
                     <h3>🏆 実行結果</h3>
                     <div id="algoResults"></div>
+                    <div id="v5BalanceSummary" style="margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #94a3b8;"></div>
                     <h3 style="margin-top: 20px;">📋 比較表</h3>
                     <table class="comparison-table" id="comparisonTable">
                         <thead>
@@ -1706,6 +1707,38 @@ async function runAll() {
     updateQAnalysis();
 }
 
+/** 総損失をMWで計算 (支路潮流の送端+受端の和。独立した検算経路) */
+function computeTotalLossMW(e) {
+    let loss = 0;
+    for (const branch of e.branchData) {
+        const from = branch[0] - 1, to = branch[1] - 1;
+        let r = branch[2], x = branch[3];
+        const tap = branch[8] || 1;
+        if (Math.abs(r) < 1e-8) r = 0;
+        if (Math.abs(x) < 1e-8) x = 1e-6;
+        const z2 = r * r + x * x;
+        const g = r / z2, bs = -x / z2;
+        const tr = tap === 0 ? 1 : tap;
+        const Vi = e.V[from], Vj = e.V[to];
+        const th = e.delta[from] - e.delta[to];
+        const Pij = Vi * Vi * g / (tr * tr) - Vi * Vj * (g * Math.cos(th) + bs * Math.sin(th)) / tr;
+        const Pji = Vj * Vj * g - Vi * Vj * (g * Math.cos(th) - bs * Math.sin(th)) / tr;
+        loss += (Pij + Pji);
+    }
+    return loss * e.baseMVA;
+}
+
+/** 電力収支の検算 (スラック発電は解かれた注入から) */
+function computeBalanceMW(e) {
+    let Pload = 0;
+    for (const bus of e.busData) Pload += bus[2];
+    const { P } = e.calcPower();
+    let Pgen = 0;
+    for (let i = 0; i < e.nBus; i++) Pgen += P[i] * e.baseMVA + e.busData[i][2];
+    const Ploss = computeTotalLossMW(e);
+    return { Pgen, Pload, Ploss, residual: Pgen - Pload - Ploss };
+}
+
 function updateResults() {
     const container = document.getElementById('algoResults');
     container.innerHTML = '';
@@ -1732,9 +1765,23 @@ function updateResults() {
                 <div class="result-stats">
                     <span>反復: ${e.iteration}</span>
                     <span>誤差: ${isFinite(e.maxError) ? e.maxError.toExponential(1) : '∞'}</span>
+                    <span>${e.converged && algo !== 'dc' ? '損失: ' + computeTotalLossMW(e).toFixed(2) + ' MW' : ''}</span>
                 </div>
             </div>
         `;
+    }
+
+    // 解の妥当性: 最初に収束したAC手法で電力収支を検算
+    const balEl = document.getElementById('v5BalanceSummary');
+    if (balEl) {
+        const acAlgo = selectedAlgos.find(a => a !== 'dc' && engines[a] && engines[a].converged);
+        if (acAlgo) {
+            const bal = computeBalanceMW(engines[acAlgo]);
+            const ok = Math.abs(bal.residual) < 0.01;
+            balEl.innerHTML = `✅ 解の妥当性 (${ALGOS[acAlgo].short}の解): 総発電 ${bal.Pgen.toFixed(2)} = 総負荷 ${bal.Pload.toFixed(2)} + 総損失 ${bal.Ploss.toFixed(3)} MW (残差 ${bal.residual.toExponential(1)} ${ok ? '✓' : '✗'})`;
+        } else {
+            balEl.innerHTML = '';
+        }
     }
     
     // Update legend

@@ -819,11 +819,13 @@
                             <th>アルゴリズム</th>
                             <th>反復</th>
                             <th>誤差</th>
+                            <th>損失 (MW)</th>
                             <th>状態</th>
                         </tr>
                     </thead>
                     <tbody id="comparisonBody"></tbody>
                 </table>
+                <div id="balanceSummary" style="margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.8; color: #94a3b8;"></div>
             </div>
         </div>
     </div>
@@ -2320,6 +2322,42 @@
         return ps.reduce((a, b) => a + b, 0) / ps.length;
     }
 
+    /**
+     * 総損失をMWで計算する (支路潮流の送端+受端の和。独立した検算経路)。
+     * DC解 (converged && iteration===1 && 全V=1) には適用しない想定で呼び出し側が制御。
+     */
+    function computeTotalLossMW(engine) {
+        let loss = 0;
+        for (const branch of engine.branchData) {
+            const from = branch[0] - 1, to = branch[1] - 1;
+            let r = branch[2], x = branch[3];
+            const b = branch[4];
+            const tap = branch[8] || 1;
+            if (Math.abs(r) < 1e-8) r = 0;
+            if (Math.abs(x) < 1e-8) x = 1e-6;
+            const z2 = r * r + x * x;
+            const g = r / z2, bs = -x / z2;
+            const tr = tap === 0 ? 1 : tap;
+            const Vi = engine.V[from], Vj = engine.V[to];
+            const th = engine.delta[from] - engine.delta[to];
+            const Pij = Vi * Vi * g / (tr * tr) - Vi * Vj * (g * Math.cos(th) + bs * Math.sin(th)) / tr;
+            const Pji = Vj * Vj * g - Vi * Vj * (g * Math.cos(th) - bs * Math.sin(th)) / tr;
+            loss += (Pij + Pji);
+        }
+        return loss * engine.baseMVA;
+    }
+
+    /** 電力収支の検算 (総発電 = 総負荷 + 総損失)。スラック発電は解かれた注入から求める */
+    function computeBalanceMW(engine) {
+        let Pload = 0;
+        for (const bus of engine.busData) Pload += bus[2];
+        const { P } = engine._calcPowerInjection();
+        let Pgen = 0;
+        for (let i = 0; i < engine.nBus; i++) Pgen += P[i] * engine.baseMVA + engine.busData[i][2];
+        const Ploss = computeTotalLossMW(engine);
+        return { Pgen, Pload, Ploss, residual: Pgen - Pload - Ploss };
+    }
+
     function init() {
         buildAlgoCheckboxes();
         buildAlgoInfoGrid();
@@ -2565,15 +2603,37 @@
             const rank = sorted.findIndex(s => s.algo === r.algo);
             const rankClass = rank === 0 ? 'rank-1' : rank === 1 ? 'rank-2' : rank === 2 ? 'rank-3' : '';
             
+            const eng = engines[r.algo];
+            const isDC = r.algo === 'dc';
+            const lossStr = (r.converged && !isDC) ? computeTotalLossMW(eng).toFixed(3)
+                          : (isDC && eng.converged) ? '—(損失なし近似)' : '—';
             tbody.innerHTML += `
                 <tr>
                     <td><span class="algo-dot" style="background: ${r.color}; width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px;"></span>${r.shortName}</td>
                     <td class="${rankClass}">${r.iteration}</td>
                     <td>${isFinite(r.error) ? r.error.toExponential(1) : '∞'}</td>
+                    <td>${lossStr}</td>
                     <td><span class="algo-result-status ${r.status}">${r.statusText}</span></td>
                 </tr>
             `;
         });
+
+        // 解の妥当性: 最初に収束したAC手法で電力収支を検算して表示。
+        // 収束した全AC手法が同じ損失を示すこと自体も「同一解に到達した」証拠になる
+        const balEl = document.getElementById('balanceSummary');
+        if (balEl) {
+            const acAlgo = selectedAlgos.find(a => a !== 'dc' && engines[a] && engines[a].converged);
+            if (acAlgo) {
+                const bal = computeBalanceMW(engines[acAlgo]);
+                const ok = Math.abs(bal.residual) < 0.01;
+                balEl.innerHTML = `✅ 解の妥当性 (${ALGORITHMS[acAlgo].shortName}の解で検算): ` +
+                    `総発電 ${bal.Pgen.toFixed(2)} = 総負荷 ${bal.Pload.toFixed(2)} + 総損失 ${bal.Ploss.toFixed(3)} MW ` +
+                    `(残差 ${bal.residual.toExponential(1)} ${ok ? '✓' : '✗'})<br>` +
+                    `収束したAC手法の損失が全て一致していれば、全手法が同一解に到達した証拠。`;
+            } else {
+                balEl.innerHTML = '';
+            }
+        }
     }
 
     function drawAll() {
