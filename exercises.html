@@ -257,6 +257,14 @@
     </script>
 </head>
 <body>
+    <nav style="background: #0d1117; border-bottom: 1px solid #2d2d3d; padding: 10px 24px; display: flex; align-items: center; gap: 18px; font-size: 14px;">
+        <a href="index.html" style="color: #f1f5f9; font-weight: 700; text-decoration: none;">⚡ Power Flow Visualization</a>
+        <span style="flex: 1;"></span>
+        <a href="index.html" style="color: #3b82f6; text-decoration: none;">🏠 メイン</a>
+        <a href="getting_started.html" style="color: #3b82f6; text-decoration: none;">🚪 はじめに</a>
+        <a href="exercises.html" style="color: #3b82f6; text-decoration: none;">✏️ 演習</a>
+        <a href="getting_started.html#glossary" style="color: #3b82f6; text-decoration: none;">📖 用語集</a>
+    </nav>
     <div class="container">
         <header class="header">
             <div class="logo">
@@ -426,6 +434,10 @@ J = [ 15   5 ]
                     </div>
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         2×2の逆行列: [[a,b],[c,d]]⁻¹ = 1/(ad−bc)·[[d,−b],[−c,a]]。det = 15×15 − 5×(−5) = 250。
+                        <details class="ex-hint" style="margin-top:6px;"><summary>さらにヒント（逆行列の形まで）</summary><div>
+                            J⁻¹ = (1/250)·[[15, −5], [5, 15]]。あとは [ΔP; ΔQ] = [−0.5; −0.2] を右から掛けるだけ。
+                            1行目が Δδ、2行目が ΔV になる。
+                        </div></details>
                     </div></details>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
                         <div class="ex-math">J⁻¹ = 1/250 · [ 15  −5 ]
@@ -533,6 +545,10 @@ J = [ 15   5 ]
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         Stage 1 の 2ノード例なら NR は e = 2.5 → 1.6×10⁻¹ → 8.1×10⁻⁴ → 2.3×10⁻⁸。
                         e₂/e₁² = 0.16/6.3 ≈ 0.025、e₃/e₂² = 8.1e-4/2.6e-2 ≈ 0.031 — ほぼ一定。
+                        <details class="ex-hint" style="margin-top:6px;"><summary>さらにヒント（実は自動でも見られる）</summary><div>
+                            compareの結果カードに「実測収束次数 p」が表示される。まず自分で e の比を計算してから、
+                            表示値（p = ln(e_{k+1}/e_k)/ln(e_k/e_{k-1}) の推定）と突き合わせると理解が定着する。
+                        </div></details>
                     </div></details>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
                         2次収束: e_{k+1} ≈ C·e_k²（Cはほぼ一定）→ 誤差の指数が反復ごとに倍になる。<br>
@@ -655,6 +671,11 @@ J = [ 15   5 ]
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         x/r 比は3〜5程度（送電線らしい値）、負荷は P=0.3〜0.8 p.u. 程度にすると計算しやすい。
                         重すぎる負荷（P&gt;2 p.u.など）を選ぶと解が存在しないこともある — それ自体がStage 1で学んだ電圧崩壊。
+                        <details class="ex-hint" style="margin-top:6px;"><summary>さらにヒント（計算が楽になる選び方）</summary><div>
+                            z = 0.03 + j0.09 を選ぶと |z|² = 0.009 で y = (0.03 − j0.09)/0.009 = 3.33 − j10 と切りが良い。
+                            フラットスタートなら P_calc = Q_calc = 0 になるので、ヤコビアンは
+                            [[−V²B, VG], [−V²G, −VB]] = [[10, 3.33], [−3.33, 10]] の形で即書ける。
+                        </div></details>
                     </div></details>
                     <details class="ex-answer"><summary>解説（設計の見方）</summary><div>
                         この課題の狙いは「答えを当てる」ことではなく、<strong>解の妥当性を自分で判定する力</strong>。

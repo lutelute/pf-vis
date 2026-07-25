@@ -91,6 +91,14 @@
     </style>
 </head>
 <body>
+    <nav style="background: #0d1117; border-bottom: 1px solid #2d2d3d; padding: 10px 24px; display: flex; align-items: center; gap: 18px; font-size: 14px;">
+        <a href="index.html" style="color: #f1f5f9; font-weight: 700; text-decoration: none;">⚡ Power Flow Visualization</a>
+        <span style="flex: 1;"></span>
+        <a href="index.html" style="color: #3b82f6; text-decoration: none;">🏠 メイン</a>
+        <a href="getting_started.html" style="color: #3b82f6; text-decoration: none;">🚪 はじめに</a>
+        <a href="exercises.html" style="color: #3b82f6; text-decoration: none;">✏️ 演習</a>
+        <a href="getting_started.html#glossary" style="color: #3b82f6; text-decoration: none;">📖 用語集</a>
+    </nav>
     <div class="container">
         <header class="header">
             <div class="logo">
@@ -167,6 +175,16 @@
                     <tr><td><strong>フラットスタート</strong></td><td>全母線 V=1.0, δ=0 から反復を始める標準的な初期値</td></tr>
                     <tr><td><strong>MATPOWER</strong></td><td>電力系統解析の標準オープンソース（MATLAB）。本サイトはそのデータ形式に準拠し、解を照合済み</td></tr>
                 </table>
+            </section>
+
+            <section class="gs-section">
+                <h2>よくあるつまずき</h2>
+                <ul>
+                    <li><strong>「ΔPが負ってどういうこと?」</strong> — ΔP = 指定値 − 計算値。負なら「今の電圧の当たりでは電力が余っている」= 角度や電圧を下げる方向に修正される、というだけ。符号に深い意味を求めすぎない</li>
+                    <li><strong>「GSが収束しないんだけど壊れてる?」</strong> — 壊れていません。GSは線形収束なので既定の反復上限では足りないことが多い。「上限到達(未収束)」は発散とは別物 — 最大反復数を増やせば届く（compareで実験できます）</li>
+                    <li><strong>「p.u.とMWどっちを見ればいい?」</strong> — 計算はp.u.、直感はMW。本サイトは両方併記しているので、「0.18 p.u. = 18 MW」の換算（×100）に慣れるのが早道</li>
+                    <li><strong>「ヤコビアンの数字が大きい/小さいのは良いこと?」</strong> — 善悪ではなく感度。対角が大きい=その母線が「堅い」。0が多い=接続がない（スパース性）。まず計算過程ステップ表示でセルをクリックして意味を掴む</li>
+                </ul>
             </section>
 
             <section class="gs-section">

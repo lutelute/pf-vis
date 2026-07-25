@@ -1025,8 +1025,10 @@ MATPOWER準拠の潮流計算を実行します：
         };
 
         let text = `<span class="eq-comment">// ${algoNames[algorithm]} - 反復 ${engine.iteration}</span>\n\n`;
-        text += `<span class="eq-var">ΔP_max</span> = ${engine.maxPError.toExponential(4)} p.u.\n`;
-        text += `<span class="eq-var">ΔQ_max</span> = ${engine.maxQError.toExponential(4)} p.u.\n`;
+        text += `<span class="eq-var">ΔP_max</span> = ${engine.maxPError.toExponential(4)} p.u. (= ${(engine.maxPError * engine.baseMVA).toFixed(3)} MW)\n`;
+        text += `<span class="eq-var">ΔQ_max</span> = ${engine.maxQError.toExponential(4)} p.u. (= ${(engine.maxQError * engine.baseMVA).toFixed(3)} MVAr)\n`;
+        text += `<span class="eq-comment">// 意味: 現在の電圧の当たりでは、最悪の母線で上記の分だけ</span>\n`;
+        text += `<span class="eq-comment">//       電力の収支が合っていない。これを許容誤差以下に追い込む</span>\n`;
 
         document.getElementById('equationBox').innerHTML = text;
     }
