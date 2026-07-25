@@ -416,6 +416,14 @@
         }
         .internals-line { font-family: 'JetBrains Mono', monospace; }
 
+        .viz-caption {
+            font-size: 11px;
+            color: #8b949e;
+            padding: 4px 14px 6px;
+            line-height: 1.6;
+            border-bottom: 1px solid #2d2d3d;
+        }
+
         .compare-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -747,23 +755,38 @@
             <!-- Center Panel -->
             <div class="center-panel">
                 <div class="compare-grid">
-                    <!-- Convergence Comparison -->
+                    <!-- 収束の質を並べて見る: ミスマッチ vs 真の解への距離 -->
                     <div class="viz-card">
                         <div class="viz-header">
-                            <div class="viz-title">📈 収束曲線比較</div>
+                            <div class="viz-title">📈 収束曲線比較（ミスマッチ）</div>
                         </div>
+                        <div class="viz-caption">見方: 下がる「速さ」が収束次数。NRの崖 vs GSの一定勾配の直線を比べる</div>
                         <div class="viz-body">
                             <canvas id="convergenceCanvas"></canvas>
                         </div>
                     </div>
 
-                    <!-- Iteration Count Comparison -->
+                    <!-- Distance to True Solution -->
                     <div class="viz-card">
                         <div class="viz-header">
-                            <div class="viz-title">📊 反復回数比較</div>
+                            <div class="viz-title">🎯 真の解への距離 max|x − x*|（片対数）</div>
                         </div>
+                        <div class="viz-caption">見方: 左と縦軸が違う。「方程式の残差」でなく「答えまでの距離」が減る様子。両方が同時に落ちるのが健全な収束</div>
                         <div class="viz-body">
-                            <canvas id="iterationCanvas"></canvas>
+                            <canvas id="distCanvas"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="compare-grid">
+                    <!-- Voltage / Angle Profile Convergence -->
+                    <div class="viz-card" style="grid-column: 1 / -1;">
+                        <div class="viz-header">
+                            <div class="viz-title">⚡ 電圧・位相角プロファイル（白破線 = 真の解）</div>
+                        </div>
+                        <div class="viz-caption">見方: 実行中、各手法の色線が白破線に吸い込まれたら収束。上段=|V|、下段=δ。横軸は母線番号</div>
+                        <div class="viz-body">
+                            <canvas id="voltageCanvas"></canvas>
                         </div>
                     </div>
                 </div>
@@ -774,28 +797,20 @@
                         <div class="viz-header">
                             <div class="viz-title">🔌 系統図</div>
                         </div>
+                        <div class="viz-caption">見方: 母線番号とプロファイルの横軸が対応。どこが発電/負荷かを確認してから読む</div>
                         <div class="viz-body">
                             <canvas id="networkCanvas"></canvas>
                         </div>
                     </div>
 
-                    <!-- Voltage / Angle Profile Convergence -->
+                    <!-- Iteration Count Comparison -->
                     <div class="viz-card">
                         <div class="viz-header">
-                            <div class="viz-title">⚡ 電圧・位相角プロファイル（白破線 = 真の解）</div>
+                            <div class="viz-title">📊 反復回数比較</div>
                         </div>
+                        <div class="viz-caption">見方: 回数だけで優劣は決まらない。1反復の重さ（NR=O(n³)、GS=O(n²)）と掛け算で考える</div>
                         <div class="viz-body">
-                            <canvas id="voltageCanvas"></canvas>
-                        </div>
-                    </div>
-
-                    <!-- Distance to True Solution -->
-                    <div class="viz-card">
-                        <div class="viz-header">
-                            <div class="viz-title">🎯 真の解への距離 max|x − x*|（片対数）</div>
-                        </div>
-                        <div class="viz-body">
-                            <canvas id="distCanvas"></canvas>
+                            <canvas id="iterationCanvas"></canvas>
                         </div>
                     </div>
                 </div>

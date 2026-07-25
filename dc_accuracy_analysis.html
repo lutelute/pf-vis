@@ -241,6 +241,15 @@
     <div class="container">
         <h1>&#9889; DC Power Flow Accuracy Analysis</h1>
 
+        <div style="background: #12121a; border: 1px solid #2d2d3d; border-left: 3px solid #06b6d4; border-radius: 8px; padding: 12px 16px; margin: 10px 0 16px; font-size: 13px; line-height: 1.8; color: #c9d1d9;">
+            <strong style="color: #06b6d4;">このツールの見方</strong> —
+            同じ系統を <strong>AC潮流（NR法・厳密解）</strong>と<strong>DC潮流（線形近似）</strong>の両方で解き、差を測ります。
+            <br>注目ポイント: ① <strong>位相角誤差</strong>（平均1°未満なら概算用途には十分）
+            ② <strong>電圧偏差 |1−V|</strong>（DCの「V=1.0」仮定がどれだけ破れているか）
+            ③ <strong>Q注入の大きい母線</strong>（無効電力を運ぶ系統ほどDCの前提が崩れる）。
+            DC近似の理論は<a href="docs/power_flow_methods.md" style="color: #3b82f6;">技術ノート§5</a>、対応する演習は<a href="exercises.html" style="color: #3b82f6;">Stage 6</a>。
+        </div>
+
         <div class="controls">
             <div class="control-group">
                 <label>Test Case</label>
@@ -845,6 +854,18 @@
      */
     function logAccuracySummary(engineAC, avgDeltaErr, maxDeltaErr, avgPErr, maxPErr, avgVErr, maxVErr, sumQMismatch, qResults) {
         log('\n=== DC Accuracy Summary ===', 'info');
+        // AC基準解の妥当性を先に示す (この検算が通っていることが比較全体の前提)
+        try {
+            const baseMVA = engineAC.baseMVA;
+            let PloadT = 0;
+            for (const bus of engineAC.busData) PloadT += bus[2];
+            const injAC = engineAC._calcPowerInjection();
+            let PgenT = 0;
+            for (let i = 0; i < engineAC.nBus; i++) PgenT += injAC.P[i] * baseMVA + engineAC.busData[i][2];
+            const PlossT = engineAC.getBranchFlows().reduce((sum, f) => sum + f.Ploss, 0);
+            const res = PgenT - PloadT - PlossT;
+            log(`AC reference validity: gen ${PgenT.toFixed(2)} = load ${PloadT.toFixed(2)} + loss ${PlossT.toFixed(3)} MW (residual ${res.toExponential(1)}) ${Math.abs(res) < 0.01 ? 'OK' : 'NG'}`, Math.abs(res) < 0.01 ? 'success' : 'warning');
+        } catch (e) { /* 収支計算失敗時はスキップ */ }
         log(`Angle error: avg ${avgDeltaErr.toFixed(2)}deg, max ${maxDeltaErr.toFixed(2)}deg`, avgDeltaErr < 3 ? 'success' : 'warning');
         log(`Active power error: avg ${avgPErr.toFixed(1)}%, max ${maxPErr.toFixed(1)}%`, avgPErr < 10 ? 'success' : 'warning');
         log(`Voltage deviation (V=1.0 assumption): avg ${(avgVErr*100).toFixed(1)}%, max ${(maxVErr*100).toFixed(1)}%`, avgVErr < 0.03 ? 'success' : 'warning');
