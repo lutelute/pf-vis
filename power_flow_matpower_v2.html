@@ -613,6 +613,18 @@
 
             <div class="viz-card full-width">
                 <div class="viz-header">
+                    <div class="viz-title">✅ 解の妥当性チェック（電力収支）</div>
+                </div>
+                <div class="viz-body" style="height: auto; padding: 14px 18px;">
+                    <div id="balancePanel" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 2; color: var(--text-secondary, #94a3b8);">
+                        実行すると「総発電 = 総負荷 + 総損失」の検算を表示します。
+                        この収支が合うことが、得られた解が物理的に正しいことの根拠になります。
+                    </div>
+                </div>
+            </div>
+
+            <div class="viz-card full-width">
+                <div class="viz-header">
                     <div class="viz-title">📋 ノードデータ (MATPOWER形式)</div>
                 </div>
                 <div class="viz-body" style="height: auto; max-height: 350px; padding: 0;">
@@ -843,6 +855,7 @@ MATPOWER準拠の潮流計算を実行します：
                 engine.converged = true;
                 document.getElementById('statusValue').textContent = '収束!';
                 document.getElementById('statusCard').className = 'stat-card success';
+                updateBalancePanel();  // 収束確定後に電力収支の検算を表示
                 break;
             }
             
@@ -908,6 +921,55 @@ MATPOWER準拠の潮流計算を実行します：
         document.getElementById('errorValue').textContent = maxError > 0 ? maxError.toExponential(2) : '-';
 
         updateBusTable();
+        updateBalancePanel();
+    }
+
+    /**
+     * 解の妥当性チェック: 電力収支「総発電 = 総負荷 + 総損失」を検算して表示する。
+     * スラック母線の発電量は指定値ではなく解かれた注入から求める。
+     */
+    function updateBalancePanel() {
+        const panel = document.getElementById('balancePanel');
+        if (!panel || !engine) return;
+
+        if (!engine.converged) {
+            panel.innerHTML = '収束後に「総発電 = 総負荷 + 総損失」の検算を表示します。';
+            return;
+        }
+
+        const baseMVA = engine.baseMVA;
+        const inj = engine._calcPowerInjection();
+
+        // 総負荷 (MW/MVAr)
+        let Pload = 0, Qload = 0;
+        for (const bus of engine.busData) { Pload += bus[2]; Qload += bus[3]; }
+
+        // 総発電: 解かれた注入 + 負荷 (P_gen_i = P_inj_i + P_load_i)
+        let Pgen = 0, slackP = 0;
+        for (let i = 0; i < engine.nBus; i++) {
+            const g = inj.P[i] * baseMVA + engine.busData[i][2];
+            Pgen += g;
+            if (i === engine.slackBus) slackP = g;
+        }
+
+        // 総損失
+        const flows = engine.getBranchFlows();
+        const Ploss = flows.reduce((sum, f) => sum + f.Ploss, 0);
+
+        const residual = Pgen - Pload - Ploss;
+        const ok = Math.abs(residual) < 0.01;
+
+        panel.innerHTML = `
+            <table style="border-collapse: collapse;">
+                <tr><td style="padding-right: 18px;">総発電</td><td style="text-align: right;"><strong style="color: var(--text-primary, #f1f5f9);">${Pgen.toFixed(2)} MW</strong></td>
+                    <td style="padding-left: 14px; color: var(--text-secondary, #94a3b8);">(うちスラック母線 ${slackP.toFixed(2)} MW — 指定値ではなく解かれた値)</td></tr>
+                <tr><td>総負荷</td><td style="text-align: right;"><strong style="color: var(--text-primary, #f1f5f9);">${Pload.toFixed(2)} MW</strong></td><td></td></tr>
+                <tr><td>総損失</td><td style="text-align: right;"><strong style="color: var(--text-primary, #f1f5f9);">${Ploss.toFixed(3)} MW</strong></td>
+                    <td style="padding-left: 14px; color: var(--text-secondary, #94a3b8);">(全支路の送端+受端電力の和)</td></tr>
+                <tr><td colspan="3" style="padding-top: 6px; border-top: 1px solid #2d2d3d;">
+                    検算: 発電 − 負荷 − 損失 = <strong style="color: ${ok ? '#10b981' : '#ef4444'};">${residual.toExponential(2)} MW ${ok ? '✓ 収支が合っている = 解は物理的に妥当' : '✗ 収支が合わない'}</strong>
+                </td></tr>
+            </table>`;
     }
 
     /**

@@ -13,6 +13,7 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 
 | 順序 | レベル | ツール | 学べること |
 |---|---|---|---|
+| 0 | 準備 | [はじめに](https://lutelute.github.io/pf-vis/getting_started.html) | 前提知識・用語早見表・最初の5分クイックスタート |
 | 1 | 入門 | [収束過程直感的理解](https://lutelute.github.io/pf-vis/power_flow_intuitive_v6_fixed.html) | 潮流計算＝非線形方程式の反復解法であること。解に収束していく様子を複素電圧平面で体感 |
 | 2 | 基礎 | [計算過程ステップ表示](https://lutelute.github.io/pf-vis/power_flow_process_visualizer_v2.html) | Newton-Raphson法の1反復の中身（ミスマッチ計算→ヤコビアン→修正量）を式と数値で追う |
 | 3 | 比較 | [アルゴリズム同時比較](https://lutelute.github.io/pf-vis/power_flow_compare.html) | 4手法を同一系統で同時実行し、収束次数（2次収束 vs 線形収束）の違いを見る |

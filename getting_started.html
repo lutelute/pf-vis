@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>はじめに | 潮流計算 可視化教材</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚪</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/main.css">
+    <style>
+        .gs-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 28px;
+            margin-bottom: 28px;
+        }
+        .gs-section > h2 { font-size: 1.25rem; color: var(--accent-cyan); margin-bottom: 14px; }
+        .gs-section p, .gs-section li { font-size: 0.95rem; line-height: 1.9; color: var(--text-primary); }
+        .gs-section ul, .gs-section ol { margin: 8px 0 8px 24px; }
+        .gs-section .sub { color: var(--text-secondary); font-size: 0.88rem; }
+        .gs-flow {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 12px 0;
+            font-size: 0.88rem;
+            line-height: 2;
+            overflow-x: auto;
+            white-space: pre;
+            color: #c9d1d9;
+        }
+        table.gs-table {
+            border-collapse: collapse;
+            margin: 12px 0;
+            font-size: 0.9rem;
+            width: 100%;
+        }
+        table.gs-table th, table.gs-table td {
+            border: 1px solid var(--border);
+            padding: 8px 14px;
+            text-align: left;
+            line-height: 1.7;
+        }
+        table.gs-table th { background: var(--bg-surface); color: var(--text-secondary); font-weight: 600; }
+        table.gs-table code { font-family: 'JetBrains Mono', monospace; color: #79c0ff; background: var(--bg-dark); padding: 1px 6px; border-radius: 4px; }
+        .gs-quickstart {
+            counter-reset: qs;
+            list-style: none;
+            margin-left: 0 !important;
+        }
+        .gs-quickstart li {
+            counter-increment: qs;
+            position: relative;
+            padding: 10px 14px 10px 46px;
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .gs-quickstart li::before {
+            content: counter(qs);
+            position: absolute;
+            left: 12px; top: 50%;
+            transform: translateY(-50%);
+            width: 24px; height: 24px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .gs-cta {
+            display: inline-block;
+            background: var(--accent-blue);
+            color: #fff;
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-weight: 700;
+            text-decoration: none;
+            margin-top: 8px;
+        }
+        .gs-cta:hover { opacity: 0.9; }
+        a.inline-link { color: var(--accent-blue); text-decoration: none; border-bottom: 1px dashed var(--accent-blue); }
+        .back-link { color: var(--accent-blue); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon" aria-hidden="true">&#128682;</div>
+                <div>
+                    <h1 class="title">はじめに</h1>
+                    <p class="subtitle">潮流計算をはじめて学ぶ人のための入口 — 前提知識・用語・最初の5分</p>
+                </div>
+            </div>
+        </header>
+
+        <main>
+            <section class="gs-section">
+                <h2>潮流計算とは何をする計算か</h2>
+                <p>
+                    電力系統では、発電所で作った電力が送電線を通って負荷（工場・家庭）へ流れます。
+                    <strong>潮流計算（Power Flow / Load Flow）</strong>は、
+                    「各発電機の出力と各負荷の消費が与えられたとき、系統の隅々で電圧がいくらになり、どの線路に何MW流れるか」
+                    を求める計算です。系統運用・設備計画・安定性解析など、電力系統のほぼすべての解析の出発点になります。
+                </p>
+                <div class="gs-flow">入力（わかっていること）              出力（計算で求めるもの）
+────────────────────────            ────────────────────────
+・系統の構成（母線と線路のつながり）   ・各母線の電圧の大きさ |V|
+・線路の定数（r, x, 充電容量）        ・各母線の電圧の位相角 δ
+・各負荷の消費電力 (P, Q)            ・各線路を流れる電力 P, Q
+・各発電機の出力 P と電圧設定値       ・送電損失、スラック母線の発電量</div>
+                <p class="sub">
+                    難しさの正体はただ一つ: 電力と電圧の関係が<strong>非線形</strong>（三角関数と積を含む）なので、
+                    連立一次方程式のように一発では解けず、<strong>反復法</strong>（少しずつ答えに近づく方法）が必要になることです。
+                    このサイトの全ツールは、その「近づいていく過程」を見えるようにしています。
+                </p>
+            </section>
+
+            <section class="gs-section">
+                <h2>前提知識 — これだけあれば始められます</h2>
+                <ul>
+                    <li><strong>複素数の基本</strong>: a + jb、絶対値と偏角、共役。電圧・電流・電力を複素数で表します（電気工学では虚数単位に j を使います）</li>
+                    <li><strong>交流回路の基礎</strong>: オームの法則、インピーダンス z = r + jx、有効電力P[W]と無効電力Q[var]の区別</li>
+                    <li><strong>行列の基本</strong>: 行列×ベクトル、連立一次方程式を解くという操作（解き方自体はツールがやります）</li>
+                </ul>
+                <p class="sub">微分（偏微分）はStage 2以降で登場しますが、「傾き＝入力を少し変えたとき出力がどれだけ変わるか」という理解で十分です。</p>
+            </section>
+
+            <section class="gs-section">
+                <h2>最初の5分 — クイックスタート</h2>
+                <ol class="gs-quickstart">
+                    <li><a class="inline-link" href="power_flow_intuitive_v6_fixed.html">収束過程直感的理解</a> を開く（別タブ推奨）</li>
+                    <li>そのまま「▶ 実行」を押す（Newton-Raphson法・2ノード中負荷が選ばれています）</li>
+                    <li>左の複素平面で、点が星印（解）へ吸い込まれる動きを見る — これが「反復法が解に収束する」ということ</li>
+                    <li>右のログで誤差の数字を見る: 2.5 → 0.16 → 0.0008 → 0.00000002。減り方が加速している（＝2次収束）</li>
+                    <li>問題を「重負荷」に変えてもう一度実行 — 解が変わり、収束が少し苦しくなるのを確認</li>
+                </ol>
+                <p>ここまで確認できたら、準備完了です。学習パスに沿って進んでください。</p>
+                <a class="gs-cta" href="index.html#learning-path">学習パスへ進む →</a>
+                <a class="gs-cta" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-primary);" href="exercises.html">✏️ 演習問題を見る</a>
+            </section>
+
+            <section class="gs-section">
+                <h2>用語と記号の早見表</h2>
+                <table class="gs-table">
+                    <tr><th>用語 / 記号</th><th>意味</th></tr>
+                    <tr><td><strong>母線（バス, bus）</strong></td><td>発電機・負荷・線路が接続される「節点」。系統図の丸</td></tr>
+                    <tr><td><strong>p.u.（単位法）</strong></td><td>基準値（本サイトは100 MVA）に対する倍率で表す無次元表示。P=0.5 p.u.=50 MW</td></tr>
+                    <tr><td><code>|V|, δ</code></td><td>母線電圧の大きさ（p.u.）と位相角。この2つ×母線数が求めたい未知数</td></tr>
+                    <tr><td><code>P, Q</code></td><td>有効電力（実際に仕事をする電力）と無効電力（電圧維持に関わる電力）</td></tr>
+                    <tr><td><strong>Slack母線</strong></td><td>基準母線。|V|とδ(=0°)を固定し、系統全体の過不足＋損失を発電で引き受ける</td></tr>
+                    <tr><td><strong>PV母線</strong></td><td>発電機母線。PとVを指定し、Qとδを計算で求める</td></tr>
+                    <tr><td><strong>PQ母線</strong></td><td>負荷母線。PとQを指定し、|V|とδを計算で求める。最も数が多い</td></tr>
+                    <tr><td><code>Ybus (G + jB)</code></td><td>アドミタンス行列。系統の「つながり方と電気的距離」を1つの行列にしたもの</td></tr>
+                    <tr><td><strong>ミスマッチ (ΔP, ΔQ)</strong></td><td>指定値 − 現在の解での計算値。これを全母線でゼロに追い込むのが潮流計算</td></tr>
+                    <tr><td><strong>ヤコビアン J</strong></td><td>感度の行列。「δやVを少し動かすとPやQがどれだけ変わるか」の表</td></tr>
+                    <tr><td><strong>収束 / 発散</strong></td><td>反復で誤差が許容値以下になる / 誤差が増え続けて破綻する</td></tr>
+                    <tr><td><strong>2次収束 / 線形収束</strong></td><td>誤差の桁が反復ごとに倍々で減る（NR法）/ 一定幅ずつしか減らない（GS法）</td></tr>
+                    <tr><td><strong>フラットスタート</strong></td><td>全母線 V=1.0, δ=0 から反復を始める標準的な初期値</td></tr>
+                    <tr><td><strong>MATPOWER</strong></td><td>電力系統解析の標準オープンソース（MATLAB）。本サイトはそのデータ形式に準拠し、解を照合済み</td></tr>
+                </table>
+            </section>
+
+            <section class="gs-section">
+                <h2>このサイトの学び方</h2>
+                <ul>
+                    <li><strong>順番に進む</strong>: <a class="inline-link" href="index.html">メインページ</a>の学習パス（入門→基礎→比較→実践→発展→応用）は、前の段階の理解を次で使う構成です</li>
+                    <li><strong>数字をクリックする</strong>: 特に「計算過程ステップ表示」ではヤコビアンのセルをクリックすると、その数値の計算式と物理的な意味が表示されます</li>
+                    <li><strong>演習で確かめる</strong>: 各段階に<a class="inline-link" href="exercises.html">演習問題</a>（解答つき）があります。特にStage 2の手計算チャレンジは、一度やっておくとツールの全表示の意味がわかるようになります</li>
+                    <li><strong>疑ったら検算</strong>: すべての計算はMATPOWER公式解と照合したエンジンで動いており、「解の妥当性チェック」（電力収支）でいつでも検算できます</li>
+                </ul>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <p><a class="back-link" href="index.html">← メインページに戻る</a></p>
+            <p><small>電力潮流計算アルゴリズムの可視化・教育プラットフォーム</small></p>
+        </footer>
+    </div>
+</body>
+</html>
