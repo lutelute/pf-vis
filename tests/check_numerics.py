@@ -176,6 +176,17 @@ def main():
         check("損失 I²R (275kV → 1.32MW)", abs(r["loss275"] - 1.322) < 0.01, f"loss={r['loss275']}")
         check("電圧10倍 → 損失1/100", abs(r["loss66"] / r["loss66x10"] - 100) < 0.5)
 
+        # ---------- ladder_l2 ----------
+        print("\n■ ラダーL2 (ladder_l2)")
+        page.goto(f"{BASE}/ladder_l2.html")
+        page.wait_for_timeout(400)
+        r = page.evaluate("""() => ({
+            p30: pOfDelta(30 * Math.PI / 180), p90: pOfDelta(Math.PI / 2),
+            cos60: Math.cos(60 * Math.PI / 180)
+        })""")
+        check("P(δ=30°) = 1.0 p.u. (V1V2/X=2, sin30°=0.5)", abs(r["p30"] - 1.0) < 1e-9, f"P={r['p30']}")
+        check("P(δ=90°) = 2.0 p.u. (頂上)", abs(r["p90"] - 2.0) < 1e-9)
+
         # ---------- dc_accuracy ----------
         print("\n■ DC潮流精度検証 (dc_accuracy)")
         page.goto(f"{BASE}/dc_accuracy_analysis.html")

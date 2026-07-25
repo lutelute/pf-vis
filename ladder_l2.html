@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L2: 回る矢印と2つの電力 — 交流の言葉</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🪜</text></svg>">
+<style>
+  :root{
+    --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
+    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
+    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --upd:#6f54c4;
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
+    --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--gothic);line-height:1.75;font-size:15px;}
+  .wrap{max-width:860px;margin:0 auto;padding:22px 20px 50px;}
+  .nav{font-size:12.5px;margin-bottom:16px;} .nav a{color:var(--accent);text-decoration:none;margin-right:14px;}
+  .ladder-tag{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:#fff;background:var(--accent);border-radius:2px;padding:2px 10px;margin-bottom:6px;font-weight:700;}
+  h1{font-family:var(--mincho);font-weight:600;font-size:24px;margin:0 0 6px;letter-spacing:.02em;}
+  h2{font-family:var(--mincho);font-weight:600;font-size:18px;margin:26px 0 10px;}
+  .lead{color:var(--muted);font-size:14px;max-width:720px;margin-bottom:14px;}
+  .lead b,b{color:var(--text);}
+  .purpose{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:13.5px;}
+  .prow{display:flex;gap:12px;padding:3px 0;}
+  .pq{flex:0 0 118px;font-family:var(--mono);font-size:11.5px;color:var(--warm);font-weight:700;padding-top:3px;}
+  .prow span:last-child{color:var(--muted);}
+  .eq{font-family:var(--mono);font-size:13px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:11px 14px;margin:10px 0;line-height:1.9;}
+  .eq .read{display:block;margin-top:6px;padding-top:6px;border-top:1px dashed var(--line);font-family:var(--gothic);font-size:12.5px;color:var(--muted);}
+  .stage{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:6px;}
+  canvas{display:block;width:100%;max-width:820px;height:auto;border-radius:10px;background:var(--panel-2);}
+  .ctrl{display:flex;align-items:center;gap:18px;margin-top:12px;flex-wrap:wrap;font-size:13.5px;color:var(--muted);}
+  input[type=range]{width:min(300px,55vw);accent-color:var(--accent);}
+  .readout{font-family:var(--mono);font-size:14px;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 14px;margin-top:10px;line-height:2;}
+  .readout b{font-size:15px;}
+  .note{font-size:12.5px;color:var(--faint);margin-top:6px;}
+  .disc{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 18px;margin:10px 0;font-size:14px;color:var(--muted);}
+  .disc .no{display:inline-block;font-family:var(--mono);font-weight:700;color:#fff;background:var(--accent);border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;margin-right:8px;font-size:12px;}
+  .limits{background:#fdf6e6;border:1px solid #ead9ae;border-radius:12px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:16px 0;}
+  .limits-h{font-weight:700;color:var(--warm);margin-bottom:4px;}
+  .quiz{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0;}
+  .quiz h3{font-size:15px;margin:0 0 8px;font-family:var(--mincho);}
+  .quiz p{font-size:14px;color:var(--muted);margin:6px 0;}
+  .qcheck{display:inline-flex;align-items:center;gap:8px;}
+  .qcheck input[type=text]{width:100px;font-family:var(--mono);font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);}
+  .qcheck button{font-size:13px;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font-weight:600;cursor:pointer;}
+  .qcheck button:hover{background:rgba(31,158,138,0.08);}
+  .qmark{font-size:16px;min-width:5em;}
+  .nextbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:18px;font-size:14px;}
+  .nextbox a{color:var(--accent);font-weight:600;}
+  .foot{font-size:12px;color:var(--faint);margin-top:20px;} .foot a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="index.html">🏠 メイン</a>
+    <a href="ladder_l1.html">🪜 L1へ戻る</a>
+    <a href="getting_started.html">🚪 はじめに(L3)</a>
+  </div>
+  <div class="ladder-tag">🪜 学習ラダー L2 — 前提: 三角関数・ベクトル（高校数学）</div>
+  <h1>回る矢印と2つの電力 — 交流の言葉</h1>
+  <div class="lead">
+    コンセントの電圧は1秒間に50回（東日本）ゆれる波です。波のまま計算するのは大変ですが、
+    先人は美しい方法を見つけました——波を<b>「回る矢印の影」</b>と見るのです（フェーザ）。
+    この見方を手に入れると、交流の電力には<b>P（有効電力）とQ（無効電力）の2種類</b>があること、
+    そして<b>電力を運ぶのは位相の差</b>だということが、目で見えるようになります。
+  </div>
+
+  <div class="purpose">
+    <div class="prow"><span class="pq">なぜ学ぶ?</span><span>潮流計算の変数（|V|, δ, P, Q）は全部ここで生まれる。L3の方程式はこのページの言葉で書かれている。</span></div>
+    <div class="prow"><span class="pq">一言で言うと</span><span>交流は回る矢印。<b>矢印の長さ</b>が電圧の大きさ、<b>矢印の角度差</b>が電力を運ぶ。</span></div>
+    <div class="prow"><span class="pq">L1との接続</span><span>L1では直流のように扱ったP=VIを、交流の本当の姿 P=VIcosφ に精密化する。</span></div>
+  </div>
+
+  <h2>実験1: 回る矢印と、その影の波</h2>
+  <div class="eq">v(t) = √2·V·cos(ωt)　　i(t) = √2·I·cos(ωt − φ)
+    <span class="read">読み：電圧も電流も「回る矢印の横方向の影」。φ（ファイ）は2本の矢印の<b>角度のズレ</b>＝電流の遅れ。
+    モーターやコイルの多い負荷ほどφが大きくなる。</span>
+  </div>
+  <div class="stage">
+    <canvas id="cv1" width="820" height="270"></canvas>
+    <div class="ctrl">
+      <label>位相差 φ: <b id="phiLabel" style="font-family:var(--mono)">30</b>°</label>
+      <input type="range" id="phi" min="0" max="90" step="5" value="30">
+      <label><input type="checkbox" id="pause"> 一時停止</label>
+    </div>
+    <div class="readout" id="ro1"></div>
+    <p class="note">左: 回る2本の矢印（緑=電圧・紫=電流）。右: その影が描く波と、掛け算した瞬時電力 p(t)=v(t)·i(t)（赤）。すべて実計算です。</p>
+  </div>
+
+  <h2>この実験からわかる2つのこと</h2>
+  <div class="disc"><span class="no">1</span><b>電力は脈動し、その平均が P = VIcosφ。</b>
+    赤い波 p(t) を見てください。φ=0° では常にプラス（送りっぱなし）ですが、φ を大きくすると
+    一部がマイナスに潜る——<b>電力が戻ってくる時間帯</b>がある。平均して届くのが有効電力 P=VIcosφ、
+    行って帰ってくるだけの成分の大きさが<b>無効電力 Q=VIsinφ</b> です。φ=90° にすると平均はゼロ——
+    電流は流れているのに仕事は運ばれない。</div>
+  <div class="disc"><span class="no">2</span><b>QはムダではなくL0の「うしなう」とも別物。</b>
+    Qは熱として消えるのではなく、コイルやコンデンサと<b>往復している</b>電力です。ただし往復のためにも電流は流れるので、
+    線の損失 I²R（L1）は増える。だから電力会社は力率 cosφ を1に近づけたがる——
+    Qを「近くでまかなう」ためにコンデンサを置くのが実務の定石です。</div>
+
+  <h2>実験2: 電力を運ぶのは位相差 — L3への橋</h2>
+  <div class="eq">P = (V₁V₂ / X) · sin δ
+    <span class="read">読み：送電線（リアクタンスX）の両端の電圧の<b>角度差δ</b>が有効電力を決める。
+    δ=0なら電力は流れない。これがL3で解く潮流方程式の心臓部。</span>
+  </div>
+  <div class="stage">
+    <canvas id="cv2" width="820" height="220"></canvas>
+    <div class="ctrl">
+      <label>両端の位相差 δ: <b id="delLabel" style="font-family:var(--mono)">30</b>°</label>
+      <input type="range" id="delta" min="0" max="90" step="5" value="30">
+    </div>
+    <div class="readout" id="ro2"></div>
+  </div>
+  <div class="disc"><span class="no">3</span><b>sinδ には頂上がある。</b>
+    カーブは δ=90° で最大になり、それ以上は増やしても<b>送れる電力がむしろ減る</b>。
+    送電線1本に送れる量の理論的上限がここにも現れます——L0の「限界500MW」、そして
+    大学院レベルの「電圧崩壊」（L5）は、この頂上の親戚です。</div>
+
+  <div class="limits">
+    <div class="limits-h">⚠ 正直な注意 — フェーザが使える範囲</div>
+    ①回る矢印の方法は「系統全体が<b>同じ周波数で回り続けている定常状態</b>」でだけ使えます。
+    雷や事故直後のような過渡現象は別の道具（微分方程式）が要ります。
+    ②P=(V₁V₂/X)sinδ は抵抗を無視した近似式（送電線はX≫Rなのでよく効く）。
+    ③このページの2母線の式が、L3では「全母線ぶんの連立非線形方程式」に一般化されます——形はもう見えています。
+  </div>
+
+  <h2>昇級課題 — 3問正解でL3へ</h2>
+  <div class="quiz">
+    <h3>課題1（P = VIcosφ）</h3>
+    <p>V=100 V、I=10 A、位相差 φ=60° のとき、有効電力Pは何W？（cos60°=0.5）</p>
+    <span class="qcheck"><input type="text" id="q1" inputmode="numeric"> <span>W</span>
+      <button onclick="checkNum('q1',500,1)">判定</button><span class="qmark" id="q1m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題2（φ=90°の意味）</h3>
+    <p>位相差が φ=90° のとき、平均して送られる有効電力は何W？（上の実験1で赤い波の平均を見て確かめること）</p>
+    <span class="qcheck"><input type="text" id="q2" inputmode="numeric"> <span>W</span>
+      <button onclick="checkNum('q2',0,0.01)">判定</button><span class="qmark" id="q2m"></span></span>
+  </div>
+  <div class="quiz">
+    <h3>課題3（P = (V₁V₂/X)sinδ）</h3>
+    <p>V₁=V₂=1.0、X=0.5、δ=30° のとき、送られる電力Pはいくら？（sin30°=0.5。単位はp.u.のまま）</p>
+    <span class="qcheck"><input type="text" id="q3" inputmode="numeric"> <span>p.u.</span>
+      <button onclick="checkNum('q3',1.0,0.02)">判定</button><span class="qmark" id="q3m"></span></span>
+  </div>
+
+  <div class="nextbox" id="nextbox">🔒 3問正解すると、次のレベルへの道が開きます。</div>
+
+  <p class="foot">
+    このページの波形・瞬時電力・P-δカーブは、すべて cos と sin の実計算で毎フレーム描いています。
+    <a href="index.html#ladder">ラダーの全体像</a> ／ 前の段: <a href="ladder_l1.html">L1 高圧送電の理由</a>
+  </p>
+</div>
+
+<script>
+"use strict";
+function getCSS(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim();}
+const prefersReduced=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ============================================================
+// 実験1: フェーザと瞬時電力 (すべて実計算)
+// ============================================================
+let phi=30*Math.PI/180, t=0, paused=false;
+const cv1=document.getElementById('cv1'), c1=cv1.getContext('2d');
+const W1=820,H1=270;
+function drawExp1(){
+  c1.clearRect(0,0,W1,H1);
+  c1.fillStyle=getCSS('--panel-2');c1.fillRect(0,0,W1,H1);
+  const cx=120,cy=118,R=78;
+
+  // フェーザ円
+  c1.strokeStyle=getCSS('--grid');c1.lineWidth=1;
+  c1.beginPath();c1.arc(cx,cy,R,0,7);c1.stroke();
+  c1.beginPath();c1.moveTo(cx-R-14,cy);c1.lineTo(cx+R+14,cy);c1.stroke();
+
+  const av=t, ai=t-phi;               // 矢印の角度 (電流はφ遅れ)
+  const vx=cx+R*Math.cos(av), vy=cy-R*Math.sin(av);
+  const ampI=0.8;
+  const ix=cx+R*ampI*Math.cos(ai), iy=cy-R*ampI*Math.sin(ai);
+  // 電圧矢印 (緑)
+  c1.strokeStyle=getCSS('--accent');c1.lineWidth=3;
+  c1.beginPath();c1.moveTo(cx,cy);c1.lineTo(vx,vy);c1.stroke();
+  // 電流矢印 (紫)
+  c1.strokeStyle=getCSS('--upd');c1.lineWidth=3;
+  c1.beginPath();c1.moveTo(cx,cy);c1.lineTo(ix,iy);c1.stroke();
+  // φの弧
+  c1.strokeStyle=getCSS('--warm');c1.lineWidth=1.5;
+  c1.beginPath();c1.arc(cx,cy,26,-av,-ai);c1.stroke();
+  c1.fillStyle=getCSS('--warm');c1.font='11px '+getCSS('--mono');c1.textAlign='center';
+  c1.fillText('φ',cx+34*Math.cos((av+ai)/2),cy-34*Math.sin((av+ai)/2)+4);
+  c1.fillStyle=getCSS('--accent');c1.fillText('V',vx+(vx>cx?12:-12),vy);
+  c1.fillStyle=getCSS('--upd');c1.fillText('I',ix+(ix>cx?12:-12),iy);
+  c1.fillStyle=getCSS('--faint');c1.font='10.5px '+getCSS('--gothic');
+  c1.fillText('回る矢印（フェーザ）',cx,cy+R+26);
+
+  // 波形 (右): v, i, p=v·i を実計算で描く
+  const gx=250,gw=540,gy=118,ga=58;
+  c1.strokeStyle=getCSS('--grid');c1.beginPath();c1.moveTo(gx,gy);c1.lineTo(gx+gw,gy);c1.stroke();
+  const NPT=240;
+  const wave=(fn,color,lw)=>{
+    c1.strokeStyle=color;c1.lineWidth=lw;c1.beginPath();
+    for(let k=0;k<=NPT;k++){
+      const tt=t-(k/NPT)*4*Math.PI;
+      const x=gx+gw-(k/NPT)*gw, y=gy-fn(tt)*ga;
+      k===0?c1.moveTo(x,y):c1.lineTo(x,y);
+    }
+    c1.stroke();
+  };
+  wave(tt=>Math.cos(tt),getCSS('--accent'),1.6);                      // v (振幅1に正規化)
+  wave(tt=>0.8*Math.cos(tt-phi),getCSS('--upd'),1.6);                 // i
+  wave(tt=>Math.cos(tt)*0.8*Math.cos(tt-phi),getCSS('--neg'),2.2);    // p = v·i (実計算)
+  // 平均電力の線 P = (1·0.8/2)·cosφ  (振幅表記での平均)
+  const Pavg=0.5*0.8*Math.cos(phi);
+  c1.strokeStyle=getCSS('--neg');c1.setLineDash([5,4]);c1.lineWidth=1.2;
+  c1.beginPath();c1.moveTo(gx,gy-Pavg*ga);c1.lineTo(gx+gw,gy-Pavg*ga);c1.stroke();c1.setLineDash([]);
+  c1.fillStyle=getCSS('--neg');c1.font='10.5px '+getCSS('--mono');c1.textAlign='left';
+  c1.fillText('p(t)=v·i の平均 ∝ cosφ',gx+6,gy-Pavg*ga-6);
+  c1.fillStyle=getCSS('--faint');c1.font='10.5px '+getCSS('--gothic');c1.textAlign='center';
+  c1.fillText('緑=電圧の影  紫=電流の影  赤=瞬時電力 p(t)（マイナス=戻っていく電力）',gx+gw/2,H1-12);
+}
+function updateRo1(){
+  const cosphi=Math.cos(phi), sinphi=Math.sin(phi);
+  document.getElementById('phiLabel').textContent=Math.round(phi*180/Math.PI);
+  document.getElementById('ro1').innerHTML=
+    '力率 cosφ = <b>'+cosphi.toFixed(3)+'</b>　→　有効電力 P = VI×'+cosphi.toFixed(3)+
+    '　／　無効電力 Q = VI×'+sinphi.toFixed(3)+
+    (phi>Math.PI/2-0.01?'　<b style="color:var(--neg)">（平均ゼロ: 仕事は運ばれていない）</b>':'');
+}
+document.getElementById('phi').addEventListener('input',e=>{phi=+e.target.value*Math.PI/180;updateRo1();if(prefersReduced)drawExp1();});
+document.getElementById('pause').addEventListener('change',e=>{paused=e.target.checked;});
+
+// ============================================================
+// 実験2: P-δカーブ (実計算)
+// ============================================================
+let del=30*Math.PI/180;
+const cv2=document.getElementById('cv2'), c2=cv2.getContext('2d');
+const W2=820,H2=220;
+const V1=1.0,V2=1.0,X=0.5;
+function pOfDelta(d){return V1*V2/X*Math.sin(d);}
+function drawExp2(){
+  c2.clearRect(0,0,W2,H2);
+  c2.fillStyle=getCSS('--panel-2');c2.fillRect(0,0,W2,H2);
+  const gx=70,gw=680,gy0=180,gh=140;
+  // 軸
+  c2.strokeStyle=getCSS('--line');c2.strokeRect(gx,gy0-gh,gw,gh);
+  c2.fillStyle=getCSS('--faint');c2.font='10.5px '+getCSS('--mono');c2.textAlign='center';
+  [0,30,60,90].forEach(dd=>{c2.fillText(dd+'°',gx+dd/90*gw,gy0+16);});
+  c2.textAlign='right';
+  c2.fillText('0',gx-6,gy0+3);c2.fillText((V1*V2/X).toFixed(1),gx-6,gy0-gh+4);
+  // 実カーブ
+  c2.strokeStyle=getCSS('--accent');c2.lineWidth=2.2;c2.beginPath();
+  for(let k=0;k<=180;k++){
+    const dd=k/180*Math.PI/2, x=gx+(dd/(Math.PI/2))*gw, y=gy0-pOfDelta(dd)/(V1*V2/X)*gh;
+    k===0?c2.moveTo(x,y):c2.lineTo(x,y);
+  }
+  c2.stroke();
+  // 現在点
+  const x=gx+(del/(Math.PI/2))*gw, y=gy0-pOfDelta(del)/(V1*V2/X)*gh;
+  c2.fillStyle=getCSS('--neg');c2.beginPath();c2.arc(x,y,6,0,7);c2.fill();
+  c2.fillStyle=getCSS('--text');c2.font='700 12px '+getCSS('--mono');c2.textAlign='left';
+  c2.fillText('P = '+pOfDelta(del).toFixed(3)+' p.u.',x+12,y-6);
+  c2.fillStyle=getCSS('--faint');c2.font='10.5px '+getCSS('--gothic');c2.textAlign='center';
+  c2.fillText('横軸: 両端の位相差 δ　縦軸: 送られる有効電力 P（実カーブ: (V₁V₂/X)·sinδ, V₁=V₂=1, X=0.5）',W2/2,H2-6);
+}
+function updateRo2(){
+  document.getElementById('delLabel').textContent=Math.round(del*180/Math.PI);
+  document.getElementById('ro2').innerHTML=
+    'P = (V₁V₂/X)·sinδ = (1.0×1.0/0.5)×sin('+Math.round(del*180/Math.PI)+'°) = <b>'+pOfDelta(del).toFixed(3)+'</b> p.u.'+
+    (del>=Math.PI/2-0.01?'　<b style="color:var(--warm)">← 頂上。これ以上は角度を開いても送れない</b>':'');
+}
+document.getElementById('delta').addEventListener('input',e=>{del=+e.target.value*Math.PI/180;updateRo2();drawExp2();});
+
+// アニメーションループ
+function loop(){
+  if(!prefersReduced&&!paused){t+=0.035;}
+  drawExp1();
+  requestAnimationFrame(loop);
+}
+updateRo1();updateRo2();drawExp2();
+if(prefersReduced){drawExp1();}else{loop();}
+
+// ============================================================
+// 昇級課題
+// ============================================================
+const quizState={q1:false,q2:false,q3:false};
+function checkNum(id,ans,tol){
+  const v=parseFloat(document.getElementById(id).value.replace(/,/g,''));
+  const ok=isFinite(v)&&Math.abs(v-ans)<=tol;
+  document.getElementById(id+'m').textContent=ok?'✅ 正解':'❌ もう一度';
+  quizState[id]=ok;
+  if(quizState.q1&&quizState.q2&&quizState.q3){
+    document.getElementById('nextbox').innerHTML='🎉 <b>L2 修了。</b>|V|・δ・P・Q——潮流計算の登場人物が全員そろいました。'+
+      'ここから先は本編です: <a href="getting_started.html">L3の入口「はじめに」</a>で用語を確認し、'+
+      '<a href="power_flow_intuitive_v6_fixed.html">学習パス1（収束の直感）</a>へ。'+
+      'あなたが今日見た P=(V₁V₂/X)sinδ が、そこでは連立非線形方程式になって待っています。';
+  }
+}
+</script>
+</body>
+</html>
