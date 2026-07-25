@@ -1764,7 +1764,7 @@ function updateResults() {
                 </div>
                 <div class="result-stats">
                     <span>反復: ${e.iteration}</span>
-                    <span>誤差: ${isFinite(e.maxError) ? e.maxError.toExponential(1) : '∞'}</span>
+                    <span>誤差: ${isFinite(e.maxError) ? e.maxError.toExponential(1) + ' p.u. (' + (e.maxError * e.baseMVA).toExponential(1) + ' MW)' : '∞'}</span>
                     <span>${e.converged && algo !== 'dc' ? '損失: ' + computeTotalLossMW(e).toFixed(2) + ' MW' : ''}</span>
                 </div>
             </div>

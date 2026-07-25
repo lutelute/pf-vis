@@ -196,23 +196,43 @@ try {
     test('DC execution', false, e.message);
 }
 
-// Test 6: Algorithm comparison
-console.log('\n📊 Algorithm Comparison');
+// Test 6: Algorithm cross-agreement (異なる手法が同一解に到達することの相互検証)
+console.log('\n📊 Algorithm Cross-Agreement');
 try {
+    const maxVDiff = (a, b) => {
+        let d = 0;
+        for (let i = 0; i < a.busResults.length; i++) {
+            d = Math.max(d, Math.abs(a.busResults[i].V - b.busResults[i].V));
+        }
+        return d;
+    };
+
     const nrEngine = new PowerFlowEngine(IEEE_14_BUS);
     const nrResult = nrEngine.solveNewtonRaphson({ tolerance: 1e-8 });
 
     const gsEngine = new PowerFlowEngine(IEEE_14_BUS);
     const gsResult = gsEngine.solveGaussSeidel({ tolerance: 1e-6, maxIterations: 500 });
 
+    const fdEngine = new PowerFlowEngine(IEEE_14_BUS);
+    const fdResult = fdEngine.solveFastDecoupled({ tolerance: 1e-6, maxIterations: 100 });
+
     if (nrResult.converged && gsResult.converged) {
-        // Compare GS to NR solution
-        let maxDiff = 0;
-        for (let i = 0; i < nrResult.busResults.length; i++) {
-            const diff = Math.abs(nrResult.busResults[i].V - gsResult.busResults[i].V);
-            if (diff > maxDiff) maxDiff = diff;
-        }
-        test('GS matches NR solution', maxDiff < 0.01, `Max difference: ${maxDiff.toFixed(4)} p.u.`);
+        const d = maxVDiff(nrResult, gsResult);
+        test('GS matches NR solution (case14)', d < 0.001, `Max diff: ${d.toExponential(2)} p.u.`);
+    }
+    if (nrResult.converged && fdResult.converged) {
+        const d = maxVDiff(nrResult, fdResult);
+        test('FDXB matches NR solution (case14)', d < 0.001, `Max diff: ${d.toExponential(2)} p.u.`);
+    }
+
+    // WSCC 9-bus でも相互一致を確認
+    const nr9 = new PowerFlowEngine(window.IEEE_9_BUS);
+    const nr9r = nr9.solveNewtonRaphson({ tolerance: 1e-8 });
+    const fd9 = new PowerFlowEngine(window.IEEE_9_BUS);
+    const fd9r = fd9.solveFastDecoupled({ tolerance: 1e-6, maxIterations: 100 });
+    if (nr9r.converged && fd9r.converged) {
+        const d = maxVDiff(nr9r, fd9r);
+        test('FDXB matches NR solution (case9)', d < 0.001, `Max diff: ${d.toExponential(2)} p.u.`);
     }
 } catch (e) {
     test('Comparison', false, e.message);
