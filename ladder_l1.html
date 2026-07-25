@@ -8,8 +8,8 @@
 <style>
   :root{
     --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
-    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
-    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --upd:#6f54c4;
+    --text:#1a1a17; --muted:#52504a; --faint:#737166;
+    --accent:#197e6e; --warm:#926926; --neg:#ca3c4e; --upd:#6f54c4;
     --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
     --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -48,7 +48,7 @@
   .qcheck{display:inline-flex;align-items:center;gap:8px;}
   .qcheck input[type=text]{width:100px;font-family:var(--mono);font-size:14px;padding:6px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);}
   .qcheck button{font-size:13px;border-radius:8px;padding:6px 14px;border:1px solid var(--accent);background:var(--panel);color:var(--accent);font-weight:600;cursor:pointer;}
-  .qcheck button:hover{background:rgba(31,158,138,0.08);}
+  .qcheck button:hover{background:rgba(25,126,110,0.06);}
   .qmark{font-size:16px;min-width:5em;}
   .nextbox{background:var(--panel);border:1px solid var(--accent);border-radius:12px;padding:14px 18px;margin-top:18px;font-size:14px;}
   .nextbox a{color:var(--accent);font-weight:600;}
@@ -179,7 +179,7 @@ function draw(){
   ctx.fillStyle=getCSS('--upd');ctx.fillRect(tx-26,y-26,52,52);
   ctx.fillStyle='#fff';ctx.fillText('街',tx,y+4);
   const w=Math.min(46,Math.max(2,I/60));
-  ctx.strokeStyle=loss>P_MW?'rgba(207,79,95,0.7)':'rgba(31,158,138,0.55)';
+  ctx.strokeStyle=loss>P_MW?'rgba(202,60,78,0.7)':'rgba(25,126,110,0.55)';
   ctx.lineWidth=w;
   ctx.beginPath();ctx.moveTo(gx+34,y);ctx.lineTo(tx-30,y);ctx.stroke();
   ctx.fillStyle=getCSS('--muted');ctx.font='11.5px '+getCSS('--mono');
@@ -201,7 +201,7 @@ function draw(){
     const h=Math.max(4,(Math.log10(l)+2)/6*bh);
     const x=bx0+i*bw+8;
     const over=l>P_MW;
-    ctx.fillStyle=v===VkV?(over?getCSS('--neg'):getCSS('--accent')):(over?'rgba(207,79,95,0.45)':'rgba(31,158,138,0.35)');
+    ctx.fillStyle=v===VkV?(over?getCSS('--neg'):getCSS('--accent')):(over?'rgba(202,60,78,0.45)':'rgba(25,126,110,0.35)');
     ctx.fillRect(x,by0-h,bw-22,h);
     ctx.fillStyle=getCSS('--muted');ctx.font='10.5px '+getCSS('--mono');ctx.textAlign='center';
     ctx.fillText(v+'kV',x+(bw-22)/2,by0+16);

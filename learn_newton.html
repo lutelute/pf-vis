@@ -8,8 +8,8 @@
 <style>
   :root{
     --bg:#faf8f1; --panel:#ffffff; --panel-2:#fffdf6; --line:#dcd8cc; --grid:#e7e3d8;
-    --text:#1a1a17; --muted:#52504a; --faint:#928f84;
-    --accent:#1f9e8a; --warm:#b3812f; --neg:#cf4f5f; --loss:#c2891b; --upd:#6f54c4;
+    --text:#1a1a17; --muted:#52504a; --faint:#737166;
+    --accent:#197e6e; --warm:#926926; --neg:#ca3c4e; --loss:#c2891b; --upd:#6f54c4;
     --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,serif;
     --gothic:"Hiragino Sans","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
@@ -249,7 +249,7 @@ function drawPlane(opt){
     const e=mnorm(V,d);
     const lv=Math.max(-4,Math.min(0.8,Math.log10(e+1e-12)));
     const t=(lv+4)/4.8; // 0(解の近く)〜1(遠い)
-    ctx.fillStyle='rgba(31,158,138,'+(0.42*(1-t)).toFixed(3)+')';
+    ctx.fillStyle='rgba(25,126,110,'+(0.42*(1-t)).toFixed(3)+')';
     ctx.fillRect(px(d)-PLANE.w/NX/2+PLANE.w/NX*0, py(V)-PLANE.h/NY/2, PLANE.w/NX+1, PLANE.h/NY+1);
   }
   // 枠と軸
@@ -314,7 +314,7 @@ function drawJacCells(y0,V,d){
   cells.forEach((c,i)=>{
     const cx=x0+(i%2)*(cs+16), cy=y0+Math.floor(i/2)*(cs*0.72+14);
     const t=Math.abs(c[0])/maxAbs;
-    ctx.fillStyle=c[0]>=0?'rgba(31,158,138,'+(0.12+0.4*t)+')':'rgba(207,79,95,'+(0.12+0.4*t)+')';
+    ctx.fillStyle=c[0]>=0?'rgba(25,126,110,'+(0.12+0.4*t)+')':'rgba(202,60,78,'+(0.12+0.4*t)+')';
     ctx.fillRect(cx,cy,cs,cs*0.72);
     ctx.strokeStyle=getCSS('--line');ctx.strokeRect(cx,cy,cs,cs*0.72);
     ctx.fillStyle=getCSS('--text');ctx.font='700 15px '+getCSS('--mono');ctx.textAlign='center';
@@ -455,7 +455,7 @@ const SLIDES=[
    ctx.fillText('スケールの階段',48,y0);
    const rows=[['今日',' 2 母線','J: 2×2','数μ秒'],['IEEE14','14 母線','J: 22×22','4回・13.393MW'],['実系統','数万母線','J: 疎行列','スパースLUが鍵']];
    rows.forEach((r,i)=>{const y=y0+22+i*40;
-     ctx.fillStyle='rgba(31,158,138,'+(0.12+i*0.1)+')';ctx.fillRect(48,y-13,CW-96,30);
+     ctx.fillStyle='rgba(25,126,110,'+(0.12+i*0.1)+')';ctx.fillRect(48,y-13,CW-96,30);
      ctx.strokeStyle=getCSS('--line');ctx.strokeRect(48,y-13,CW-96,30);
      ctx.fillStyle=getCSS('--text');ctx.font='700 10.5px '+getCSS('--mono');ctx.fillText(r[0],56,y+5);
      ctx.fillStyle=getCSS('--muted');ctx.font='10px '+getCSS('--mono');
