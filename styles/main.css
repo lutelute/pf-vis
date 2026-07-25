@@ -2,19 +2,22 @@
 
 /* CSS Variables */
 :root {
-    --bg-dark: #0a0a0f;
-    --bg-card: #12121a;
-    --bg-surface: #1a1a25;
-    --accent-blue: #5694f7;
-    --accent-green: #10b981;
-    --accent-orange: #f59e0b;
-    --accent-red: #ef4444;
-    --accent-purple: #a27cf8;
-    --accent-cyan: #06b6d4;
-    --text-primary: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-muted: #8a98ab;
-    --border: #2d2d3d;
+    /* 和紙（ブループリント形式）パレット: 基調は墨、アクセントは青緑1本。
+       琥珀=注意/見出し・紅=危険のみ。旧変数名は互換のため維持 */
+    --bg-dark: #faf8f1;
+    --bg-card: #ffffff;
+    --bg-surface: #fffdf6;
+    --accent-blue: #197b6c;
+    --accent-green: #197b6c;
+    --accent-orange: #8f6625;
+    --accent-red: #ca3c4e;
+    --accent-purple: #52504a;
+    --accent-cyan: #197b6c;
+    --text-primary: #1a1a17;
+    --text-secondary: #52504a;
+    --text-muted: #737166;
+    --border: #dcd8cc;
+    --mincho: "Hiragino Mincho ProN", "Yu Mincho", YuMincho, serif;
 }
 
 /* Reset & Base */
@@ -27,7 +30,7 @@
 }
 
 body {
-    font-family: 'Noto Sans JP', 'JetBrains Mono', sans-serif;
+    font-family: "Hiragino Sans", "Yu Gothic", 'Noto Sans JP', system-ui, sans-serif;
     background: var(--bg-dark);
     color: var(--text-primary);
     min-height: 100vh;
@@ -57,7 +60,7 @@ body {
 .logo-icon {
     width: 60px;
     height: 60px;
-    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+    background: var(--accent-blue);
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -66,12 +69,11 @@ body {
 }
 
 .title {
-    font-size: 2.5rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    font-family: var(--mincho);
+    font-size: 2.3rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-primary);
     margin-bottom: 15px;
 }
 
@@ -103,7 +105,7 @@ body {
 
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 8px 20px rgba(26, 26, 23, 0.08);
     border-color: var(--accent-blue);
 }
 
@@ -133,6 +135,7 @@ body {
 .card-icon--orange { background: var(--accent-orange); }
 
 .card-title {
+    font-family: var(--mincho);
     font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-primary);
@@ -190,7 +193,7 @@ body {
 
 .btn-primary {
     background: var(--accent-blue);
-    color: var(--bg-dark);
+    color: #ffffff;
     font-weight: 700;
 }
 
@@ -287,10 +290,11 @@ body {
 }
 
 .doc-title {
+    font-family: var(--mincho);
     font-size: 1.4rem;
     font-weight: 600;
     margin-bottom: 20px;
-    color: var(--accent-orange);
+    color: var(--text-primary);
 }
 
 .doc-links {

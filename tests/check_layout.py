@@ -31,7 +31,8 @@ PAGES = [
     ("ラダーL5", "ladder_l5.html"),
     ("ラダーL6", "ladder_l6.html"),
 ]
-VIEWPORTS = [(375, 700, "mobile"), (768, 900, "tablet"), (1280, 900, "desktop")]
+VIEWPORTS = [(375, 700, "mobile"), (560, 800, "phablet"), (768, 900, "tablet"),
+             (900, 900, "tablet-l"), (1280, 900, "desktop")]
 
 JS_AUDIT = """() => {
   const issues = [];

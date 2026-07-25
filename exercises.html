@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/main.css?v=2">
     <style>
         .ex-stage {
             background: var(--bg-card);
@@ -47,10 +47,10 @@
             font-weight: 600;
             vertical-align: middle;
         }
-        .ex-tag.hand { background: rgba(245,158,11,0.15); color: var(--accent-orange); border: 1px solid rgba(245,158,11,0.4); }
-        .ex-tag.tool { background: rgba(59,130,246,0.15); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.4); }
-        .ex-tag.think { background: rgba(139,92,246,0.15); color: var(--accent-purple); border: 1px solid rgba(139,92,246,0.4); }
-        .ex-tag.diff { background: rgba(148,163,184,0.12); color: var(--text-secondary); border: 1px solid rgba(148,163,184,0.35); letter-spacing: 1px; }
+        .ex-tag.hand { background: rgba(146,105,38,0.04); color: var(--accent-orange); border: 1px solid rgba(146,105,38,0.35); }
+        .ex-tag.tool { background: rgba(25,126,110,0.04); color: var(--accent-blue); border: 1px solid rgba(25,126,110,0.35); }
+        .ex-tag.think { background: rgba(82,80,74,0.04); color: var(--accent-purple); border: 1px solid rgba(82,80,74,0.35); }
+        .ex-tag.diff { background: rgba(115,113,102,0.04); color: var(--text-secondary); border: 1px solid rgba(115,113,102,0.3); letter-spacing: 1px; }
         .ex-progress {
             position: sticky; top: 0; z-index: 10;
             background: var(--bg-card);
@@ -63,7 +63,7 @@
         }
         .ex-progress .bar { flex: 1; height: 8px; background: var(--bg-dark); border-radius: 4px; overflow: hidden; }
         .ex-progress .bar > div { height: 100%; background: var(--accent-green); width: 0%; transition: width 0.3s; }
-        .ex-selfcheck { margin-top: 8px; padding: 8px 12px; background: rgba(139,92,246,0.06); border-radius: 6px; font-size: 0.88rem; }
+        .ex-selfcheck { margin-top: 8px; padding: 8px 12px; background: rgba(82,80,74,0.05); border-radius: 6px; font-size: 0.88rem; }
         .ex-selfcheck label { display: block; cursor: pointer; line-height: 2; color: var(--text-secondary); }
         .ex-selfcheck .sc-title { font-weight: 700; color: var(--accent-purple); font-size: 0.8rem; }
         .ex-problem p, .ex-problem li { color: var(--text-primary); font-size: 0.93rem; line-height: 1.8; }
@@ -96,8 +96,8 @@
             font-weight: 600;
             user-select: none;
         }
-        details.ex-hint summary { color: var(--accent-orange); background: rgba(245,158,11,0.08); }
-        details.ex-answer summary { color: var(--accent-green); background: rgba(16,185,129,0.08); }
+        details.ex-hint summary { color: var(--accent-orange); background: rgba(146,105,38,0.04); }
+        details.ex-answer summary { color: var(--accent-green); background: rgba(25,126,110,0.04); }
         details.ex-hint > div, details.ex-answer > div {
             padding: 12px 16px;
             font-size: 0.9rem;
@@ -117,10 +117,10 @@
             line-height: 1.8;
             overflow-x: auto;
             white-space: pre;
-            color: #c9d1d9;
+            color: var(--text-primary);
         }
         .ex-note {
-            background: rgba(6,182,212,0.07);
+            background: rgba(25,126,110,0.03);
             border-left: 3px solid var(--accent-cyan);
             padding: 10px 14px;
             border-radius: 0 6px 6px 0;
@@ -160,13 +160,13 @@
             font-weight: 600;
             cursor: pointer;
         }
-        .ex-check button:hover { background: rgba(59,130,246,0.15); }
+        .ex-check button:hover { background: rgba(25,126,110,0.10); }
         .ex-check .ex-result { font-size: 0.95rem; min-width: 1.4em; }
         .ex-checkzone {
             margin-top: 10px;
             padding: 10px 14px;
-            background: rgba(59,130,246,0.05);
-            border: 1px dashed rgba(59,130,246,0.35);
+            background: rgba(25,126,110,0.04);
+            border: 1px dashed rgba(25,126,110,0.35);
             border-radius: 8px;
             font-size: 0.9rem;
             line-height: 2.2;
@@ -208,7 +208,7 @@
                 if (ok) {
                     result.textContent = '✅';
                     result.title = '正解!';
-                    input.style.borderColor = '#10b981';
+                    input.style.borderColor = '#197e6e';
                 } else {
                     result.textContent = '❌';
                     result.title = `不正解 (許容誤差 ±${tol})。ヒントや解答を確認してください`;
@@ -258,13 +258,13 @@
     </script>
 </head>
 <body>
-    <nav style="background: #0d1117; border-bottom: 1px solid #2d2d3d; padding: 10px 24px; display: flex; align-items: center; gap: 18px; font-size: 14px;">
-        <a href="index.html" style="color: #f1f5f9; font-weight: 700; text-decoration: none;">⚡ Power Flow Visualization</a>
+    <nav style="background: var(--bg-card); border-bottom: 1px solid var(--border); padding: 10px 24px; display: flex; align-items: center; gap: 18px; font-size: 14px;">
+        <a href="index.html" style="color: var(--text-primary); font-weight: 700; text-decoration: none;">⚡ Power Flow Visualization</a>
         <span style="flex: 1;"></span>
-        <a href="index.html" style="color: #5694f7; text-decoration: none;">🏠 メイン</a>
-        <a href="getting_started.html" style="color: #5694f7; text-decoration: none;">🚪 はじめに</a>
-        <a href="exercises.html" style="color: #5694f7; text-decoration: none;">✏️ 演習</a>
-        <a href="getting_started.html#glossary" style="color: #5694f7; text-decoration: none;">📖 用語集</a>
+        <a href="index.html" style="color: var(--accent-blue); text-decoration: none;">🏠 メイン</a>
+        <a href="getting_started.html" style="color: var(--accent-blue); text-decoration: none;">🚪 はじめに</a>
+        <a href="exercises.html" style="color: var(--accent-blue); text-decoration: none;">✏️ 演習</a>
+        <a href="getting_started.html#glossary" style="color: var(--accent-blue); text-decoration: none;">📖 用語集</a>
     </nav>
     <div class="container">
         <header class="header">
