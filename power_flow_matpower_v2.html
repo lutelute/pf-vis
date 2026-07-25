@@ -604,10 +604,15 @@
 
             <div class="viz-card">
                 <div class="viz-header">
-                    <div class="viz-title">🧮 Ybus接続構造（ヤコビアンの非零パターンの由来）</div>
+                    <div class="viz-title">🧮 ヤコビアン行列 J（実数値・現在の動作点）</div>
                 </div>
-                <div class="viz-body">
-                    <canvas id="jacobianCanvas"></canvas>
+                <div class="viz-body" style="overflow: auto; padding: 8px;">
+                    <div id="jacobianNumeric" style="min-height: 120px;"></div>
+                    <div style="font-size: 11px; color: #94a3b8; padding: 6px 4px 0; line-height: 1.6;">
+                        行 = ΔP/ΔQ、列 = δ/|V|（青 = 正・赤 = 負、濃さ = 大きさ）。セルにマウスを載せると
+                        「∂P₂/∂δ₃ = 値」を表示。各要素の計算式と物理的意味の解剖は
+                        <a href="power_flow_process_visualizer_v2.html" style="color: #3b82f6;">計算過程ステップ表示</a>へ。
+                    </div>
                 </div>
             </div>
 
@@ -1289,47 +1294,62 @@ MATPOWER準拠の潮流計算を実行します：
      * colors for each quadrant (∂P/∂δ, ∂P/∂V, ∂Q/∂δ, ∂Q/∂V).
      */
     function drawJacobian() {
-        const canvas = document.getElementById('jacobianCanvas');
-        const ctx = canvas.getContext('2d');
-        const rect = canvas.parentElement.getBoundingClientRect();
-        
-        canvas.width = rect.width - 30;
-        canvas.height = rect.height - 30;
-        
-        const w = canvas.width;
-        const h = canvas.height;
+        const container = document.getElementById('jacobianNumeric');
+        if (!container || !engine) return;
 
-        ctx.fillStyle = '#12121a';
-        ctx.fillRect(0, 0, w, h);
+        const { J, pBuses, qBuses } = engine.getJacobianSnapshot();
+        const nP = pBuses.length;
+        const n = J.length;
+        if (n === 0) { container.innerHTML = ''; return; }
 
-        if (!engine) return;
+        let maxAbs = 0;
+        for (const row of J) for (const v of row) maxAbs = Math.max(maxAbs, Math.abs(v));
 
-        const n = engine.nBus;
-        const size = Math.min(w, h) * 0.9;
-        const cellSize = Math.max(size / (2 * n), 2);
-        const offsetX = (w - 2 * n * cellSize) / 2;
-        const offsetY = (h - 2 * n * cellSize) / 2;
+        const rowLabels = [...pBuses.map(b => `ΔP${b + 1}`), ...qBuses.map(b => `ΔQ${b + 1}`)];
+        const colLabels = [...pBuses.map(b => `δ${b + 1}`), ...qBuses.map(b => `V${b + 1}`)];
+        const showText = n <= 16;
 
-        for (let i = 0; i < n; i++) {
-            for (let j = 0; j < n; j++) {
-                const hasEntry = Math.abs(engine.Ybus.re[i][j]) > 1e-10 || 
-                                Math.abs(engine.Ybus.im[i][j]) > 1e-10;
-                
-                if (hasEntry || i === j) {
-                    ctx.fillStyle = '#3b82f6';
-                    ctx.fillRect(offsetX + j * cellSize, offsetY + i * cellSize, cellSize - 1, cellSize - 1);
-                    
-                    ctx.fillStyle = '#10b981';
-                    ctx.fillRect(offsetX + (n + j) * cellSize, offsetY + i * cellSize, cellSize - 1, cellSize - 1);
-                    
-                    ctx.fillStyle = '#f59e0b';
-                    ctx.fillRect(offsetX + j * cellSize, offsetY + (n + i) * cellSize, cellSize - 1, cellSize - 1);
-                    
-                    ctx.fillStyle = '#8b5cf6';
-                    ctx.fillRect(offsetX + (n + j) * cellSize, offsetY + (n + i) * cellSize, cellSize - 1, cellSize - 1);
-                }
-            }
+        const heat = v => {
+            if (v === 0 || maxAbs === 0) return '#161b22';
+            const t = Math.min(1, Math.abs(v) / maxAbs);
+            const a = 0.10 + 0.55 * Math.sqrt(t);
+            return v > 0 ? `rgba(56,139,253,${a})` : `rgba(248,81,73,${a})`;
+        };
+        const fmt = v => {
+            const a = Math.abs(v);
+            if (a >= 100) return v.toFixed(0);
+            if (a >= 10) return v.toFixed(1);
+            if (a !== 0 && a < 0.005) return v.toExponential(0);
+            return v.toFixed(2);
+        };
+        // ホバー時のツールチップ: どの偏微分か
+        const derivName = (r, c) => {
+            const rowIsP = r < nP;
+            const colIsD = c < nP;
+            const bi = (rowIsP ? pBuses[r] : qBuses[r - nP]) + 1;
+            const bj = (colIsD ? pBuses[c] : qBuses[c - nP]) + 1;
+            return `∂${rowIsP ? 'P' : 'Q'}${bi}/∂${colIsD ? 'δ' : 'V'}${bj}`;
+        };
+
+        let html = '<table style="border-collapse: collapse; font-family: JetBrains Mono, monospace; font-size: 10px; margin: 0 auto;"><thead><tr><th></th>';
+        for (let c = 0; c < n; c++) {
+            const bl = c === nP ? 'border-left: 2px solid #8b949e;' : '';
+            html += `<th style="color: #8b949e; padding: 2px 4px; ${bl}">${colLabels[c]}</th>`;
         }
+        html += '</tr></thead><tbody>';
+        for (let r = 0; r < n; r++) {
+            const bt = r === nP ? 'border-top: 2px solid #8b949e;' : '';
+            html += `<tr><th style="color: #8b949e; padding: 2px 4px; text-align: right; ${bt}">${rowLabels[r]}</th>`;
+            for (let c = 0; c < n; c++) {
+                const v = J[r][c];
+                const bl = c === nP ? 'border-left: 2px solid #8b949e;' : '';
+                const pad = showText ? 'padding: 2px 4px; min-width: 36px;' : 'padding: 0; width: 9px; height: 9px; font-size: 0;';
+                html += `<td title="${derivName(r, c)} = ${v.toExponential(3)}" style="background: ${heat(v)}; color: #e6edf3; text-align: right; border: 1px solid #21262d; ${pad} ${bl} ${bt}">${showText ? fmt(v) : ''}</td>`;
+            }
+            html += '</tr>';
+        }
+        html += '</tbody></table>';
+        container.innerHTML = html;
     }
 
     document.addEventListener('DOMContentLoaded', init);

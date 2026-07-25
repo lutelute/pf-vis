@@ -1497,6 +1497,26 @@ class PowerFlowEngine {
     getErrorHistory() {
         return [...this.errorHistory];
     }
+
+    /**
+     * Get a snapshot of the current Jacobian matrix (for visualization)
+     *
+     * @description Builds the Jacobian at the current operating point and
+     * returns it together with the bus index lists that define row/column
+     * ordering: rows = [ΔP for pBuses..., ΔQ for qBuses...],
+     * cols = [δ for pBuses..., |V| for qBuses...].
+     *
+     * @returns {{J: Array<Array<number>>, pBuses: Array<number>, qBuses: Array<number>}}
+     */
+    getJacobianSnapshot() {
+        const { deltaP, deltaQ } = this._calcMismatch();
+        const J = this._buildJacobian(deltaP, deltaQ);
+        return {
+            J,
+            pBuses: deltaP.map(d => d.bus),
+            qBuses: deltaQ.map(d => d.bus)
+        };
+    }
 }
 
 // ============================================================
