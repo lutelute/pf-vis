@@ -112,7 +112,98 @@
             margin-bottom: 24px;
         }
         .back-link { color: var(--accent-blue); text-decoration: none; }
+
+        /* 数値入力の自動判定ウィジェット */
+        .ex-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin: 2px 6px 2px 2px;
+            white-space: nowrap;
+        }
+        .ex-check input {
+            width: 90px;
+            background: var(--bg-dark);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.88rem;
+            padding: 5px 8px;
+        }
+        .ex-check input:focus { outline: 1px solid var(--accent-blue); }
+        .ex-check .ex-unit { color: var(--text-secondary); font-size: 0.85rem; }
+        .ex-check button {
+            background: var(--bg-surface);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            border-radius: 6px;
+            padding: 4px 12px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .ex-check button:hover { background: rgba(59,130,246,0.15); }
+        .ex-check .ex-result { font-size: 0.95rem; min-width: 1.4em; }
+        .ex-checkzone {
+            margin-top: 10px;
+            padding: 10px 14px;
+            background: rgba(59,130,246,0.05);
+            border: 1px dashed rgba(59,130,246,0.35);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            line-height: 2.2;
+        }
+        .ex-checkzone .zone-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            display: block;
+            margin-bottom: 2px;
+        }
     </style>
+    <script>
+    // 数値入力の自動判定: <span class="ex-check" data-answer="50" data-tol="0.5" data-unit="MW">
+    // 判定は許容誤差つき。入力欄を空にして判定すると解答を促す。
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.ex-check').forEach(span => {
+            const answer = parseFloat(span.dataset.answer);
+            const tol = parseFloat(span.dataset.tol || Math.abs(answer) * 0.01 || 0.01);
+            const unit = span.dataset.unit || '';
+            const label = span.dataset.label || '';
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.placeholder = label;
+            input.setAttribute('aria-label', label || '解答入力');
+            const unitEl = document.createElement('span');
+            unitEl.className = 'ex-unit';
+            unitEl.textContent = unit;
+            const btn = document.createElement('button');
+            btn.textContent = '判定';
+            const result = document.createElement('span');
+            result.className = 'ex-result';
+
+            const check = () => {
+                const v = parseFloat(input.value.replace(/[,＝=]/g, ''));
+                if (!isFinite(v)) { result.textContent = '❓'; result.title = '数値を入力してください'; return; }
+                if (Math.abs(v - answer) <= tol) {
+                    result.textContent = '✅';
+                    result.title = '正解!';
+                    input.style.borderColor = '#10b981';
+                } else {
+                    result.textContent = '❌';
+                    result.title = `不正解 (許容誤差 ±${tol})。ヒントや解答を確認してください`;
+                    input.style.borderColor = '#ef4444';
+                }
+            };
+            btn.addEventListener('click', check);
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+
+            span.append(input, unitEl, btn, result);
+        });
+    });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -144,6 +235,10 @@
                     <h3>Q0-1. 単位法 (p.u.)<span class="ex-tag hand">✋手計算</span></h3>
                     <p>基準容量 100 MVA の系統で、ある母線の有効電力負荷が P = 0.5 p.u. と表されている。これは何MWか。
                     また、電圧 V = 1.045 p.u.（基準電圧132 kV）は何kVか。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定</span>
+                        P = <span class="ex-check" data-answer="50" data-tol="0.1" data-unit="MW"></span>
+                        V = <span class="ex-check" data-answer="138" data-tol="0.3" data-unit="kV"></span>
+                    </div>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
                         P = 0.5 × 100 MVA = <strong>50 MW</strong>。V = 1.045 × 132 kV = <strong>138.0 kV</strong>。<br>
                         p.u.は「基準値の何倍か」という無次元表示。電圧階級の異なる系統を一つの数字の土俵で扱え、
@@ -176,6 +271,11 @@ PQ      P, Q               |V|, δ （負荷母線）</div>
                     <h3>Q1-1. はじめての潮流計算<span class="ex-tag tool">🖥ツール</span></h3>
                     <p>「2ノード(中負荷)」を Newton-Raphson法で解き、次を記録せよ:
                     (a) 収束後の |V| と δ、(b) 収束までの反復回数、(c) 誤差が反復ごとにどう減ったか（ログの err の列）。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定</span>
+                        |V| = <span class="ex-check" data-answer="0.9888" data-tol="0.002" data-unit="p.u."></span>
+                        δ = <span class="ex-check" data-answer="-0.753" data-tol="0.02" data-unit="°"></span>
+                        反復 = <span class="ex-check" data-answer="4" data-tol="0" data-unit="回"></span>
+                    </div>
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         「▶ 実行」後、右側ログに <code>NR[k]: V=..., δ=..., err=...</code> が反復ごとに出る。errの指数部（e-1, e-4, e-8…）に注目。
                     </div></details>
@@ -210,6 +310,10 @@ PQ      P, Q               |V|, δ （負荷母線）</div>
                 <div class="ex-problem">
                     <h3>Q2-1. アドミタンス行列 Ybus を作る<span class="ex-tag hand">✋手計算</span></h3>
                     <p>線路インピーダンス z = 0.02 + j0.06 から直列アドミタンス y = 1/z を求め、2×2 の Ybus を書け。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 y = g + jb の実部・虚部を入力して自動判定</span>
+                        g = <span class="ex-check" data-answer="5" data-tol="0.05"></span>
+                        b = <span class="ex-check" data-answer="-15" data-tol="0.05"></span>
+                    </div>
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         1/(a+jb) = (a−jb)/(a²+b²)。|z|² = 0.02² + 0.06² = 0.004。
                     </div></details>
@@ -228,6 +332,12 @@ Ybus = [  5−j15   −5+j15 ]      対角: 接続する線路のyの和
                     <p>初期値 V₂=1.0, δ₂=0（フラットスタート）でのヤコビアン
                     J = [[∂P₂/∂δ₂, ∂P₂/∂V₂], [∂Q₂/∂δ₂, ∂Q₂/∂V₂]] を求めよ。
                     公式: ∂P/∂δ = −Q_calc − V²B₂₂, ∂P/∂V = P_calc/V + V·G₂₂, ∂Q/∂δ = P_calc − V²G₂₂, ∂Q/∂V = Q_calc/V − V·B₂₂</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 ヤコビアンの4要素を入力して自動判定</span>
+                        ∂P/∂δ = <span class="ex-check" data-answer="15" data-tol="0.1"></span>
+                        ∂P/∂V = <span class="ex-check" data-answer="5" data-tol="0.1"></span>
+                        ∂Q/∂δ = <span class="ex-check" data-answer="-5" data-tol="0.1"></span>
+                        ∂Q/∂V = <span class="ex-check" data-answer="15" data-tol="0.1"></span>
+                    </div>
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         まずフラットスタートでの計算値 P_calc, Q_calc を求める。V₁=V₂=1, δ₁=δ₂=0 だと
                         P₂ = G₂₁cos0 + B₂₁sin0 + G₂₂ = −5 + 0 + 5 = 0、Q₂も同様に 0 になる。
@@ -248,6 +358,10 @@ J = [ 15   5 ]
                     <h3>Q2-3. Newton-Raphson の1反復を回す<span class="ex-tag hand">✋手計算</span></h3>
                     <p>ミスマッチは ΔP = −0.5 − 0 = −0.5, ΔQ = −0.2 − 0 = −0.2（負荷なので指定注入が負）。
                     J·Δx = [ΔP; ΔQ] を解いて Δδ₂ と ΔV₂ を求め、1反復後の (V₂, δ₂) を出せ。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 修正量を入力して自動判定</span>
+                        Δδ = <span class="ex-check" data-answer="-0.026" data-tol="0.001" data-unit="rad"></span>
+                        ΔV = <span class="ex-check" data-answer="-0.022" data-tol="0.001" data-unit="p.u."></span>
+                    </div>
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         2×2の逆行列: [[a,b],[c,d]]⁻¹ = 1/(ad−bc)·[[d,−b],[−c,a]]。det = 15×15 − 5×(−5) = 250。
                     </div></details>
@@ -269,6 +383,9 @@ J = [ 15   5 ]
                     <h3>Q2-4. DC潮流と比べる<span class="ex-tag hand">✋手計算</span><span class="ex-tag think">💭考察</span></h3>
                     <p>同じ系統をDC潮流で解け（δ₂ = −P·x）。ACの厳密解 δ₂ = −1.525° と比べ、
                     差が生じる理由を DC の3つの仮定から説明せよ。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 DC解を入力して自動判定</span>
+                        δ₂(DC) = <span class="ex-check" data-answer="-1.719" data-tol="0.02" data-unit="°"></span>
+                    </div>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
                         <div class="ex-math">δ₂(DC) = −0.5 × 0.06 = −0.03 rad = −1.719°   （AC: −1.525°、差 0.19°）</div>
                         差の主因: ① DCは V=1.0 と仮定するが実際は V₂=0.977 に低下（角度と電力の関係が変わる）、
@@ -354,6 +471,11 @@ J = [ 15   5 ]
                     <h3>Q5-1. 電力収支を検算する<span class="ex-tag tool">🖥ツール</span><span class="ex-tag hand">✋手計算</span></h3>
                     <p>IEEE 14母線をNRで解き、(a) 総負荷、(b) スラック母線の実発電量、(c) 総損失を求め、
                     「総発電 = 総負荷 + 総損失」が成り立つことを検算せよ。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定（ツールの「解の妥当性チェック」パネルで確認できます）</span>
+                        総負荷 = <span class="ex-check" data-answer="259" data-tol="0.5" data-unit="MW"></span>
+                        スラック発電 = <span class="ex-check" data-answer="232.4" data-tol="0.5" data-unit="MW"></span>
+                        総損失 = <span class="ex-check" data-answer="13.39" data-tol="0.1" data-unit="MW"></span>
+                    </div>
                     <details class="ex-hint"><summary>ヒント</summary><div>
                         総負荷はケースデータのPD列の合計（259.0 MW）。発電はスラック(バス1)とバス2(40 MW)のみ
                         （バス3/6/8は同期調相機でP=0）。
@@ -372,6 +494,10 @@ J = [ 15   5 ]
                 <div class="ex-problem">
                     <h3>Q5-2. 系統の弱点を読む<span class="ex-tag tool">🖥ツール</span><span class="ex-tag think">💭考察</span></h3>
                     <p>解いた結果の母線表から、(a) 最も位相角が遅れている母線、(b) その母線が遅れる理由を系統の構造から説明せよ。</p>
+                    <div class="ex-checkzone"><span class="zone-label">🎯 答えを入力して自動判定</span>
+                        母線番号 = <span class="ex-check" data-answer="14" data-tol="0"></span>
+                        その位相角 = <span class="ex-check" data-answer="-16.0" data-tol="0.3" data-unit="°"></span>
+                    </div>
                     <details class="ex-answer"><summary>解答と解説</summary><div>
                         (a) <strong>バス14（δ = −16.0°）</strong>。<br>
                         (b) バス14は系統の<strong>末端</strong>にあり、発電源（バス1・2）から最も電気的に遠い。

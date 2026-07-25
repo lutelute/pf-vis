@@ -2298,6 +2298,28 @@
         return result;
     }
 
+    /**
+     * 誤差履歴から収束次数 p を実測推定する。
+     * 標準的な推定式: p ≈ ln(e_{k+1}/e_k) / ln(e_k/e_{k-1})
+     * 末尾の有効な3点で計算し、複数の推定値があれば平均する。
+     * NRなら p≈2、GS/GJなら p≈1 が観測される — 教科書の主張を自分の目で確認できる。
+     */
+    function estimateConvergenceOrder(engine) {
+        const hist = (engine.errorHistory || []).map(h => h.max).filter(e => isFinite(e) && e > 1e-14);
+        if (hist.length < 3) return null;
+        const ps = [];
+        for (let k = hist.length - 1; k >= 2 && ps.length < 3; k--) {
+            const e2 = hist[k], e1 = hist[k - 1], e0 = hist[k - 2];
+            if (e2 >= e1 || e1 >= e0) continue;  // 単調減少区間のみ使用
+            const denom = Math.log(e1 / e0);
+            if (Math.abs(denom) < 1e-12) continue;
+            const p = Math.log(e2 / e1) / denom;
+            if (isFinite(p) && p > 0 && p < 5) ps.push(p);
+        }
+        if (ps.length === 0) return null;
+        return ps.reduce((a, b) => a + b, 0) / ps.length;
+    }
+
     function init() {
         buildAlgoCheckboxes();
         buildAlgoInfoGrid();
@@ -2524,6 +2546,12 @@
                         ${engine.lastUpdateInfo ? `
                         <div class="internals-line">今反復の更新: max|Δδ| = ${(engine.lastUpdateInfo.maxdD * 180 / Math.PI).toFixed(3)}°(母線${engine.lastUpdateInfo.argD + 1}) / max|ΔV| = ${engine.lastUpdateInfo.maxdV.toFixed(4)}(母線${engine.lastUpdateInfo.argV + 1})</div>
                         <div class="internals-line">真の解までの距離: ${isFinite(engine.lastUpdateInfo.dist) ? 'max|x−x*| = ' + engine.lastUpdateInfo.dist.toExponential(2) : '—'}</div>
+                        ${(() => {
+                            const p = estimateConvergenceOrder(engine);
+                            if (p === null) return '';
+                            const kind = p >= 1.6 ? '2次収束' : p >= 1.25 ? '超線形' : '線形収束';
+                            return `<div class="internals-line">実測収束次数 p ≈ ${p.toFixed(2)}（${kind}）… p = ln(e_{k+1}/e_k)/ln(e_k/e_{k-1})</div>`;
+                        })()}
                         ` : '<div class="internals-line">実行すると各反復の更新量と真の解までの距離を表示</div>'}
                     </div>
                 </div>
