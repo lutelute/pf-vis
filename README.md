@@ -22,6 +22,8 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 
 補助ツール: [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) — 各手法を個別にじっくり実行・観察
 
+**✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全14問（手計算チャレンジ・ツール操作・考察、検証済み解答つき）
+
 ## 📐 数学的基礎
 
 潮流計算は、各母線の電力収支を表す非線形代数方程式系の求解です:
@@ -46,7 +48,7 @@ Q_i = Σ_j |V_i||V_j| [G_ij sin(θ_i−θ_j) − B_ij cos(θ_i−θ_j)]
 ※ B′, B″ は定数行列のため、LU分解を初回のみ行えば以降は前進後退代入のみ。
 
 収束速度の違いは実際に動かすとよく分かります。IEEE 14母線系統・許容誤差 1e-6 の場合:
-**NR: 4回 / FDXB: 十数回 / GS: 約170回**（GSの線形収束の遅さが体感できます）。
+**NR: 4〜5回 / FDXB: 22回 / GS: 179回**（GSの線形収束の遅さが体感できます）。
 
 ## ✅ 正確性の検証
 

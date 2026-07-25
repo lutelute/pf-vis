@@ -24,6 +24,7 @@ PAGES = [
     ("収束過程直感的理解 (v6_fixed)", "power_flow_intuitive_v6_fixed.html"),
     ("アルゴリズム比較", "power_flow_compare.html"),
     ("DC潮流精度検証", "dc_accuracy_analysis.html"),
+    ("演習問題", "exercises.html"),
 ]
 
 
