@@ -1568,6 +1568,23 @@
          *
          * @returns {number} Maximum of max(|ΔP|, |ΔQ|) across all buses
          */
+        /**
+         * 電力収支の検算行を生成する (解の妥当性の常時提示)。
+         * 全母線の注入の総和 = 系統損失。発電(正の注入) = 負荷(負の注入) + 損失。
+         */
+        function balanceLineHTML() {
+            let gen = 0, load = 0, slackInj = 0;
+            for (let i = 0; i < state.buses.length; i++) {
+                const { P } = calculatePQ(i);
+                if (P >= 0) gen += P; else load += -P;
+                if (state.buses[i].type === 'Slack') slackInj = P;
+            }
+            const loss = gen - load;
+            const mw = x => (x * 100).toFixed(1);
+            return `\n<span class="eq-highlight">収支検算:</span> 発電 ${mw(gen)} = 負荷 ${mw(load)} + 損失 ${mw(loss)} MW` +
+                   `（スラック注入 ${mw(slackInj)} MW は計算で決まった値）`;
+        }
+
         function getMaxMismatch() {
             let maxP = 0, maxQ = 0;
             state.buses.forEach(bus => {
@@ -2100,7 +2117,7 @@ Gauss消去法 (部分ピボット選択) を使用...`);
 max(|ΔP|, |ΔQ|) = ${maxError.toExponential(3)}
 許容誤差 ε = ${state.tolerance.toExponential(1)}
 
-${maxError < state.tolerance ? '<span class="eq-highlight">✓ 収束!</span>' : '→ 次の反復へ'}`);
+${maxError < state.tolerance ? '<span class="eq-highlight">✓ 収束!</span>' + balanceLineHTML() : '→ 次の反復へ'}`);
         }
 
         /**
@@ -2413,7 +2430,8 @@ V_${i+1}^(k+1) = 1/Y_${i+1}${i+1} × [
             updateEquationDisplay(`DC潮流: Bθ = P を直接求解（反復なし）
 <table class="mismatch-table"><tr><th>変数</th><th>解</th><th>度</th></tr>${thRows}</table>
 <span class="eq-highlight">解釈:</span> 発電が多い母線ほど角度が進み（正）、負荷が多い母線ほど遅れる（負）。
-角度差 × (1/x) が枝を流れる有効電力。|V|=1.0固定・Q無視のため誤差はあるが、1回の求解で済む。`);
+角度差 × (1/x) が枝を流れる有効電力。|V|=1.0固定・Q無視のため誤差はあるが、1回の求解で済む。
+<span class="eq-highlight">注:</span> DCは抵抗を無視するため損失は常に0と扱われる（AC解との違いの一つ）。`);
 
             // DC power flow converges in 1 iteration
             // DCは線形方程式の直接解なので反復誤差は存在しない (履歴に偽値は入れない)

@@ -723,14 +723,22 @@
                 const p = Math.log(e2 / e1) / den;
                 if (isFinite(p) && p > 0 && p < 5) ps.push(p);
             }
+            // 解の物理的な読み方 (数値と意味の接続)
+            const vDrop = ((1 - state.V) * 100);
+            const degStr = (state.delta * 180 / Math.PI).toFixed(2);
+            const reading =
+                ` 解の読み方: |V| = ${state.V.toFixed(4)}（基準から${vDrop >= 0 ? `${vDrop.toFixed(1)}%の電圧降下` : `${(-vDrop).toFixed(1)}%の電圧上昇`}）、` +
+                `δ = ${degStr}°（${state.delta < 0 ? 'スラックより位相が遅れて電力を受け取る側' : 'スラックより位相が進んで電力を送る側'}）。`;
             if (ps.length > 0) {
                 const p = ps.reduce((a, b) => a + b, 0) / ps.length;
                 const d = Object.assign({}, DIAGNOSIS.CONVERGED);
                 d.desc = DIAGNOSIS.CONVERGED.desc +
-                    ` 実測収束次数 p ≈ ${p.toFixed(2)}（${p >= 1.6 ? '2次収束' : p >= 1.25 ? '超線形' : '線形収束'}）。`;
+                    ` 実測収束次数 p ≈ ${p.toFixed(2)}（${p >= 1.6 ? '2次収束' : p >= 1.25 ? '超線形' : '線形収束'}）。` + reading;
                 return d;
             }
-            return DIAGNOSIS.CONVERGED;
+            const d0 = Object.assign({}, DIAGNOSIS.CONVERGED);
+            d0.desc = DIAGNOSIS.CONVERGED.desc + reading;
+            return d0;
         }
         
         // DC法は特別扱い
