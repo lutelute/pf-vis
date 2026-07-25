@@ -7,20 +7,20 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: #12121a;
-            --bg-surface: #1a1a25;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-orange: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
-            --accent-cyan: #06b6d4;
-            --accent-pink: #ec4899;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #8a98ab;
-            --border: #2d2d3d;
+            --bg-dark: #faf8f1;
+            --bg-card: #ffffff;
+            --bg-surface: #fffdf6;
+            --accent-blue: #2f5d9e;
+            --accent-green: #2e7d4f;
+            --accent-orange: #8f6625;
+            --accent-red: #ca3c4e;
+            --accent-purple: #6f54c4;
+            --accent-cyan: #197b6c;
+            --accent-pink: #b0486d;
+            --text-primary: #1a1a17;
+            --text-secondary: #52504a;
+            --text-muted: #737166;
+            --border: #dcd8cc;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -83,7 +83,7 @@
             font-size: 0.65rem;
             display: flex; align-items: center; gap: 3px;
         }
-        .algo-btn.selected { border-color: var(--accent-cyan); background: rgba(6,182,212,0.15); color: var(--text-primary); }
+        .algo-btn.selected { border-color: var(--accent-cyan); background: rgba(25,123,108,0.15); color: var(--text-primary); }
         .algo-dot { width: 6px; height: 6px; border-radius: 50%; }
         .btn {
             padding: 5px 10px;
@@ -164,8 +164,8 @@
         .result-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
         .result-name { font-weight: 600; font-size: 0.7rem; display: flex; align-items: center; gap: 4px; }
         .result-status { font-size: 0.6rem; padding: 1px 4px; border-radius: 3px; }
-        .result-status.converged { background: rgba(16,185,129,0.2); color: var(--accent-green); }
-        .result-status.diverged { background: rgba(239,68,68,0.2); color: var(--accent-red); }
+        .result-status.converged { background: rgba(46,125,79,0.2); color: var(--accent-green); }
+        .result-status.diverged { background: rgba(202,60,78,0.2); color: var(--accent-red); }
         .result-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; font-size: 0.6rem; }
 
         .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin: 6px 0; }
@@ -461,7 +461,7 @@
                 <div class="tab-content active" id="tab-results">
                     <h3>🏆 実行結果</h3>
                     <div id="algoResults"></div>
-                    <div id="v5BalanceSummary" style="margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #94a3b8;"></div>
+                    <div id="v5BalanceSummary" style="margin-top: 8px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #52504a;"></div>
                     <h3 style="margin-top: 20px;">📋 比較表</h3>
                     <table class="comparison-table" id="comparisonTable">
                         <thead>
@@ -497,14 +497,14 @@
 // Algorithm Definitions
 // ============================================================
 const ALGOS = {
-    nr: { name: 'Newton-Raphson', short: 'NR', color: '#3b82f6', desc: 'ヤコビアン行列による2次収束。事実上の標準。', matpower: 'newtonpf.m', complexity: 'O(n³)', convergence: '2次' },
-    fdxb: { name: 'Fast Decoupled XB', short: 'FDXB', color: '#10b981', desc: 'P-δ/Q-V分離近似。B行列は定数で高速。', matpower: 'fdpf.m', complexity: 'O(n²)*', convergence: '線形(高速)' },
-    fdbx: { name: 'Fast Decoupled BX', short: 'FDBX', color: '#14b8a6', desc: 'FDXBの変種。Q-V更新を先に行う。', matpower: 'fdpf.m', complexity: 'O(n²)*', convergence: '線形(高速)' },
-    gs: { name: 'Gauss-Seidel', short: 'GS', color: '#f59e0b', desc: '逐次更新。メモリ効率良。収束遅い。', matpower: 'gausspf.m', complexity: 'O(n²)', convergence: '線形' },
-    gj: { name: 'Gauss-Jacobi', short: 'GJ', color: '#eab308', desc: '一斉更新。並列化可能。GSより遅い。', matpower: '-', complexity: 'O(n²)', convergence: '線形' },
-    dc: { name: 'DC Power Flow', short: 'DC', color: '#8b5cf6', desc: '線形近似。P-δのみ。1回で解。', matpower: 'dcpf.m', complexity: 'O(n²)', convergence: '1回' },
-    lm: { name: 'Levenberg-Marquardt', short: 'LM', color: '#ec4899', desc: 'NRにダンピング追加。収束性改善。', matpower: '-', complexity: 'O(n³)', convergence: '超線形' },
-    rnr: { name: 'Relaxed Newton', short: 'RNR', color: '#6366f1', desc: '更新量を80%に緩和したNR。難収束時の安定化。', matpower: '-', complexity: 'O(n³)', convergence: '2次(減速)' }
+    nr: { name: 'Newton-Raphson', short: 'NR', color: '#2f5d9e', desc: 'ヤコビアン行列による2次収束。事実上の標準。', matpower: 'newtonpf.m', complexity: 'O(n³)', convergence: '2次' },
+    fdxb: { name: 'Fast Decoupled XB', short: 'FDXB', color: '#2e7d4f', desc: 'P-δ/Q-V分離近似。B行列は定数で高速。', matpower: 'fdpf.m', complexity: 'O(n²)*', convergence: '線形(高速)' },
+    fdbx: { name: 'Fast Decoupled BX', short: 'FDBX', color: '#1d7a70', desc: 'FDXBの変種。Q-V更新を先に行う。', matpower: 'fdpf.m', complexity: 'O(n²)*', convergence: '線形(高速)' },
+    gs: { name: 'Gauss-Seidel', short: 'GS', color: '#8f6625', desc: '逐次更新。メモリ効率良。収束遅い。', matpower: 'gausspf.m', complexity: 'O(n²)', convergence: '線形' },
+    gj: { name: 'Gauss-Jacobi', short: 'GJ', color: '#7d6a1a', desc: '一斉更新。並列化可能。GSより遅い。', matpower: '-', complexity: 'O(n²)', convergence: '線形' },
+    dc: { name: 'DC Power Flow', short: 'DC', color: '#6f54c4', desc: '線形近似。P-δのみ。1回で解。', matpower: 'dcpf.m', complexity: 'O(n²)', convergence: '1回' },
+    lm: { name: 'Levenberg-Marquardt', short: 'LM', color: '#b0486d', desc: 'NRにダンピング追加。収束性改善。', matpower: '-', complexity: 'O(n³)', convergence: '超線形' },
+    rnr: { name: 'Relaxed Newton', short: 'RNR', color: '#4a4fa3', desc: '更新量を80%に緩和したNR。難収束時の安定化。', matpower: '-', complexity: 'O(n³)', convergence: '2次(減速)' }
 };
 
 // ============================================================
@@ -1954,7 +1954,7 @@ function drawConvergence() {
     const w = canvas.width, h = canvas.height;
     const pad = { top: 10, right: 10, bottom: 20, left: 40 };
     
-    ctx.fillStyle = '#12121a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     
     const tol = parseFloat(document.getElementById('tolSelect').value);
@@ -1972,7 +1972,7 @@ function drawConvergence() {
     }
     
     if (allData.length === 0) {
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('実行すると表示', w / 2, h / 2);
@@ -1987,7 +1987,7 @@ function drawConvergence() {
     
     // Tolerance line
     const tolY = pad.top + (maxLog - Math.log10(tol)) / (maxLog - minLog) * pH;
-    ctx.strokeStyle = 'rgba(239,68,68,0.5)';
+    ctx.strokeStyle = 'rgba(202,60,78,0.5)';
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.moveTo(pad.left, tolY);
@@ -2015,7 +2015,7 @@ function drawConvergence() {
     }
     
     // Labels
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#52504a';
     ctx.font = '8px JetBrains Mono';
     ctx.textAlign = 'center';
     ctx.fillText('反復', w / 2, h - 3);
@@ -2031,7 +2031,7 @@ function drawIterationBar() {
     const w = canvas.width, h = canvas.height;
     const pad = { top: 15, right: 10, bottom: 25, left: 30 };
     
-    ctx.fillStyle = '#12121a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     
     const pW = w - pad.left - pad.right;
@@ -2051,12 +2051,12 @@ function drawIterationBar() {
         ctx.fillStyle = ALGOS[a].color;
         ctx.fillRect(x, y, barW, barH);
         
-        ctx.fillStyle = '#f1f5f9';
+        ctx.fillStyle = '#1a1a17';
         ctx.font = 'bold 9px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText(iter, x + barW / 2, y - 2);
         
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#52504a';
         ctx.font = '8px JetBrains Mono';
         ctx.fillText(ALGOS[a].short, x + barW / 2, h - pad.bottom + 10);
         ctx.fillText(e.converged ? '✓' : e.diverged ? '✗' : e.stalled ? '△' : '', x + barW / 2, h - pad.bottom + 18);
@@ -2073,7 +2073,7 @@ function drawVoltageCompare() {
     const w = canvas.width, h = canvas.height;
     const pad = { top: 20, right: 60, bottom: 25, left: 40 };
     
-    ctx.fillStyle = '#12121a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     
     // Collect voltage data
@@ -2091,7 +2091,7 @@ function drawVoltageCompare() {
     }
     
     if (!hasData) {
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('実行すると電圧プロファイルを表示', w / 2, h / 2);
@@ -2114,7 +2114,7 @@ function drawVoltageCompare() {
     
     // V=1.0 line
     const v10Y = pad.top + (maxV - 1.0) / range * pH;
-    ctx.strokeStyle = 'rgba(239,68,68,0.4)';
+    ctx.strokeStyle = 'rgba(202,60,78,0.4)';
     ctx.setLineDash([3, 3]);
     ctx.beginPath();
     ctx.moveTo(pad.left, v10Y);
@@ -2141,7 +2141,7 @@ function drawVoltageCompare() {
     }
     
     // Axes
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#52504a';
     ctx.font = '8px JetBrains Mono';
     ctx.textAlign = 'right';
     ctx.fillText(maxV.toFixed(3), pad.left - 3, pad.top + 5);
@@ -2168,14 +2168,14 @@ function drawAngleCompare() {
     const w = canvas.width, h = canvas.height;
     const pad = { top: 15, right: 50, bottom: 20, left: 35 };
     
-    ctx.fillStyle = '#12121a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     
     const acAlgo = ['nr', 'fdxb', 'fdbx', 'lm'].find(a => engines[a] && engines[a].converged);
     const dcE = engines['dc'];
     
     if (!acAlgo || !dcE) {
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('AC解とDC解が必要', w / 2, h / 2);
@@ -2196,7 +2196,7 @@ function drawAngleCompare() {
     
     // Zero line
     const zeroY = pad.top + maxD / range * pH;
-    ctx.strokeStyle = '#8a98ab';
+    ctx.strokeStyle = '#737166';
     ctx.setLineDash([2, 2]);
     ctx.beginPath();
     ctx.moveTo(pad.left, zeroY);
@@ -2205,7 +2205,7 @@ function drawAngleCompare() {
     ctx.setLineDash([]);
     
     // AC line
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = '#2f5d9e';
     ctx.lineWidth = 2;
     ctx.beginPath();
     for (let i = 0; i < nBus; i++) {
@@ -2217,7 +2217,7 @@ function drawAngleCompare() {
     ctx.stroke();
     
     // DC line
-    ctx.strokeStyle = '#8b5cf6';
+    ctx.strokeStyle = '#6f54c4';
     ctx.beginPath();
     for (let i = 0; i < nBus; i++) {
         const x = pad.left + (i + 0.5) / nBus * pW;
@@ -2228,11 +2228,11 @@ function drawAngleCompare() {
     ctx.stroke();
     
     // Legend
-    ctx.fillStyle = '#3b82f6';
+    ctx.fillStyle = '#2f5d9e';
     ctx.fillRect(w - 45, 5, 12, 3);
-    ctx.fillStyle = '#8b5cf6';
+    ctx.fillStyle = '#6f54c4';
     ctx.fillRect(w - 45, 12, 12, 3);
-    ctx.fillStyle = '#f1f5f9';
+    ctx.fillStyle = '#1a1a17';
     ctx.font = '8px JetBrains Mono';
     ctx.textAlign = 'left';
     ctx.fillText('AC', w - 30, 9);
@@ -2249,13 +2249,13 @@ function drawVoltageError() {
     const w = canvas.width, h = canvas.height;
     const pad = { top: 20, right: 50, bottom: 20, left: 40 };
     
-    ctx.fillStyle = '#12121a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     
     const refAlgo = ['nr', 'fdxb', 'fdbx', 'lm'].find(a => engines[a] && engines[a].converged);
     
     if (!refAlgo) {
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('基準AC解が必要', w / 2, h / 2);
@@ -2284,7 +2284,7 @@ function drawVoltageError() {
     }
     
     if (Object.keys(errorData).length === 0) {
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('他の手法を実行', w / 2, h / 2);
@@ -2330,13 +2330,13 @@ function drawVoltageError() {
         statsText += ` | ${ALGOS[algo].short}: avg ${avgErr.toFixed(3)}%, max ${maxAbsErr.toFixed(3)}%`;
     }
     
-    ctx.fillStyle = '#f1f5f9';
+    ctx.fillStyle = '#1a1a17';
     ctx.font = '8px JetBrains Mono';
     ctx.textAlign = 'center';
     ctx.fillText(statsText, w / 2, pad.top - 5);
     
     // Y axis
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#52504a';
     ctx.textAlign = 'right';
     ctx.fillText(`+${maxErr.toFixed(1)}%`, pad.left - 3, pad.top + 5);
     ctx.fillText('0%', pad.left - 3, zeroY + 3);
@@ -2353,13 +2353,13 @@ function drawQDistribution() {
     const w = canvas.width, h = canvas.height;
     const pad = { top: 15, right: 10, bottom: 20, left: 40 };
     
-    ctx.fillStyle = '#12121a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     
     const acAlgo = ['nr', 'fdxb', 'fdbx', 'lm'].find(a => engines[a] && engines[a].converged);
     
     if (!acAlgo) {
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('AC解が必要', w / 2, h / 2);
@@ -2380,7 +2380,7 @@ function drawQDistribution() {
     
     // Zero line
     const zeroY = pad.top + (maxQ / range) * pH;
-    ctx.strokeStyle = '#8a98ab';
+    ctx.strokeStyle = '#737166';
     ctx.setLineDash([2, 2]);
     ctx.beginPath();
     ctx.moveTo(pad.left, zeroY);
@@ -2394,11 +2394,11 @@ function drawQDistribution() {
         const x = pad.left + i * (barW + 1);
         const barH = Math.abs(Q[i]) / range * pH;
         const y = Q[i] >= 0 ? zeroY - barH : zeroY;
-        ctx.fillStyle = Q[i] >= 0 ? '#ec4899' : '#06b6d4';
+        ctx.fillStyle = Q[i] >= 0 ? '#b0486d' : '#197b6c';
         ctx.fillRect(x, y, barW, barH);
     }
     
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#52504a';
     ctx.font = '8px JetBrains Mono';
     ctx.textAlign = 'right';
     ctx.fillText(`${maxQ.toFixed(0)}`, pad.left - 3, pad.top + 5);
@@ -2415,14 +2415,14 @@ function drawDCAccuracy() {
     const w = canvas.width, h = canvas.height;
     const pad = { top: 15, right: 10, bottom: 25, left: 40 };
     
-    ctx.fillStyle = '#12121a';
+    ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, w, h);
     
     const acAlgo = ['nr', 'fdxb', 'fdbx', 'lm'].find(a => engines[a] && engines[a].converged);
     const dcE = engines['dc'];
     
     if (!acAlgo || !dcE) {
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('AC解とDC解が必要', w / 2, h / 2);
@@ -2453,11 +2453,11 @@ function drawDCAccuracy() {
         const y = pad.top + pH - (d.deltaErr / maxErr) * pH;
         ctx.beginPath();
         ctx.arc(x, y, 3, 0, 2 * Math.PI);
-        ctx.fillStyle = d.deltaErr > 3 ? '#ef4444' : d.deltaErr > 1 ? '#f59e0b' : '#10b981';
+        ctx.fillStyle = d.deltaErr > 3 ? '#ca3c4e' : d.deltaErr > 1 ? '#8f6625' : '#2e7d4f';
         ctx.fill();
     });
     
-    ctx.fillStyle = '#94a3b8';
+    ctx.fillStyle = '#52504a';
     ctx.font = '8px JetBrains Mono';
     ctx.textAlign = 'center';
     ctx.fillText('Q/P比', w / 2, h - 3);
@@ -2469,6 +2469,6 @@ function drawDCAccuracy() {
 // Initialize
 document.addEventListener('DOMContentLoaded', init);
 </script>
-    <script src="scripts/learning_nav.js"></script>
+    <script src="scripts/learning_nav.js?v=2"></script>
 </body>
 </html>

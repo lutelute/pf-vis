@@ -24,19 +24,19 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: #12121a;
-            --bg-surface: #1a1a25;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-orange: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
-            --accent-cyan: #06b6d4;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #8a98ab;
-            --border: #2d2d3d;
+            --bg-dark: #faf8f1;
+            --bg-card: #ffffff;
+            --bg-surface: #fffdf6;
+            --accent-blue: #2f5d9e;
+            --accent-green: #2e7d4f;
+            --accent-orange: #8f6625;
+            --accent-red: #ca3c4e;
+            --accent-purple: #6f54c4;
+            --accent-cyan: #197b6c;
+            --text-primary: #1a1a17;
+            --text-secondary: #52504a;
+            --text-muted: #737166;
+            --border: #dcd8cc;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -246,13 +246,13 @@
     <div class="container">
         <h1>&#9889; DC Power Flow Accuracy Analysis</h1>
 
-        <div style="background: #12121a; border: 1px solid #2d2d3d; border-left: 3px solid #06b6d4; border-radius: 8px; padding: 12px 16px; margin: 10px 0 16px; font-size: 13px; line-height: 1.8; color: #c9d1d9;">
-            <strong style="color: #06b6d4;">このツールの見方</strong> —
+        <div style="background: #ffffff; border: 1px solid #dcd8cc; border-left: 3px solid #197b6c; border-radius: 8px; padding: 12px 16px; margin: 10px 0 16px; font-size: 13px; line-height: 1.8; color: #1a1a17;">
+            <strong style="color: #197b6c;">このツールの見方</strong> —
             同じ系統を <strong>AC潮流（NR法・厳密解）</strong>と<strong>DC潮流（線形近似）</strong>の両方で解き、差を測ります。
             <br>注目ポイント: ① <strong>位相角誤差</strong>（平均1°未満なら概算用途には十分）
             ② <strong>電圧偏差 |1−V|</strong>（DCの「V=1.0」仮定がどれだけ破れているか）
             ③ <strong>Q注入の大きい母線</strong>（無効電力を運ぶ系統ほどDCの前提が崩れる）。
-            DC近似の理論は<a href="docs/power_flow_methods.md" style="color: #3b82f6;">技術ノート§5</a>、対応する演習は<a href="exercises.html" style="color: #3b82f6;">Stage 6</a>。
+            DC近似の理論は<a href="docs/power_flow_methods.md" style="color: #2f5d9e;">技術ノート§5</a>、対応する演習は<a href="exercises.html" style="color: #2f5d9e;">Stage 6</a>。
         </div>
 
         <div class="controls">
@@ -827,10 +827,10 @@
                 <td class="num">${r.Vac}</td>
                 <td class="num">${r.deltaAC}</td>
                 <td class="num">${r.deltaDC}</td>
-                <td class="num" style="color: ${parseFloat(r.deltaErr) > 3 ? '#ef4444' : parseFloat(r.deltaErr) > 1 ? '#f59e0b' : '#10b981'}">${r.deltaErr}</td>
+                <td class="num" style="color: ${parseFloat(r.deltaErr) > 3 ? '#ca3c4e' : parseFloat(r.deltaErr) > 1 ? '#8f6625' : '#2e7d4f'}">${r.deltaErr}</td>
                 <td class="num">${r.Pac}</td>
                 <td class="num">${r.Pdc}</td>
-                <td class="num" style="color: ${parseFloat(r.pErr) > 15 ? '#ef4444' : parseFloat(r.pErr) > 5 ? '#f59e0b' : '#10b981'}">${r.pErr}</td>
+                <td class="num" style="color: ${parseFloat(r.pErr) > 15 ? '#ca3c4e' : parseFloat(r.pErr) > 5 ? '#8f6625' : '#2e7d4f'}">${r.pErr}</td>
             </tr>
         `).join('');
     }
@@ -848,7 +848,7 @@
                 <td class="num">${r.Qload}</td>
                 <td class="num">${r.Qgen}</td>
                 <td class="num">${r.Qcalc}</td>
-                <td class="num" style="color: ${Math.abs(parseFloat(r.Qmismatch)) > 10 ? '#ef4444' : '#10b981'}">${r.Qmismatch}</td>
+                <td class="num" style="color: ${Math.abs(parseFloat(r.Qmismatch)) > 10 ? '#ca3c4e' : '#2e7d4f'}">${r.Qmismatch}</td>
                 <td class="num">${r.dVdueToQ}</td>
             </tr>
         `).join('');
@@ -917,7 +917,7 @@
         const pH = h - pad.top - pad.bottom;
 
         // Background
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
         const deltaAC = busResults.map(r => parseFloat(r.deltaAC));
@@ -931,7 +931,7 @@
 
         // Zero line
         const zeroY = pad.top + (maxD / range) * pH;
-        ctx.strokeStyle = '#8a98ab';
+        ctx.strokeStyle = '#737166';
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
         ctx.moveTo(pad.left, zeroY);
@@ -945,17 +945,17 @@
 
             // AC bar
             const acY = pad.top + (maxD - deltaAC[i]) / range * pH;
-            ctx.fillStyle = '#3b82f6';
+            ctx.fillStyle = '#2f5d9e';
             ctx.fillRect(x - barW, Math.min(acY, zeroY), barW, Math.abs(acY - zeroY));
 
             // DC bar
             const dcY = pad.top + (maxD - deltaDC[i]) / range * pH;
-            ctx.fillStyle = '#10b981';
+            ctx.fillStyle = '#2e7d4f';
             ctx.fillRect(x, Math.min(dcY, zeroY), barW, Math.abs(dcY - zeroY));
         }
 
         // Labels
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#52504a';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         for (let i = 0; i < n; i += Math.ceil(n / 15)) {
@@ -970,11 +970,11 @@
         ctx.fillText(`${minD.toFixed(0)}deg`, pad.left - 5, h - pad.bottom);
 
         // Legend
-        ctx.fillStyle = '#3b82f6';
+        ctx.fillStyle = '#2f5d9e';
         ctx.fillRect(w - 100, 10, 12, 12);
-        ctx.fillStyle = '#10b981';
+        ctx.fillStyle = '#2e7d4f';
         ctx.fillRect(w - 100, 26, 12, 12);
-        ctx.fillStyle = '#f1f5f9';
+        ctx.fillStyle = '#1a1a17';
         ctx.font = '10px Noto Sans JP';
         ctx.textAlign = 'left';
         ctx.fillText('AC', w - 85, 20);
@@ -1000,7 +1000,7 @@
         const pH = h - pad.top - pad.bottom;
 
         // Background
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
         const n = engine.nBus;
@@ -1014,7 +1014,7 @@
 
         // V=1.0 reference line
         const v10Y = pad.top + (maxV - 1.0) / (maxV - minV) * pH;
-        ctx.strokeStyle = 'rgba(239,68,68,0.5)';
+        ctx.strokeStyle = 'rgba(202,60,78,0.5)';
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
         ctx.moveTo(pad.left, v10Y);
@@ -1028,12 +1028,12 @@
             const x = pad.left + (i + 0.5) / n * pW;
             const vY = pad.top + (maxV - V[i]) / (maxV - minV) * pH;
             const type = engine.busData[i][1];
-            ctx.fillStyle = type === 3 ? '#10b981' : type === 2 ? '#f59e0b' : '#3b82f6';
+            ctx.fillStyle = type === 3 ? '#2e7d4f' : type === 2 ? '#8f6625' : '#2f5d9e';
             ctx.fillRect(x - barW / 2, Math.min(vY, v10Y), barW, Math.abs(vY - v10Y) || 1);
         }
 
         // Q line
-        ctx.strokeStyle = '#ec4899';
+        ctx.strokeStyle = '#b0486d';
         ctx.lineWidth = 2;
         ctx.beginPath();
         for (let i = 0; i < n; i++) {
@@ -1045,20 +1045,20 @@
         ctx.stroke();
 
         // Labels
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#52504a';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('Bus', w / 2, h - 5);
 
         // Y axes
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#3b82f6';
+        ctx.fillStyle = '#2f5d9e';
         ctx.fillText(`${maxV.toFixed(2)}`, pad.left - 5, pad.top + 10);
         ctx.fillText(`${minV.toFixed(2)}`, pad.left - 5, h - pad.bottom);
         ctx.fillText('V', pad.left - 5, pad.top - 10);
 
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#ec4899';
+        ctx.fillStyle = '#b0486d';
         ctx.fillText(`${maxQ.toFixed(0)}`, w - pad.right + 5, pad.top + 10);
         ctx.fillText(`${minQ.toFixed(0)}`, w - pad.right + 5, h - pad.bottom);
         ctx.fillText('Q', w - pad.right + 5, pad.top - 10);
@@ -1082,6 +1082,6 @@
         runAnalysis();
     });
     </script>
-    <script src="scripts/learning_nav.js"></script>
+    <script src="scripts/learning_nav.js?v=2"></script>
 </body>
 </html>

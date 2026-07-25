@@ -7,19 +7,20 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0d1117;
-            --bg-secondary: #161b22;
-            --bg-tertiary: #21262d;
-            --accent-cyan: #58a6ff;
-            --accent-green: #3fb950;
-            --accent-orange: #d29922;
-            --accent-red: #f85149;
-            --accent-purple: #a371f7;
-            --accent-yellow: #e3b341;
-            --accent-pink: #db61a2;
-            --text-primary: #c9d1d9;
-            --text-secondary: #8b949e;
-            --border-color: #30363d;
+            /* 和紙（ブループリント形式）パレット */
+            --bg-primary: #faf8f1;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #fffdf6;
+            --accent-cyan: #197b6c;
+            --accent-green: #2e7d4f;
+            --accent-orange: #8f6625;
+            --accent-red: #ca3c4e;
+            --accent-purple: #6f54c4;
+            --accent-yellow: #8f6625;
+            --accent-pink: #b0486d;
+            --text-primary: #1a1a17;
+            --text-secondary: #52504a;
+            --border-color: #dcd8cc;
         }
 
         * {
@@ -156,7 +157,7 @@
         }
 
         .btn-danger {
-            background: #e91309;
+            background: #ca3c4e;
             color: white;
         }
 
@@ -664,20 +665,20 @@
         /* ===== 数値行列表示 ===== */
         .matrix-scroll { overflow: auto; max-height: 360px; }
         table.num-matrix { border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 10px; margin: 4px auto; }
-        table.num-matrix th { color: #8b949e; font-weight: 500; padding: 2px 5px; background: #161b22; position: sticky; }
+        table.num-matrix th { color: #52504a; font-weight: 500; padding: 2px 5px; background: #ffffff; position: sticky; }
         table.num-matrix thead th { top: 0; z-index: 1; }
         table.num-matrix tbody th { left: 0; text-align: right; }
-        table.num-matrix td { padding: 2px 5px; text-align: right; cursor: pointer; border: 1px solid #21262d; color: #e6edf3; min-width: 40px; }
-        table.num-matrix td:hover { outline: 1px solid #58a6ff; }
-        table.num-matrix td.blk-boundary-left, table.num-matrix th.blk-boundary-left { border-left: 2px solid #8b949e; }
-        table.num-matrix tr.blk-boundary-top td, table.num-matrix tr.blk-boundary-top th { border-top: 2px solid #8b949e; }
+        table.num-matrix td { padding: 2px 5px; text-align: right; cursor: pointer; border: 1px solid #f0ece1; color: #1a1a17; min-width: 40px; }
+        table.num-matrix td:hover { outline: 1px solid #197b6c; }
+        table.num-matrix td.blk-boundary-left, table.num-matrix th.blk-boundary-left { border-left: 2px solid #52504a; }
+        table.num-matrix tr.blk-boundary-top td, table.num-matrix tr.blk-boundary-top th { border-top: 2px solid #52504a; }
         table.num-matrix td.selected { outline: 2px solid #f0883e; }
-        .cell-interpretation { margin-top: 8px; padding: 10px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; font-size: 12px; line-height: 1.7; color: #c9d1d9; }
+        .cell-interpretation { margin-top: 8px; padding: 10px; background: #fffdf6; border: 1px solid #dcd8cc; border-radius: 6px; font-size: 12px; line-height: 1.7; color: #1a1a17; }
         .cell-interpretation .ci-formula { font-family: 'JetBrains Mono', monospace; color: #79c0ff; display: block; margin: 4px 0; white-space: pre-wrap; }
         .cell-interpretation .ci-meaning { color: #7ee787; }
         .mismatch-table { border-collapse: collapse; font-size: 11px; font-family: 'JetBrains Mono', monospace; margin: 6px 0; }
-        .mismatch-table th, .mismatch-table td { padding: 2px 8px; text-align: right; border-bottom: 1px solid #21262d; }
-        .mismatch-table th { color: #8b949e; }
+        .mismatch-table th, .mismatch-table td { padding: 2px 8px; text-align: right; border-bottom: 1px solid #fffdf6; }
+        .mismatch-table th { color: #52504a; }
         .mismatch-table td.neg { color: #ffa198; }
         .mismatch-table td.pos { color: #7ee787; }
     </style>
@@ -1180,7 +1181,7 @@
             canvas.height = rect.height;
 
             // Clear
-            ctx.fillStyle = '#0d1117';
+            ctx.fillStyle = '#fffdf6';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // Update positions based on canvas size
@@ -1266,9 +1267,9 @@
             ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
             
             let fillColor;
-            if (bus.type === 'Slack') fillColor = '#3fb950';
-            else if (bus.type === 'PV') fillColor = '#d29922';
-            else fillColor = '#58a6ff';
+            if (bus.type === 'Slack') fillColor = '#2e7d4f';
+            else if (bus.type === 'PV') fillColor = '#8f6625';
+            else fillColor = '#197b6c';
 
             // Mix with red based on mismatch
             if (maxMismatch > 0.001 && bus.type !== 'Slack') {
@@ -1282,12 +1283,12 @@
                 ctx.fill();
             }
 
-            ctx.strokeStyle = '#c9d1d9';
+            ctx.strokeStyle = '#1a1a17';
             ctx.lineWidth = n <= 30 ? 2 : 1;
             ctx.stroke();
 
             // Bus number - adaptive font size
-            ctx.fillStyle = '#0d1117';
+            ctx.fillStyle = '#fffdf6';
             const fontSize = n <= 14 ? 14 : n <= 30 ? 11 : 8;
             ctx.font = `bold ${fontSize}px JetBrains Mono`;
             ctx.textAlign = 'center';
@@ -1296,7 +1297,7 @@
 
             // Voltage magnitude - only show for smaller networks
             if (n <= 30) {
-                ctx.fillStyle = '#c9d1d9';
+                ctx.fillStyle = '#1a1a17';
                 const labelSize = n <= 14 ? 11 : 9;
                 ctx.font = `${labelSize}px JetBrains Mono`;
                 ctx.fillText(`|V|=${bus.V.toFixed(3)}`, pos.x, pos.y + radius + 12);
@@ -1390,7 +1391,7 @@
 
         /** 符号と大きさを背景色に変換 (正=青, 負=赤, 濃さ=|値|) */
         function heatColor(v, maxAbs) {
-            if (v === 0 || maxAbs === 0) return '#161b22';
+            if (v === 0 || maxAbs === 0) return '#ffffff';
             const t = Math.min(1, Math.abs(v) / maxAbs);
             const alpha = 0.10 + 0.55 * Math.sqrt(t);
             return v > 0 ? `rgba(56,139,253,${alpha})` : `rgba(248,81,73,${alpha})`;
@@ -2901,8 +2902,8 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
 
                 const pMismatchPct = Math.min(Math.abs(mismatch.P) * 100, 100);
                 const qMismatchPct = Math.min(Math.abs(mismatch.Q) * 100, 100);
-                const pColor = pMismatchPct > 50 ? '#f85149' : pMismatchPct > 10 ? '#d29922' : '#3fb950';
-                const qColor = qMismatchPct > 50 ? '#f85149' : qMismatchPct > 10 ? '#d29922' : '#3fb950';
+                const pColor = pMismatchPct > 50 ? '#ca3c4e' : pMismatchPct > 10 ? '#8f6625' : '#2e7d4f';
+                const qColor = qMismatchPct > 50 ? '#ca3c4e' : qMismatchPct > 10 ? '#8f6625' : '#2e7d4f';
 
                 row.innerHTML = `
                     <td>${bus.id + 1}</td>
@@ -2948,11 +2949,11 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             const height = canvas.height;
             const padding = { top: 10, right: 10, bottom: 25, left: 45 };
 
-            ctx.fillStyle = '#21262d';
+            ctx.fillStyle = '#fffdf6';
             ctx.fillRect(0, 0, width, height);
 
             if (state.convergenceHistory.length === 0) {
-                ctx.fillStyle = '#8b949e';
+                ctx.fillStyle = '#52504a';
                 ctx.font = '11px JetBrains Mono';
                 ctx.textAlign = 'center';
                 ctx.fillText('実行するとここに収束曲線が表示されます', width / 2, height / 2);
@@ -2969,7 +2970,7 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             const yScale = (height - padding.top - padding.bottom) / (maxLog - minLog);
 
             // Grid
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.strokeStyle = 'rgba(26,26,23, 0.1)';
             ctx.lineWidth = 0.5;
             for (let i = 0; i <= 4; i++) {
                 const y = padding.top + i * (height - padding.top - padding.bottom) / 4;
@@ -2981,7 +2982,7 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
 
             // Tolerance line
             const tolY = padding.top + (maxLog - Math.log10(state.tolerance)) * yScale;
-            ctx.strokeStyle = '#f85149';
+            ctx.strokeStyle = '#ca3c4e';
             ctx.setLineDash([4, 4]);
             ctx.beginPath();
             ctx.moveTo(padding.left, tolY);
@@ -2990,7 +2991,7 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             ctx.setLineDash([]);
 
             // Convergence curve
-            ctx.strokeStyle = '#58a6ff';
+            ctx.strokeStyle = '#197b6c';
             ctx.lineWidth = 2;
             ctx.beginPath();
 
@@ -3004,7 +3005,7 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             ctx.stroke();
 
             // Points
-            ctx.fillStyle = '#58a6ff';
+            ctx.fillStyle = '#197b6c';
             data.forEach((val, i) => {
                 const x = padding.left + (i + 1) * xScale;
                 const y = padding.top + (maxLog - Math.log10(Math.max(val, 1e-16))) * yScale;
@@ -3014,7 +3015,7 @@ V_i^(k+1) = f(V^(k)) ← 全て前回値を使用
             });
 
             // Labels
-            ctx.fillStyle = '#8b949e';
+            ctx.fillStyle = '#52504a';
             ctx.font = '9px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText('反復回数', width / 2, height - 3);
@@ -3082,6 +3083,6 @@ Q_spec = ${bus.Qspec.toFixed(3)} p.u.
             updateConvergenceChart();
         });
     </script>
-    <script src="scripts/learning_nav.js"></script>
+    <script src="scripts/learning_nav.js?v=2"></script>
 </body>
 </html>

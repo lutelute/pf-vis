@@ -94,17 +94,17 @@
     // スタイル (1回だけ)
     var css = document.createElement('style');
     css.textContent =
-        '.lnav{background:#12121a;border:1px solid #2d2d3d;border-left:3px solid #06b6d4;' +
-        'border-radius:8px;margin:10px 16px;font-family:"Noto Sans JP",sans-serif;font-size:13px;color:#c9d1d9;}' +
-        '.lnav summary{cursor:pointer;padding:8px 14px;user-select:none;color:#06b6d4;font-weight:600;' +
+        '.lnav{background:#fffdf6;border:1px solid #dcd8cc;border-left:3px solid #197b6c;' +
+        'border-radius:8px;margin:10px 16px;font-family:"Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;font-size:13px;color:#52504a;}' +
+        '.lnav summary{cursor:pointer;padding:8px 14px;user-select:none;color:#197b6c;font-weight:600;' +
         'display:flex;align-items:center;gap:10px;flex-wrap:wrap;list-style:none;}' +
         '.lnav summary::-webkit-details-marker{display:none}' +
         '.lnav summary .lnav-links{margin-left:auto;display:flex;gap:14px;font-weight:500;}' +
-        '.lnav a{color:#3b82f6;text-decoration:none;}' +
+        '.lnav a{color:#197b6c;text-decoration:none;}' +
         '.lnav a:hover{text-decoration:underline;}' +
-        '.lnav .lnav-body{padding:2px 16px 12px;border-top:1px solid #2d2d3d;}' +
+        '.lnav .lnav-body{padding:2px 16px 12px;border-top:1px solid #dcd8cc;}' +
         '.lnav ul{margin:8px 0 4px 20px;line-height:1.9;}' +
-        '.lnav .lnav-ex{color:#94a3b8;font-size:12px;margin-top:6px;}';
+        '.lnav .lnav-ex{color:#737166;font-size:12px;margin-top:6px;}';
     document.head.appendChild(css);
 
     var nav = document.createElement('details');

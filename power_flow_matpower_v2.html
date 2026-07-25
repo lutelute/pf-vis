@@ -7,24 +7,24 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: #12121a;
-            --bg-surface: #1a1a25;
-            --bg-hover: #252535;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-orange: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
-            --accent-cyan: #06b6d4;
-            --accent-pink: #ec4899;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --border: #2d2d3d;
-            --success: #22c55e;
-            --warning: #eab308;
-            --error: #ef4444;
+            --bg-dark: #faf8f1;
+            --bg-card: #ffffff;
+            --bg-surface: #fffdf6;
+            --bg-hover: #f4f1e8;
+            --accent-blue: #2f5d9e;
+            --accent-green: #2e7d4f;
+            --accent-orange: #8f6625;
+            --accent-red: #ca3c4e;
+            --accent-purple: #6f54c4;
+            --accent-cyan: #197b6c;
+            --accent-pink: #b0486d;
+            --text-primary: #1a1a17;
+            --text-secondary: #52504a;
+            --text-muted: #737166;
+            --border: #dcd8cc;
+            --success: #2e7d4f;
+            --warning: #7d6a1a;
+            --error: #ca3c4e;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -284,9 +284,9 @@
             font-weight: 500;
         }
 
-        .bus-type.slack { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
-        .bus-type.pv { background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); }
-        .bus-type.pq { background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); }
+        .bus-type.slack { background: rgba(46, 125, 79, 0.10); color: #266a43; }
+        .bus-type.pv { background: rgba(143, 102, 37, 0.10); color: #7d5920; }
+        .bus-type.pq { background: rgba(47, 93, 158, 0.10); color: #2a5290; }
 
         .reference-section {
             background: var(--bg-card);
@@ -608,10 +608,10 @@
                 </div>
                 <div class="viz-body" style="overflow: auto; padding: 8px;">
                     <div id="jacobianNumeric" style="min-height: 120px;"></div>
-                    <div style="font-size: 11px; color: #94a3b8; padding: 6px 4px 0; line-height: 1.6;">
+                    <div style="font-size: 11px; color: #52504a; padding: 6px 4px 0; line-height: 1.6;">
                         行 = ΔP/ΔQ、列 = δ/|V|（青 = 正・赤 = 負、濃さ = 大きさ）。セルにマウスを載せると
                         「∂P₂/∂δ₃ = 値」を表示。各要素の計算式と物理的意味の解剖は
-                        <a href="power_flow_process_visualizer_v2.html" style="color: #3b82f6;">計算過程ステップ表示</a>へ。
+                        <a href="power_flow_process_visualizer_v2.html" style="color: #2f5d9e;">計算過程ステップ表示</a>へ。
                     </div>
                 </div>
             </div>
@@ -621,7 +621,7 @@
                     <div class="viz-title">✅ 解の妥当性チェック（電力収支）</div>
                 </div>
                 <div class="viz-body" style="height: auto; padding: 14px 18px;">
-                    <div id="balancePanel" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 2; color: var(--text-secondary, #94a3b8);">
+                    <div id="balancePanel" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 2; color: var(--text-secondary, #52504a);">
                         実行すると「総発電 = 総負荷 + 総損失」の検算を表示します。
                         この収支が合うことが、得られた解が物理的に正しいことの根拠になります。
                     </div>
@@ -966,13 +966,13 @@ MATPOWER準拠の潮流計算を実行します：
 
         panel.innerHTML = `
             <table style="border-collapse: collapse;">
-                <tr><td style="padding-right: 18px;">総発電</td><td style="text-align: right;"><strong style="color: var(--text-primary, #f1f5f9);">${Pgen.toFixed(2)} MW</strong></td>
-                    <td style="padding-left: 14px; color: var(--text-secondary, #94a3b8);">(うちスラック母線 ${slackP.toFixed(2)} MW — 指定値ではなく解かれた値)</td></tr>
-                <tr><td>総負荷</td><td style="text-align: right;"><strong style="color: var(--text-primary, #f1f5f9);">${Pload.toFixed(2)} MW</strong></td><td></td></tr>
-                <tr><td>総損失</td><td style="text-align: right;"><strong style="color: var(--text-primary, #f1f5f9);">${Ploss.toFixed(3)} MW</strong></td>
-                    <td style="padding-left: 14px; color: var(--text-secondary, #94a3b8);">(全支路の送端+受端電力の和)</td></tr>
-                <tr><td colspan="3" style="padding-top: 6px; border-top: 1px solid #2d2d3d;">
-                    検算: 発電 − 負荷 − 損失 = <strong style="color: ${ok ? '#10b981' : '#ef4444'};">${residual.toExponential(2)} MW ${ok ? '✓ 収支が合っている = 解は物理的に妥当' : '✗ 収支が合わない'}</strong>
+                <tr><td style="padding-right: 18px;">総発電</td><td style="text-align: right;"><strong style="color: var(--text-primary, #1a1a17);">${Pgen.toFixed(2)} MW</strong></td>
+                    <td style="padding-left: 14px; color: var(--text-secondary, #52504a);">(うちスラック母線 ${slackP.toFixed(2)} MW — 指定値ではなく解かれた値)</td></tr>
+                <tr><td>総負荷</td><td style="text-align: right;"><strong style="color: var(--text-primary, #1a1a17);">${Pload.toFixed(2)} MW</strong></td><td></td></tr>
+                <tr><td>総損失</td><td style="text-align: right;"><strong style="color: var(--text-primary, #1a1a17);">${Ploss.toFixed(3)} MW</strong></td>
+                    <td style="padding-left: 14px; color: var(--text-secondary, #52504a);">(全支路の送端+受端電力の和)</td></tr>
+                <tr><td colspan="3" style="padding-top: 6px; border-top: 1px solid #dcd8cc;">
+                    検算: 発電 − 負荷 − 損失 = <strong style="color: ${ok ? '#2e7d4f' : '#ca3c4e'};">${residual.toExponential(2)} MW ${ok ? '✓ 収支が合っている = 解は物理的に妥当' : '✗ 収支が合わない'}</strong>
                 </td></tr>
             </table>`;
     }
@@ -1069,7 +1069,7 @@ MATPOWER準拠の潮流計算を実行します：
         const w = canvas.width;
         const h = canvas.height;
 
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
         if (!engine) return;
@@ -1086,7 +1086,7 @@ MATPOWER準拠の潮流計算を実行します：
         }));
 
         // Draw branches
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+        ctx.strokeStyle = 'rgba(47, 93, 158, 0.4)';
         ctx.lineWidth = 2;
 
         engine.branchData.forEach(branch => {
@@ -1113,8 +1113,8 @@ MATPOWER準拠の潮流計算を実行します：
             // Draw error glow for buses with high mismatch
             if (maxError > 0.01) {
                 const glow = ctx.createRadialGradient(pos.x, pos.y, nodeRadius, pos.x, pos.y, nodeRadius * 2);
-                glow.addColorStop(0, 'rgba(239, 68, 68, 0.5)');
-                glow.addColorStop(1, 'rgba(239, 68, 68, 0)');
+                glow.addColorStop(0, 'rgba(202, 60, 78, 0.5)');
+                glow.addColorStop(1, 'rgba(202, 60, 78, 0)');
                 ctx.fillStyle = glow;
                 ctx.beginPath();
                 ctx.arc(pos.x, pos.y, nodeRadius * 2, 0, 2 * Math.PI);
@@ -1125,17 +1125,17 @@ MATPOWER準拠の潮流計算を実行します：
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, nodeRadius, 0, 2 * Math.PI);
 
-            if (bus.type === 'Slack') ctx.fillStyle = '#10b981';
-            else if (bus.type === 'PV') ctx.fillStyle = '#f59e0b';
-            else ctx.fillStyle = '#3b82f6';
+            if (bus.type === 'Slack') ctx.fillStyle = '#2e7d4f';
+            else if (bus.type === 'PV') ctx.fillStyle = '#8f6625';
+            else ctx.fillStyle = '#2f5d9e';
 
             ctx.fill();
-            ctx.strokeStyle = '#f1f5f9';
+            ctx.strokeStyle = '#1a1a17';
             ctx.lineWidth = 1;
             ctx.stroke();
 
             // Draw bus number label
-            ctx.fillStyle = '#0a0a0f';
+            ctx.fillStyle = '#faf8f1';
             ctx.font = `bold ${nodeRadius * 0.7}px JetBrains Mono`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -1162,11 +1162,11 @@ MATPOWER準拠の潮流計算を実行します：
         const h = canvas.height;
         const padding = { top: 20, right: 20, bottom: 35, left: 55 };
 
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
         if (!engine || engine.errorHistory.length === 0) {
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = '#737166';
             ctx.font = '12px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText('実行すると収束曲線が表示されます', w / 2, h / 2);
@@ -1190,7 +1190,7 @@ MATPOWER準拠の潮流計算を実行します：
 
         // Tolerance line
         const tolY = padding.top + (maxLog - Math.log10(tolerance)) * yScale;
-        ctx.strokeStyle = '#ef4444';
+        ctx.strokeStyle = '#ca3c4e';
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(padding.left, tolY);
@@ -1199,7 +1199,7 @@ MATPOWER準拠の潮流計算を実行します：
         ctx.setLineDash([]);
 
         // P error curve
-        ctx.strokeStyle = '#06b6d4';
+        ctx.strokeStyle = '#197b6c';
         ctx.lineWidth = 2;
         ctx.beginPath();
         data.forEach((d, i) => {
@@ -1211,7 +1211,7 @@ MATPOWER準拠の潮流計算を実行します：
         ctx.stroke();
 
         // Q error curve
-        ctx.strokeStyle = '#ec4899';
+        ctx.strokeStyle = '#b0486d';
         ctx.beginPath();
         data.forEach((d, i) => {
             const x = padding.left + (i + 1) * xScale;
@@ -1222,7 +1222,7 @@ MATPOWER準拠の潮流計算を実行します：
         ctx.stroke();
 
         // Labels
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#52504a';
         ctx.font = '11px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('反復回数', w / 2, h - 5);
@@ -1247,7 +1247,7 @@ MATPOWER準拠の潮流計算を実行します：
         const h = canvas.height;
         const padding = { top: 20, right: 20, bottom: 35, left: 55 };
 
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
         if (!engine) return;
@@ -1275,14 +1275,14 @@ MATPOWER準拠の潮流計算を実行します：
             const barH = (bus.V - minV) / (maxV - minV) * plotH;
             const y = padding.top + plotH - barH;
 
-            if (bus.type === 'Slack') ctx.fillStyle = '#10b981';
-            else if (bus.type === 'PV') ctx.fillStyle = '#f59e0b';
-            else ctx.fillStyle = '#3b82f6';
+            if (bus.type === 'Slack') ctx.fillStyle = '#2e7d4f';
+            else if (bus.type === 'PV') ctx.fillStyle = '#8f6625';
+            else ctx.fillStyle = '#2f5d9e';
 
             ctx.fillRect(x, y, barWidth, barH);
         });
 
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#52504a';
         ctx.font = '11px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('ノード番号', w / 2, h - 5);
@@ -1312,7 +1312,7 @@ MATPOWER準拠の潮流計算を実行します：
         const showText = n <= 16;
 
         const heat = v => {
-            if (v === 0 || maxAbs === 0) return '#161b22';
+            if (v === 0 || maxAbs === 0) return '#ffffff';
             const t = Math.min(1, Math.abs(v) / maxAbs);
             const a = 0.10 + 0.55 * Math.sqrt(t);
             return v > 0 ? `rgba(56,139,253,${a})` : `rgba(248,81,73,${a})`;
@@ -1335,18 +1335,18 @@ MATPOWER準拠の潮流計算を実行します：
 
         let html = '<table style="border-collapse: collapse; font-family: JetBrains Mono, monospace; font-size: 10px; margin: 0 auto;"><thead><tr><th></th>';
         for (let c = 0; c < n; c++) {
-            const bl = c === nP ? 'border-left: 2px solid #8b949e;' : '';
-            html += `<th style="color: #8b949e; padding: 2px 4px; ${bl}">${colLabels[c]}</th>`;
+            const bl = c === nP ? 'border-left: 2px solid #52504a;' : '';
+            html += `<th style="color: #52504a; padding: 2px 4px; ${bl}">${colLabels[c]}</th>`;
         }
         html += '</tr></thead><tbody>';
         for (let r = 0; r < n; r++) {
-            const bt = r === nP ? 'border-top: 2px solid #8b949e;' : '';
-            html += `<tr><th style="color: #8b949e; padding: 2px 4px; text-align: right; ${bt}">${rowLabels[r]}</th>`;
+            const bt = r === nP ? 'border-top: 2px solid #52504a;' : '';
+            html += `<tr><th style="color: #52504a; padding: 2px 4px; text-align: right; ${bt}">${rowLabels[r]}</th>`;
             for (let c = 0; c < n; c++) {
                 const v = J[r][c];
-                const bl = c === nP ? 'border-left: 2px solid #8b949e;' : '';
+                const bl = c === nP ? 'border-left: 2px solid #52504a;' : '';
                 const pad = showText ? 'padding: 2px 4px; min-width: 36px;' : 'padding: 0; width: 9px; height: 9px; font-size: 0;';
-                html += `<td title="${derivName(r, c)} = ${v.toExponential(3)}" style="background: ${heat(v)}; color: #e6edf3; text-align: right; border: 1px solid #21262d; ${pad} ${bl} ${bt}">${showText ? fmt(v) : ''}</td>`;
+                html += `<td title="${derivName(r, c)} = ${v.toExponential(3)}" style="background: ${heat(v)}; color: #1a1a17; text-align: right; border: 1px solid #fffdf6; ${pad} ${bl} ${bt}">${showText ? fmt(v) : ''}</td>`;
             }
             html += '</tr>';
         }
@@ -1356,6 +1356,6 @@ MATPOWER準拠の潮流計算を実行します：
 
     document.addEventListener('DOMContentLoaded', init);
     </script>
-    <script src="scripts/learning_nav.js"></script>
+    <script src="scripts/learning_nav.js?v=2"></script>
 </body>
 </html>

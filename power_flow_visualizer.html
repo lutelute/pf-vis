@@ -7,19 +7,19 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-primary: #0a0e14;
-            --bg-secondary: #131920;
-            --bg-tertiary: #1a2129;
-            --accent-cyan: #00d4ff;
-            --accent-green: #00ff88;
-            --accent-orange: #ff9500;
-            --accent-red: #ff4757;
-            --accent-purple: #b066f8;
-            --accent-yellow: #ffd700;
-            --text-primary: #e6edf3;
-            --text-secondary: #8b949e;
-            --border-color: #30363d;
-            --grid-color: rgba(0, 212, 255, 0.1);
+            --bg-primary: #faf8f1;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #fffdf6;
+            --accent-cyan: #197b6c;
+            --accent-green: #2e7d4f;
+            --accent-orange: #8f6625;
+            --accent-red: #ca3c4e;
+            --accent-purple: #6f54c4;
+            --accent-yellow: #7d6a1a;
+            --text-primary: #1a1a17;
+            --text-secondary: #52504a;
+            --border-color: #dcd8cc;
+            --grid-color: rgba(25, 123, 108, 0.10);
         }
 
         * {
@@ -237,7 +237,7 @@
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+            box-shadow: 0 5px 20px rgba(25, 123, 108, 0.4);
         }
 
         .btn-secondary {
@@ -546,7 +546,7 @@
             text-transform: uppercase;
         }
 
-        .status-converged { background: rgba(0, 255, 136, 0.2); color: var(--accent-green); }
+        .status-converged { background: rgba(46, 125, 79, 0.2); color: var(--accent-green); }
         .status-diverged { background: rgba(255, 71, 87, 0.2); color: var(--accent-red); }
         .status-running { background: rgba(255, 215, 0, 0.2); color: var(--accent-yellow); }
 
@@ -835,26 +835,26 @@
 
     <script>
         const algorithms = [
-            { id: 'gauss-seidel', name: 'Gauss-Seidel法', category: '反復法', color: '#00d4ff' },
-            { id: 'newton-raphson-polar', name: 'Newton-Raphson法 (極座標)', category: 'Newton系', color: '#00ff88' },
-            { id: 'newton-raphson-rect', name: 'Newton-Raphson法 (直交座標)', category: 'Newton系', color: '#22c55e' },
-            { id: 'fast-decoupled-xb', name: 'Fast Decoupled法 (XB)', category: '簡略化Newton', color: '#ff9500' },
-            { id: 'fast-decoupled-bx', name: 'Fast Decoupled法 (BX)', category: '簡略化Newton', color: '#f97316' },
-            { id: 'dc-power-flow', name: 'DC潮流計算', category: '線形近似', color: '#ffd700' },
-            { id: 'gauss', name: 'Gauss法 (Jacobi型)', category: '反復法', color: '#38bdf8' },
-            { id: 'z-bus-gauss', name: 'Z-bus Gauss法', category: '反復法', color: '#0ea5e9' },
-            { id: 'levenberg-marquardt', name: 'Levenberg-Marquardt法', category: '最適化系', color: '#b066f8' },
-            { id: 'iwamoto', name: 'Iwamoto修正NR法', category: 'Newton系', color: '#10b981' },
-            { id: 'continuation', name: '連続潮流計算 (CPF)', category: '特殊用途', color: '#ec4899' },
-            { id: 'holomorphic', name: 'Holomorphic Embedding法', category: '数学的手法', color: '#a27cf8' },
-            { id: 'backward-forward', name: 'Backward/Forward Sweep', category: '放射状系統', color: '#06b6d4' },
-            { id: 'quasi-newton', name: 'Quasi-Newton法 (Broyden)', category: 'Newton系', color: '#14b8a6' },
-            { id: 'jacobi', name: 'Jacobi法', category: '反復法', color: '#8a98ab' },
-            { id: 'sor', name: 'SOR法 (逐次過緩和)', category: '反復法', color: '#908983' },
-            { id: 'current-injection', name: 'Current Injection法', category: 'Newton系', color: '#84cc16' },
-            { id: 'implicit-zbus', name: 'Implicit Z-bus法', category: '反復法', color: '#22d3ee' },
-            { id: 'modified-gs', name: '修正Gauss-Seidel法', category: '反復法', color: '#67e8f9' },
-            { id: 'second-order-nr', name: '2次Newton-Raphson法', category: 'Newton系', color: '#4ade80' }
+            { id: 'gauss-seidel', name: 'Gauss-Seidel法', category: '反復法', color: '#197b6c' },
+            { id: 'newton-raphson-polar', name: 'Newton-Raphson法 (極座標)', category: 'Newton系', color: '#2e7d4f' },
+            { id: 'newton-raphson-rect', name: 'Newton-Raphson法 (直交座標)', category: 'Newton系', color: '#2e7d4f' },
+            { id: 'fast-decoupled-xb', name: 'Fast Decoupled法 (XB)', category: '簡略化Newton', color: '#8f6625' },
+            { id: 'fast-decoupled-bx', name: 'Fast Decoupled法 (BX)', category: '簡略化Newton', color: '#c05205' },
+            { id: 'dc-power-flow', name: 'DC潮流計算', category: '線形近似', color: '#7d6a1a' },
+            { id: 'gauss', name: 'Gauss法 (Jacobi型)', category: '反復法', color: '#067bb0' },
+            { id: 'z-bus-gauss', name: 'Z-bus Gauss法', category: '反復法', color: '#2f5d9e' },
+            { id: 'levenberg-marquardt', name: 'Levenberg-Marquardt法', category: '最適化系', color: '#6f54c4' },
+            { id: 'iwamoto', name: 'Iwamoto修正NR法', category: 'Newton系', color: '#2e7d4f' },
+            { id: 'continuation', name: '連続潮流計算 (CPF)', category: '特殊用途', color: '#b0486d' },
+            { id: 'holomorphic', name: 'Holomorphic Embedding法', category: '数学的手法', color: '#6f54c4' },
+            { id: 'backward-forward', name: 'Backward/Forward Sweep', category: '放射状系統', color: '#197b6c' },
+            { id: 'quasi-newton', name: 'Quasi-Newton法 (Broyden)', category: 'Newton系', color: '#1d7a70' },
+            { id: 'jacobi', name: 'Jacobi法', category: '反復法', color: '#737166' },
+            { id: 'sor', name: 'SOR法 (逐次過緩和)', category: '反復法', color: '#79726d' },
+            { id: 'current-injection', name: 'Current Injection法', category: 'Newton系', color: '#53800e' },
+            { id: 'implicit-zbus', name: 'Implicit Z-bus法', category: '反復法', color: '#197b6c' },
+            { id: 'modified-gs', name: '修正Gauss-Seidel法', category: '反復法', color: '#067f90' },
+            { id: 'second-order-nr', name: '2次Newton-Raphson法', category: 'Newton系', color: '#188540' }
         ];
 
         const formulas = [
@@ -1283,7 +1283,7 @@
             const width = canvas.width;
             const height = canvas.height;
 
-            ctx.fillStyle = '#1a2129';
+            ctx.fillStyle = '#fffdf6';
             ctx.fillRect(0, 0, width, height);
 
             if (!state.network) return;
@@ -1307,13 +1307,13 @@
                 ctx.beginPath();
                 ctx.moveTo(from.x, from.y);
                 ctx.lineTo(to.x, to.y);
-                ctx.strokeStyle = 'rgba(0, 212, 255, 0.4)';
+                ctx.strokeStyle = 'rgba(25, 123, 108, 0.4)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
                 const midX = (from.x + to.x) / 2;
                 const midY = (from.y + to.y) / 2;
-                ctx.fillStyle = '#8b949e';
+                ctx.fillStyle = '#52504a';
                 ctx.font = '10px JetBrains Mono';
                 ctx.textAlign = 'center';
                 ctx.fillText(`${branch.r.toFixed(3)}+j${branch.x.toFixed(3)}`, midX, midY - 5);
@@ -1327,9 +1327,9 @@
                 ctx.arc(pos.x, pos.y, nodeRadius, 0, 2 * Math.PI);
                 
                 let fillColor;
-                if (node.type === 'Slack') fillColor = '#00ff88';
-                else if (node.type === 'PV') fillColor = '#ff9500';
-                else fillColor = '#00d4ff';
+                if (node.type === 'Slack') fillColor = '#2e7d4f';
+                else if (node.type === 'PV') fillColor = '#8f6625';
+                else fillColor = '#197b6c';
 
                 ctx.fillStyle = fillColor;
                 ctx.fill();
@@ -1337,18 +1337,18 @@
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                ctx.fillStyle = '#0a0e14';
+                ctx.fillStyle = '#faf8f1';
                 ctx.font = 'bold 12px JetBrains Mono';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
                 ctx.fillText(`${i + 1}`, pos.x, pos.y);
 
-                ctx.fillStyle = '#e6edf3';
+                ctx.fillStyle = '#1a1a17';
                 ctx.font = '10px JetBrains Mono';
                 ctx.fillText(node.type, pos.x, pos.y + nodeRadius + 15);
             });
 
-            ctx.fillStyle = '#8b949e';
+            ctx.fillStyle = '#52504a';
             ctx.font = '12px JetBrains Mono';
             ctx.textAlign = 'left';
             ctx.fillText(`Nodes: ${n}  |  Branches: ${branches.length}`, 10, 20);
@@ -1623,7 +1623,7 @@
             const rect = canvas.parentElement.getBoundingClientRect();
             canvas.width = rect.width;
             canvas.height = rect.height;
-            ctx.fillStyle = '#1a2129';
+            ctx.fillStyle = '#fffdf6';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
@@ -1640,7 +1640,7 @@
             const height = canvas.height;
             const padding = { top: 10, right: 10, bottom: 20, left: 40 };
 
-            ctx.fillStyle = '#1a2129';
+            ctx.fillStyle = '#fffdf6';
             ctx.fillRect(0, 0, width, height);
 
             if (history.length === 0) return;
@@ -1656,7 +1656,7 @@
             const xScale = (width - padding.left - padding.right) / Math.max(maxIter, 1);
             const yScale = (height - padding.top - padding.bottom) / (logMax - logMin || 1);
 
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.strokeStyle = 'rgba(26, 26, 23, 0.1)';
             ctx.lineWidth = 0.5;
             for (let i = 0; i <= 4; i++) {
                 const y = padding.top + i * (height - padding.top - padding.bottom) / 4;
@@ -1701,7 +1701,7 @@
                 ctx.fill();
             });
 
-            ctx.fillStyle = '#8b949e';
+            ctx.fillStyle = '#52504a';
             ctx.font = '9px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText('Iterations', width / 2, height - 3);
@@ -1730,7 +1730,7 @@
             const height = canvas.height;
             const padding = { top: 20, right: 20, bottom: 40, left: 60 };
 
-            ctx.fillStyle = '#1a2129';
+            ctx.fillStyle = '#fffdf6';
             ctx.fillRect(0, 0, width, height);
 
             const data = Object.values(state.results).filter(r => r && r.converged);
@@ -1747,7 +1747,7 @@
             const xScale = (width - padding.left - padding.right) / (xMax - xMin);
             const yScale = (height - padding.top - padding.bottom) / (yMax - yMin);
 
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.strokeStyle = 'rgba(26, 26, 23, 0.1)';
             ctx.lineWidth = 0.5;
             for (let i = 0; i <= 5; i++) {
                 const y = padding.top + i * (height - padding.top - padding.bottom) / 5;
@@ -1768,7 +1768,7 @@
                 ctx.fill();
             });
 
-            ctx.fillStyle = '#8b949e';
+            ctx.fillStyle = '#52504a';
             ctx.font = '11px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText('反復回数', width / 2, height - 5);
@@ -1785,7 +1785,7 @@
             const height = canvas.height;
             const padding = { top: 20, right: 20, bottom: 60, left: 60 };
 
-            ctx.fillStyle = '#1a2129';
+            ctx.fillStyle = '#fffdf6';
             ctx.fillRect(0, 0, width, height);
 
             const data = Object.values(state.results)
@@ -1808,7 +1808,7 @@
                 ctx.fillRect(x, y, barWidth, barHeight);
 
                 ctx.save();
-                ctx.fillStyle = '#8b949e';
+                ctx.fillStyle = '#52504a';
                 ctx.font = '9px JetBrains Mono';
                 ctx.translate(x + barWidth / 2, height - padding.bottom + 5);
                 ctx.rotate(Math.PI / 4);
@@ -1816,7 +1816,7 @@
                 ctx.fillText(algo.name.substring(0, 15), 0, 0);
                 ctx.restore();
 
-                ctx.fillStyle = '#e6edf3';
+                ctx.fillStyle = '#1a1a17';
                 ctx.font = '10px JetBrains Mono';
                 ctx.textAlign = 'center';
                 ctx.fillText(d.time.toFixed(1), x + barWidth / 2, y - 5);
@@ -1907,6 +1907,6 @@
             }
         });
     </script>
-    <script src="scripts/learning_nav.js"></script>
+    <script src="scripts/learning_nav.js?v=2"></script>
 </body>
 </html>

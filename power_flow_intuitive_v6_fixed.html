@@ -6,18 +6,19 @@
     <title>潮流計算 収束可視化 (Fixed)</title>
     <style>
         :root {
-            --bg-dark: #0f0f1a;
-            --bg-card: #1a1a2e;
-            --bg-surface: #252540;
-            --accent-blue: #4dabf7;
-            --accent-green: #51cf66;
-            --accent-orange: #ffa94d;
-            --accent-red: #ff6b6b;
-            --accent-purple: #cc5de8;
-            --accent-cyan: #22b8cf;
-            --text-primary: #e9ecef;
-            --text-secondary: #8b929a;
-            --border: #3d3d5c;
+            /* 和紙（ブループリント形式）パレット */
+            --bg-dark: #faf8f1;
+            --bg-card: #ffffff;
+            --bg-surface: #fffdf6;
+            --accent-blue: #2f5d9e;
+            --accent-green: #2e7d4f;
+            --accent-orange: #8f6625;
+            --accent-red: #ca3c4e;
+            --accent-purple: #6f54c4;
+            --accent-cyan: #197b6c;
+            --text-primary: #1a1a17;
+            --text-secondary: #52504a;
+            --border: #dcd8cc;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -834,10 +835,10 @@
         
         // 背景色を設定
         const colors = {
-            success: 'rgba(81, 207, 102, 0.2)',
-            warning: 'rgba(255, 169, 77, 0.2)',
-            error: 'rgba(255, 107, 107, 0.2)',
-            info: 'rgba(77, 171, 247, 0.2)'
+            success: 'rgba(46, 125, 79, 0.2)',
+            warning: 'rgba(143, 102, 37, 0.2)',
+            error: 'rgba(202, 60, 78, 0.2)',
+            info: 'rgba(47, 93, 158, 0.2)'
         };
         panel.style.background = colors[diagnosis.color] || colors.info;
         
@@ -1553,7 +1554,7 @@
         canvas.height = rect.height - 20;
         const w = canvas.width, h = canvas.height;
 
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = '#fffdf6';
         ctx.fillRect(0, 0, w, h);
 
         const prob = getDynamicProblem(state.problem);
@@ -1595,7 +1596,7 @@
                     
                     if (i === j) {
                         // 対角要素は青系
-                        ctx.fillStyle = `rgba(77, 171, 247, ${0.3 + 0.7 * intensity})`;
+                        ctx.fillStyle = `rgba(47, 93, 158, ${0.3 + 0.7 * intensity})`;
                     } else {
                         // 非対角要素は赤〜黄
                         const hue = 30 - 30 * intensity;  // 30(オレンジ)→0(赤)
@@ -1617,7 +1618,7 @@
         }
 
         // 軸ラベル
-        ctx.fillStyle = '#e9ecef';
+        ctx.fillStyle = '#1a1a17';
         ctx.font = '10px sans-serif';
         ctx.textAlign = 'center';
         
@@ -1642,14 +1643,14 @@
         // 凡例
         ctx.font = '9px sans-serif';
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#4dabf7';
+        ctx.fillStyle = '#2f5d9e';
         ctx.fillRect(5, 5, 10, 10);
-        ctx.fillStyle = '#e9ecef';
+        ctx.fillStyle = '#1a1a17';
         ctx.fillText('対角', 18, 13);
         
-        ctx.fillStyle = '#ff6b6b';
+        ctx.fillStyle = '#ca3c4e';
         ctx.fillRect(55, 5, 10, 10);
-        ctx.fillStyle = '#e9ecef';
+        ctx.fillStyle = '#1a1a17';
         ctx.fillText('非対角', 68, 13);
     }
 
@@ -1663,7 +1664,7 @@
         canvas.height = rect.height - 20;
         const w = canvas.width, h = canvas.height;
 
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = '#fffdf6';
         ctx.fillRect(0, 0, w, h);
 
         const prob = getDynamicProblem(state.problem);
@@ -1726,11 +1727,11 @@
             const bus = buses[i];
             if (bus.type === 'Slack') {
                 // Slackバス: 緑
-                ctx.fillStyle = '#51cf66';
+                ctx.fillStyle = '#2e7d4f';
                 ctx.strokeStyle = '#2b8a3e';
             } else if (i === prob.solverBus) {
                 // 解析対象バス: 赤
-                ctx.fillStyle = '#ff6b6b';
+                ctx.fillStyle = '#ca3c4e';
                 ctx.strokeStyle = '#c92a2a';
             } else if (bus.Pspec > 0) {
                 // 発電バス: 黄
@@ -1738,7 +1739,7 @@
                 ctx.strokeStyle = '#f59f00';
             } else {
                 // 負荷バス: 青
-                ctx.fillStyle = '#4dabf7';
+                ctx.fillStyle = '#2f5d9e';
                 ctx.strokeStyle = '#1971c2';
             }
             
@@ -1752,7 +1753,7 @@
             ctx.font = '9px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#1a1a2e';
+            ctx.fillStyle = '#fffdf6';
             positions.forEach((pos, i) => {
                 ctx.fillText(i.toString(), pos.x, pos.y);
             });
@@ -1765,10 +1766,10 @@
         
         const legendY = 5;
         const legendItems = [
-            { color: '#51cf66', label: 'Slack' },
-            { color: '#ff6b6b', label: '解析対象' },
+            { color: '#2e7d4f', label: 'Slack' },
+            { color: '#ca3c4e', label: '解析対象' },
             { color: '#ffd43b', label: '発電' },
-            { color: '#4dabf7', label: '負荷' }
+            { color: '#2f5d9e', label: '負荷' }
         ];
         
         legendItems.forEach((item, i) => {
@@ -1777,7 +1778,7 @@
             ctx.arc(x + 5, legendY + 5, 4, 0, 2 * Math.PI);
             ctx.fillStyle = item.color;
             ctx.fill();
-            ctx.fillStyle = '#e9ecef';
+            ctx.fillStyle = '#1a1a17';
             ctx.fillText(item.label, x + 12, legendY);
         });
 
@@ -1800,11 +1801,11 @@
         const maxR = Math.max(range.Vmax, Math.abs(range.dMin), Math.abs(range.dMax)) * 1.2;
         const scale = Math.min(w, h) * 0.4 / maxR;
 
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = '#fffdf6';
         ctx.fillRect(0, 0, w, h);
 
         // グリッド
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.strokeStyle = 'rgba(26,26,23,0.08)';
         for (let r = 0.2; r <= maxR; r += 0.2) {
             ctx.beginPath();
             ctx.arc(cx, cy, r * scale, 0, 2 * Math.PI);
@@ -1821,9 +1822,9 @@
             const y = cy - state.dcSolution.V * Math.sin(state.dcSolution.delta) * scale;
             ctx.beginPath();
             ctx.arc(x, y, 8, 0, 2 * Math.PI);
-            ctx.fillStyle = 'rgba(255,169,77,0.5)';
+            ctx.fillStyle = 'rgba(143,102,37,0.5)';
             ctx.fill();
-            ctx.fillStyle = '#ffa94d';
+            ctx.fillStyle = '#8f6625';
             ctx.font = '10px sans-serif';
             ctx.fillText('DC', x + 10, y);
         }
@@ -1834,12 +1835,12 @@
             const y = cy - state.trueSolution.V * Math.sin(state.trueSolution.delta) * scale;
             ctx.beginPath();
             ctx.arc(x, y, 10, 0, 2 * Math.PI);
-            ctx.fillStyle = 'rgba(81,207,102,0.3)';
+            ctx.fillStyle = 'rgba(46,125,79,0.3)';
             ctx.fill();
-            ctx.strokeStyle = '#51cf66';
+            ctx.strokeStyle = '#2e7d4f';
             ctx.lineWidth = 2;
             ctx.stroke();
-            ctx.fillStyle = '#51cf66';
+            ctx.fillStyle = '#2e7d4f';
             ctx.font = '10px sans-serif';
             ctx.fillText('真の解', x + 12, y);
         }
@@ -1847,7 +1848,7 @@
         // 軌跡
         if (state.trajectory.length > 1) {
             ctx.beginPath();
-            ctx.strokeStyle = '#ffa94d';
+            ctx.strokeStyle = '#8f6625';
             ctx.lineWidth = 2;
             state.trajectory.forEach((p, i) => {
                 const x = cx + p.V * Math.cos(p.delta) * scale;
@@ -1862,12 +1863,12 @@
                 const y = cy - p.V * Math.sin(p.delta) * scale;
                 ctx.beginPath();
                 ctx.arc(x, y, i === state.trajectory.length - 1 ? 6 : 3, 0, 2 * Math.PI);
-                ctx.fillStyle = i === state.trajectory.length - 1 ? '#4dabf7' : '#ffa94d';
+                ctx.fillStyle = i === state.trajectory.length - 1 ? '#2f5d9e' : '#8f6625';
                 ctx.fill();
             });
         }
 
-        ctx.fillStyle = '#e9ecef';
+        ctx.fillStyle = '#1a1a17';
         ctx.font = '11px sans-serif';
         ctx.fillText('Re(V)', w - 35, cy + 15);
         ctx.fillText('Im(V)', cx + 5, 15);
@@ -1939,7 +1940,7 @@
             const ly = (1 - (last.V - range.Vmin) / (range.Vmax - range.Vmin)) * h;
             ctx.beginPath();
             ctx.arc(lx, ly, 6, 0, 2 * Math.PI);
-            ctx.fillStyle = '#ff6b6b';
+            ctx.fillStyle = '#ca3c4e';
             ctx.fill();
         }
 
@@ -1949,18 +1950,18 @@
             const sy = (1 - (state.trueSolution.V - range.Vmin) / (range.Vmax - range.Vmin)) * h;
             ctx.beginPath();
             ctx.arc(sx, sy, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = '#51cf66';
+            ctx.fillStyle = '#2e7d4f';
             ctx.fill();
         }
 
-        ctx.fillStyle = '#e9ecef';
+        ctx.fillStyle = '#1a1a17';
         ctx.font = '11px sans-serif';
         ctx.fillText('δ →', w - 25, h - 5);
         ctx.fillText('|V| ↑', 5, 12);
         
         // 大規模系統の場合は注釈
         if (nBuses > 50) {
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillStyle = 'rgba(26,26,23,0.55)';
             ctx.font = '9px sans-serif';
             ctx.fillText(`${nBuses}バス (簡易表示)`, 5, h - 5);
         }
@@ -1977,7 +1978,7 @@
         const pw = w - pad.left - pad.right;
         const ph = h - pad.top - pad.bottom;
 
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = '#fffdf6';
         ctx.fillRect(0, 0, w, h);
 
         if (state.errorHistory.length === 0) {
@@ -1995,7 +1996,7 @@
         const xScale = pw / Math.max(data.length, 10);
 
         // グリッド
-        ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+        ctx.strokeStyle = 'rgba(26,26,23,0.08)';
         for (let i = 0; i <= 5; i++) {
             const y = pad.top + i * ph / 5;
             ctx.beginPath();
@@ -2006,7 +2007,7 @@
 
         // 許容値ライン
         const tolY = pad.top + (maxLog - Math.log10(state.tolerance)) / (maxLog - minLog) * ph;
-        ctx.strokeStyle = '#ff6b6b';
+        ctx.strokeStyle = '#ca3c4e';
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(pad.left, tolY);
@@ -2016,7 +2017,7 @@
 
         // 誤差曲線
         ctx.beginPath();
-        ctx.strokeStyle = '#4dabf7';
+        ctx.strokeStyle = '#2f5d9e';
         ctx.lineWidth = 2;
         data.forEach((val, i) => {
             const x = pad.left + (i + 1) * xScale;
@@ -2032,12 +2033,12 @@
             const y = pad.top + (maxLog - Math.log10(Math.max(data[data.length - 1], 1e-15))) / (maxLog - minLog) * ph;
             ctx.beginPath();
             ctx.arc(x, y, 5, 0, 2 * Math.PI);
-            ctx.fillStyle = '#4dabf7';
+            ctx.fillStyle = '#2f5d9e';
             ctx.fill();
         }
 
         // 軸ラベル
-        ctx.fillStyle = '#e9ecef';
+        ctx.fillStyle = '#1a1a17';
         ctx.font = '10px sans-serif';
         ctx.textAlign = 'center';
         ctx.fillText('反復回数', w / 2, h - 5);
@@ -2063,7 +2064,7 @@
         canvas.height = rect.height - 20;
         const w = canvas.width, h = canvas.height;
 
-        ctx.fillStyle = '#1a1a2e';
+        ctx.fillStyle = '#fffdf6';
         ctx.fillRect(0, 0, w, h);
 
         const range = getViewRange();
@@ -2112,7 +2113,7 @@
         // 軌跡
         if (state.trajectory.length > 1) {
             ctx.beginPath();
-            ctx.strokeStyle = '#4dabf7';
+            ctx.strokeStyle = '#2f5d9e';
             ctx.lineWidth = 2;
             state.trajectory.forEach((p, i) => {
                 const x = (p.delta - range.dMin) / (range.dMax - range.dMin) * w;
@@ -2129,18 +2130,18 @@
             const sy = (1 - (state.trueSolution.V - range.Vmin) / (range.Vmax - range.Vmin)) * h;
             ctx.beginPath();
             ctx.arc(sx, sy, 6, 0, 2 * Math.PI);
-            ctx.fillStyle = '#51cf66';
+            ctx.fillStyle = '#2e7d4f';
             ctx.fill();
         }
 
-        ctx.fillStyle = '#e9ecef';
+        ctx.fillStyle = '#1a1a17';
         ctx.font = '11px sans-serif';
         ctx.fillText('δ →', w - 25, h - 5);
         ctx.fillText('|V| ↑', 5, 12);
         
         // 大規模系統の場合は注釈
         if (nBuses > 50) {
-            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            ctx.fillStyle = 'rgba(26,26,23,0.55)';
             ctx.font = '9px sans-serif';
             ctx.fillText(`${nBuses}バス (簡易表示)`, 5, h - 5);
         }
@@ -2183,6 +2184,6 @@
 
     window.addEventListener('resize', drawAll);
     </script>
-    <script src="scripts/learning_nav.js"></script>
+    <script src="scripts/learning_nav.js?v=2"></script>
 </body>
 </html>

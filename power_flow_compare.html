@@ -7,27 +7,27 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-dark: #0a0a0f;
-            --bg-card: #12121a;
-            --bg-surface: #1a1a25;
-            --bg-hover: #252535;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-orange: #f59e0b;
-            --accent-red: #ef4444;
-            --accent-purple: #8b5cf6;
-            --accent-cyan: #06b6d4;
-            --accent-pink: #ec4899;
-            --accent-yellow: #eab308;
-            --accent-teal: #14b8a6;
-            --accent-indigo: #6366f1;
-            --text-primary: #f1f5f9;
-            --text-secondary: #94a3b8;
-            --text-muted: #8a98ab;
-            --border: #2d2d3d;
-            --success: #22c55e;
-            --warning: #eab308;
-            --error: #ef4444;
+            --bg-dark: #faf8f1;
+            --bg-card: #ffffff;
+            --bg-surface: #fffdf6;
+            --bg-hover: #f4f1e8;
+            --accent-blue: #2f5d9e;
+            --accent-green: #2e7d4f;
+            --accent-orange: #8f6625;
+            --accent-red: #ca3c4e;
+            --accent-purple: #6f54c4;
+            --accent-cyan: #197b6c;
+            --accent-pink: #b0486d;
+            --accent-yellow: #7d6a1a;
+            --accent-teal: #1d7a70;
+            --accent-indigo: #4a4fa3;
+            --text-primary: #1a1a17;
+            --text-secondary: #52504a;
+            --text-muted: #737166;
+            --border: #dcd8cc;
+            --success: #2e7d4f;
+            --warning: #7d6a1a;
+            --error: #ca3c4e;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -160,7 +160,7 @@
 
         .algo-checkbox.selected {
             border-color: var(--accent-cyan);
-            background: rgba(6, 182, 212, 0.1);
+            background: rgba(25, 123, 108, 0.1);
         }
 
         .algo-checkbox input { display: none; }
@@ -316,13 +316,13 @@
 
         .flow-step.active {
             border-color: var(--accent-cyan);
-            background: rgba(6, 182, 212, 0.1);
-            box-shadow: 0 0 15px rgba(6, 182, 212, 0.3);
+            background: rgba(25, 123, 108, 0.1);
+            box-shadow: 0 0 15px rgba(25, 123, 108, 0.3);
         }
 
         .flow-step.completed {
             border-color: var(--accent-green);
-            background: rgba(16, 185, 129, 0.1);
+            background: rgba(46, 125, 79, 0.1);
         }
 
         .flow-step-header {
@@ -342,7 +342,7 @@
         }
 
         .flow-step-desc {
-            color: var(--text-muted);
+            color: var(--text-secondary);
             font-size: 0.7rem;
         }
 
@@ -405,10 +405,10 @@
         .algo-internals {
             margin-top: 8px;
             padding-top: 8px;
-            border-top: 1px solid var(--border, #2d2d3d);
+            border-top: 1px solid var(--border, #dcd8cc);
             font-size: 11px;
             line-height: 1.6;
-            color: #94a3b8;
+            color: #52504a;
         }
         .algo-internals code {
             color: #79c0ff;
@@ -418,10 +418,10 @@
 
         .viz-caption {
             font-size: 11px;
-            color: #8b949e;
+            color: #52504a;
             padding: 4px 14px 6px;
             line-height: 1.6;
-            border-bottom: 1px solid #2d2d3d;
+            border-bottom: 1px solid #dcd8cc;
         }
 
         .compare-grid {
@@ -481,10 +481,10 @@
             font-weight: 500;
         }
 
-        .algo-result-status.converged { background: rgba(16, 185, 129, 0.2); color: var(--accent-green); }
-        .algo-result-status.running { background: rgba(245, 158, 11, 0.2); color: var(--accent-orange); }
-        .algo-result-status.waiting { background: rgba(100, 116, 139, 0.2); color: var(--text-muted); }
-        .algo-result-status.diverged { background: rgba(239, 68, 68, 0.2); color: var(--accent-red); }
+        .algo-result-status.converged { background: rgba(46, 125, 79, 0.10); color: #266a43; }
+        .algo-result-status.running { background: rgba(143, 102, 37, 0.10); color: #7d5920; }
+        .algo-result-status.waiting { background: rgba(115, 113, 102, 0.10); color: #5d5b52; }
+        .algo-result-status.diverged { background: rgba(202, 60, 78, 0.10); color: #b13343; }
 
         .algo-result-stats {
             display: grid;
@@ -840,7 +840,7 @@
                     </thead>
                     <tbody id="comparisonBody"></tbody>
                 </table>
-                <div id="balanceSummary" style="margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.8; color: #94a3b8;"></div>
+                <div id="balanceSummary" style="margin-top: 10px; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1.8; color: #52504a;"></div>
             </div>
         </div>
     </div>
@@ -909,7 +909,7 @@
         nr: {
             name: 'Newton-Raphson',
             shortName: 'NR',
-            color: '#3b82f6',
+            color: '#2f5d9e',
             desc: '2次収束。ヤコビアン行列を毎反復で更新。',
             matpower: 'newtonpf.m',
             complexity: 'O(n³)',
@@ -918,7 +918,7 @@
         fdxb: {
             name: 'Fast Decoupled XB',
             shortName: 'FDXB',
-            color: '#10b981',
+            color: '#2e7d4f',
             desc: 'P-δとQ-V分離。B\'行列は固定。',
             matpower: 'fdpf.m (XB)',
             complexity: 'O(n²)',
@@ -927,7 +927,7 @@
         fdbx: {
             name: 'Fast Decoupled BX',
             shortName: 'FDBX',
-            color: '#14b8a6',
+            color: '#1d7a70',
             desc: 'FDXBの変形。Q-V → P-δの順序。',
             matpower: 'fdpf.m (BX)',
             complexity: 'O(n²)',
@@ -936,7 +936,7 @@
         gs: {
             name: 'Gauss-Seidel',
             shortName: 'GS',
-            color: '#f59e0b',
+            color: '#8f6625',
             desc: '逐次更新。メモリ効率良。収束遅い。',
             matpower: 'gausspf.m',
             complexity: 'O(n²)',
@@ -945,7 +945,7 @@
         gj: {
             name: 'Gauss-Jacobi',
             shortName: 'GJ',
-            color: '#eab308',
+            color: '#7d6a1a',
             desc: '一斉更新。並列化可能。GSより遅い。',
             matpower: '-',
             complexity: 'O(n²)',
@@ -954,7 +954,7 @@
         dc: {
             name: 'DC Power Flow',
             shortName: 'DC',
-            color: '#8b5cf6',
+            color: '#6f54c4',
             desc: '線形近似。P-δのみ。1回で解。',
             matpower: 'dcpf.m',
             complexity: 'O(n²)',
@@ -963,7 +963,7 @@
         lm: {
             name: 'Levenberg-Marquardt',
             shortName: 'LM',
-            color: '#ec4899',
+            color: '#b0486d',
             desc: 'NRにダンピング追加。収束性改善。',
             matpower: '-',
             complexity: 'O(n³)',
@@ -972,7 +972,7 @@
         rnr: {
             name: 'Relaxed Newton',
             shortName: 'RNR',
-            color: '#6366f1',
+            color: '#4a4fa3',
             desc: '更新量を80%に緩和したNR。難収束時の安定化。',
             matpower: '-',
             complexity: 'O(n³)',
@@ -2669,7 +2669,7 @@
         const w = canvas.width, h = canvas.height;
         const padding = { top: 20, right: 20, bottom: 30, left: 50 };
         
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
         
         const tolerance = parseFloat(document.getElementById('tolSelect').value);
@@ -2681,7 +2681,7 @@
         }
         
         if (allData.length === 0) {
-            ctx.fillStyle = '#8a98ab';
+            ctx.fillStyle = '#737166';
             ctx.font = '12px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText('実行すると収束曲線が表示されます', w / 2, h / 2);
@@ -2698,7 +2698,7 @@
         
         // Tolerance line
         const tolY = padding.top + (maxLog - Math.log10(tolerance)) / (maxLog - minLog) * plotH;
-        ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+        ctx.strokeStyle = 'rgba(202, 60, 78, 0.5)';
         ctx.setLineDash([5, 5]);
         ctx.beginPath();
         ctx.moveTo(padding.left, tolY);
@@ -2706,7 +2706,7 @@
         ctx.stroke();
         ctx.setLineDash([]);
         
-        ctx.fillStyle = '#ef4444';
+        ctx.fillStyle = '#ca3c4e';
         ctx.font = '9px JetBrains Mono';
         ctx.fillText('ε', w - padding.right + 5, tolY + 3);
         
@@ -2742,7 +2742,7 @@
         }
         
         // Axes
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#52504a';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('反復回数', w / 2, h - 5);
@@ -2758,7 +2758,7 @@
         const w = canvas.width, h = canvas.height;
         const padding = { top: 30, right: 20, bottom: 40, left: 50 };
         
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
         
         const plotW = w - padding.left - padding.right;
@@ -2780,13 +2780,13 @@
             ctx.fillRect(x, y, barWidth, barH);
             
             // Iteration count on top
-            ctx.fillStyle = '#f1f5f9';
+            ctx.fillStyle = '#1a1a17';
             ctx.font = 'bold 12px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText(engine.iteration, x + barWidth / 2, y - 5);
             
             // Label
-            ctx.fillStyle = '#94a3b8';
+            ctx.fillStyle = '#52504a';
             ctx.font = '10px JetBrains Mono';
             ctx.fillText(ALGORITHMS[algo].shortName, x + barWidth / 2, h - padding.bottom + 15);
             
@@ -2798,7 +2798,7 @@
         });
         
         // Y-axis
-        ctx.fillStyle = '#8a98ab';
+        ctx.fillStyle = '#737166';
         ctx.font = '9px JetBrains Mono';
         ctx.textAlign = 'right';
         for (let i = 0; i <= 4; i++) {
@@ -2816,7 +2816,7 @@
         canvas.height = rect.height - 24;
         
         const w = canvas.width, h = canvas.height;
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
         
         // Use first algorithm's results
@@ -2836,7 +2836,7 @@
         }));
         
         // Branches
-        ctx.strokeStyle = 'rgba(59, 130, 246, 0.4)';
+        ctx.strokeStyle = 'rgba(47, 93, 158, 0.4)';
         ctx.lineWidth = 2;
         engine.branchData.forEach(branch => {
             const from = positions[branch[0] - 1];
@@ -2856,13 +2856,13 @@
             
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, nodeRadius, 0, 2 * Math.PI);
-            ctx.fillStyle = bus.type === 'Slack' ? '#10b981' : bus.type === 'PV' ? '#f59e0b' : '#3b82f6';
+            ctx.fillStyle = bus.type === 'Slack' ? '#2e7d4f' : bus.type === 'PV' ? '#8f6625' : '#2f5d9e';
             ctx.fill();
-            ctx.strokeStyle = '#f1f5f9';
+            ctx.strokeStyle = '#1a1a17';
             ctx.lineWidth = 1;
             ctx.stroke();
             
-            ctx.fillStyle = '#0a0a0f';
+            ctx.fillStyle = '#faf8f1';
             ctx.font = `bold ${nodeRadius * 0.7}px JetBrains Mono`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -2878,7 +2878,7 @@
         canvas.height = rect.height - 24;
 
         const w = canvas.width, h = canvas.height;
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
         if (!currentCase) return;
@@ -2916,9 +2916,9 @@
             const Y = v => y0 + padding.top + (vMax - v) / (vMax - vMin) * plotH;
 
             // 軸・ラベル
-            ctx.strokeStyle = '#2d2d3d';
+            ctx.strokeStyle = '#dcd8cc';
             ctx.strokeRect(padding.left, y0 + padding.top, plotW, plotH);
-            ctx.fillStyle = '#94a3b8';
+            ctx.fillStyle = '#52504a';
             ctx.font = '10px JetBrains Mono';
             ctx.textAlign = 'left';
             ctx.fillText(panel.label, padding.left + 4, y0 + 11);
@@ -2949,7 +2949,7 @@
 
             // 真の解 (白破線・最前面): 各手法の線がこの破線に重なったら収束
             if (refSolution) {
-                ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+                ctx.strokeStyle = 'rgba(26,26,23,0.9)';
                 ctx.setLineDash([5, 4]);
                 ctx.lineWidth = 1.2;
                 ctx.beginPath();
@@ -2963,7 +2963,7 @@
 
             // 母線番号 (下段のみ)
             if (p === 1) {
-                ctx.fillStyle = '#8a98ab';
+                ctx.fillStyle = '#737166';
                 ctx.textAlign = 'center';
                 const step = Math.max(1, Math.ceil(nBus / 15));
                 for (let i = 0; i < nBus; i += step) {
@@ -2984,11 +2984,11 @@
 
         const w = canvas.width, h = canvas.height;
         const padding = { top: 15, right: 15, bottom: 30, left: 55 };
-        ctx.fillStyle = '#12121a';
+        ctx.fillStyle = '#ffffff';
         ctx.fillRect(0, 0, w, h);
 
         if (!refSolution) {
-            ctx.fillStyle = '#94a3b8';
+            ctx.fillStyle = '#52504a';
             ctx.font = '12px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText('基準解なし', w / 2, h / 2);
@@ -3015,9 +3015,9 @@
         const plotH = h - padding.top - padding.bottom;
 
         // 軸
-        ctx.strokeStyle = '#2d2d3d';
+        ctx.strokeStyle = '#dcd8cc';
         ctx.strokeRect(padding.left, padding.top, plotW, plotH);
-        ctx.fillStyle = '#94a3b8';
+        ctx.fillStyle = '#52504a';
         ctx.font = '10px JetBrains Mono';
         for (let lg = Math.ceil(maxLog); lg >= Math.floor(minLog); lg -= 2) {
             const y = padding.top + (maxLog - lg) / (maxLog - minLog) * plotH;
@@ -3058,6 +3058,6 @@
 
     document.addEventListener('DOMContentLoaded', init);
     </script>
-    <script src="scripts/learning_nav.js"></script>
+    <script src="scripts/learning_nav.js?v=2"></script>
 </body>
 </html>
