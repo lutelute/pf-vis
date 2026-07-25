@@ -70,6 +70,18 @@
             .edu-area { grid-template-columns: 1fr; }
         }
 
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; grid-template-rows: none; }
+            header { flex-wrap: wrap; gap: 10px; padding: 12px 15px; }
+            .side-panel { max-width: 100vw; }
+            .algo-select { max-width: calc(100vw - 60px); }
+            .edu-area { grid-template-columns: 1fr; }
+            .edu-area .edu-panel, .panel-section { min-width: 0; }
+            .equation-display, .matrix-container, .cell-interpretation { overflow-x: auto; }
+            .status-bar, footer, .legend { flex-wrap: wrap; }
+            footer { gap: 10px; }
+        }
+
         header {
             grid-column: 1 / -1;
             background: var(--bg-secondary);
@@ -90,6 +102,7 @@
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
         }
 
         .algo-select {
@@ -309,16 +322,21 @@
         .speed-slider {
             width: 150px;
             -webkit-appearance: none;
+            height: 28px;
+            background: transparent;
+        }
+
+        .speed-slider::-webkit-slider-runnable-track {
             height: 4px;
             background: var(--bg-tertiary);
             border-radius: 2px;
         }
 
-
         .speed-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 14px;
             height: 14px;
+            margin-top: -5px;
             background: var(--accent-cyan);
             border-radius: 50%;
             cursor: pointer;

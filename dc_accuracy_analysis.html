@@ -136,6 +136,11 @@
             padding: 10px;
             border-radius: 6px;
             text-align: center;
+            min-width: 0;
+        }
+        .metric-value { overflow-wrap: anywhere; }
+        @media (max-width: 600px) {
+            .card { overflow-x: auto; }
         }
         .metric-value {
             font-size: 1.2rem;
