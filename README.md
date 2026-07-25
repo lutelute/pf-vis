@@ -23,7 +23,15 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 
 補助ツール: [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) — 各手法を個別にじっくり実行・観察
 
-**✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、検証済み解答つき）
+**✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、難易度表示つき）。
+数値入力の自動判定（22入力欄・達成状況はブラウザに保存）と考察問題の自己評価チェックリスト付き。
+
+### 教材としての仕掛け
+
+- **学習ガイドバー**: 各ツールページ先頭に学習目標・前後の導線・演習/用語集リンクを常設
+- **実数値の見える化**: ヤコビアン・B行列を実数値で表示し、クリック/ホバーで計算式と物理的意味を接続
+- **解の妥当性の常時提示**: 電力収支（総発電=総負荷+総損失）の検算を各解析ページで自動表示
+- **収束の質の実測**: 収束曲線に加え「真の解への距離」と実測収束次数 p（NR≈2, GS≈1）を表示
 
 ## 📐 数学的基礎
 
@@ -63,9 +71,12 @@ MATPOWER の公式解と照合して検証しています:
 検証テストの実行:
 
 ```bash
-node tests/verify_algorithms.mjs   # MATPOWER基準解との照合 (22テスト)
-python3 tests/check_pages.py       # 全ページのブラウザ動作確認 (要 playwright)
+node tests/verify_algorithms.mjs   # ① エンジン単体: MATPOWER基準解との照合 (22テスト)
+python3 tests/check_pages.py       # ② 全ページのJSエラー検出 (要 playwright)
+python3 tests/check_numerics.py    # ③ E2E数値回帰: 各ツールを駆動し核心数値を検証 (21テスト)
 ```
+
+三層の検証体制: エンジンの数学 → ページの動作 → 画面に出る数値、をそれぞれ別のテストが守ります。
 
 ## 📈 収録系統データ（MATPOWER v2形式）
 
@@ -91,16 +102,20 @@ pf-vis/
 ├── power_flow_v5.html                    # 5. 統合分析スイート（発展）
 ├── dc_accuracy_analysis.html             # 6. DC潮流精度検証（応用）
 ├── power_flow_visualizer.html            # 補助: 多手法可視化
+├── getting_started.html                  # Step 0: はじめに (前提知識・用語集)
+├── exercises.html                        # 演習問題 (全18問・自動判定つき)
 ├── scripts/
 │   ├── ieee_cases.js                     # IEEE標準系統データ（MATPOWER準拠・検証済み）
 │   ├── power_flow_engine.js              # 潮流計算エンジン（NR/GS/FDXB/DC）
 │   ├── power_flow_utils.js               # 複素数・行列演算ユーティリティ
+│   ├── learning_nav.js                   # 全ページ共通の学習ガイドバー
 │   └── main.js                           # メインページ用スクリプト
 ├── styles/main.css                       # 共通スタイル
 ├── tests/
-│   ├── verify_algorithms.mjs             # MATPOWER基準解との照合テスト
-│   ├── verify_ieee14_algorithms.html     # ブラウザ版検証ページ
-│   └── check_pages.py                    # 全ページ動作確認（Playwright）
+│   ├── verify_algorithms.mjs             # ① エンジン照合テスト (22)
+│   ├── check_pages.py                    # ② 全ページJSエラー検出
+│   ├── check_numerics.py                 # ③ E2E数値回帰テスト (21)
+│   └── verify_ieee14_algorithms.html     # ブラウザ版検証ページ
 ├── docs/                                 # 各ツールの技術文書
 └── archive/                              # 旧バージョン（参照用・保守対象外）
 ```

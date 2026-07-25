@@ -110,9 +110,9 @@
     var nav = document.createElement('details');
     nav.className = 'lnav';
     var goalsHtml = cfg.goals.map(function (g) { return '<li>' + g + '</li>'; }).join('');
-    var exHtml = cfg.exercise
-        ? '<div class="lnav-ex">✏️ 対応する演習: <a href="exercises.html">' + cfg.exercise + '</a></div>'
-        : '';
+    var exHtml = '<div class="lnav-ex">' +
+        (cfg.exercise ? '✏️ 対応する演習: <a href="exercises.html">' + cfg.exercise + '</a>　' : '') +
+        '📖 <a href="getting_started.html#glossary">用語・記号の早見表</a></div>';
     nav.innerHTML =
         '<summary>🎓 学習ガイド【' + cfg.stage + ' ' + cfg.order + '】このページの学習目標 ▾' +
         '<span class="lnav-links">' +

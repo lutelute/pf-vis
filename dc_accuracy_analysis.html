@@ -709,46 +709,46 @@
         document.getElementById('metricsGrid').innerHTML = `
             <div class="metric ${avgDeltaErr < 1 ? 'good' : avgDeltaErr < 5 ? 'warn' : 'bad'}">
                 <div class="metric-value">${avgDeltaErr.toFixed(2)}&#176;</div>
-                <div class="metric-label">Avg Angle Error (DC-AC)</div>
+                <div class="metric-label">平均 位相角誤差 (DC−AC)</div>
             </div>
             <div class="metric ${maxDeltaErr < 3 ? 'good' : maxDeltaErr < 10 ? 'warn' : 'bad'}">
                 <div class="metric-value">${maxDeltaErr.toFixed(2)}&#176;</div>
-                <div class="metric-label">Max Angle Error</div>
+                <div class="metric-label">最大 位相角誤差</div>
             </div>
             <div class="metric ${avgPErr < 5 ? 'good' : avgPErr < 15 ? 'warn' : 'bad'}">
                 <div class="metric-value">${avgPErr.toFixed(1)}%</div>
-                <div class="metric-label">Avg P Error</div>
+                <div class="metric-label">平均 P誤差</div>
             </div>
             <div class="metric ${maxPErr < 10 ? 'good' : maxPErr < 30 ? 'warn' : 'bad'}">
                 <div class="metric-value">${maxPErr.toFixed(1)}%</div>
-                <div class="metric-label">Max P Error</div>
+                <div class="metric-label">最大 P誤差</div>
             </div>
             <div class="metric ${avgVErr < 0.02 ? 'good' : avgVErr < 0.05 ? 'warn' : 'bad'}">
                 <div class="metric-value">${(avgVErr * 100).toFixed(1)}%</div>
-                <div class="metric-label">Avg V Deviation (from 1.0)</div>
+                <div class="metric-label">平均 電圧偏差 |1−V|</div>
             </div>
             <div class="metric ${acConverged ? 'good' : 'bad'}">
                 <div class="metric-value">${acConverged ? '&#10003;' : '&#10007;'}</div>
-                <div class="metric-label">AC Converged</div>
+                <div class="metric-label">AC基準解 収束</div>
             </div>
         `;
 
         document.getElementById('qMetricsGrid').innerHTML = `
             <div class="metric ${avgQMismatch < 5 ? 'good' : avgQMismatch < 20 ? 'warn' : 'bad'}">
                 <div class="metric-value">${avgQMismatch.toFixed(1)}</div>
-                <div class="metric-label">Avg Q (Mvar)</div>
+                <div class="metric-label">平均 |Q注入| (Mvar)</div>
             </div>
             <div class="metric ${maxQMismatch < 20 ? 'good' : maxQMismatch < 50 ? 'warn' : 'bad'}">
                 <div class="metric-value">${maxQMismatch.toFixed(1)}</div>
-                <div class="metric-label">Max Q (Mvar)</div>
+                <div class="metric-label">最大 |Q注入| (Mvar)</div>
             </div>
             <div class="metric">
                 <div class="metric-value">${(sumQMismatch).toFixed(0)}</div>
-                <div class="metric-label">Total |Q| Injection (Mvar)</div>
+                <div class="metric-label">総 |Q注入| (Mvar)</div>
             </div>
             <div class="metric ${maxVErr < 0.05 ? 'good' : maxVErr < 0.1 ? 'warn' : 'bad'}">
                 <div class="metric-value">${(maxVErr * 100).toFixed(1)}%</div>
-                <div class="metric-label">Max V Deviation</div>
+                <div class="metric-label">最大 電圧偏差</div>
             </div>
         `;
 

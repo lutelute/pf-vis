@@ -58,7 +58,8 @@
 ## 検証手順
 
 ```bash
-node tests/verify_algorithms.mjs    # MATPOWER基準解との照合
+node tests/verify_algorithms.mjs    # ① エンジン単体: MATPOWER基準解との照合 (22)
 python3 -m http.server 8093 &
-python3 tests/check_pages.py        # 全ページのJSエラー検出
+python3 tests/check_pages.py        # ② 全ページのJSエラー検出
+python3 tests/check_numerics.py     # ③ E2E数値回帰: ツールを駆動し核心数値を検証 (21)
 ```
