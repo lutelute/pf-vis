@@ -23,7 +23,7 @@
             --accent-indigo: #6366f1;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
-            --text-muted: #64748b;
+            --text-muted: #8a98ab;
             --border: #2d2d3d;
             --success: #22c55e;
             --warning: #eab308;
@@ -2681,7 +2681,7 @@
         }
         
         if (allData.length === 0) {
-            ctx.fillStyle = '#64748b';
+            ctx.fillStyle = '#8a98ab';
             ctx.font = '12px JetBrains Mono';
             ctx.textAlign = 'center';
             ctx.fillText('実行すると収束曲線が表示されます', w / 2, h / 2);
@@ -2798,7 +2798,7 @@
         });
         
         // Y-axis
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '9px JetBrains Mono';
         ctx.textAlign = 'right';
         for (let i = 0; i <= 4; i++) {
@@ -2963,7 +2963,7 @@
 
             // 母線番号 (下段のみ)
             if (p === 1) {
-                ctx.fillStyle = '#64748b';
+                ctx.fillStyle = '#8a98ab';
                 ctx.textAlign = 'center';
                 const step = Math.max(1, Math.ceil(nBus / 15));
                 for (let i = 0; i < nBus; i += step) {

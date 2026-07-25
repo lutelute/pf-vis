@@ -69,7 +69,7 @@ JS_AUDIT = """() => {
       const cs=getComputedStyle(p);
       const m=(cs.backgroundColor||'').match(/rgba?\\(([\\d.]+),\\s*([\\d.]+),\\s*([\\d.]+)(?:,\\s*([\\d.]+))?\\)/);
       const a=m?(m[4]===undefined?1:parseFloat(m[4])):0;
-      if (a>0 && cs.backgroundImage && cs.backgroundImage!=='none') return null;
+      if (cs.backgroundImage && cs.backgroundImage!=='none') return null;
       if (m && a>0) { layers.push([+m[1],+m[2],+m[3],a]); if(a>=1) break; }
       p=p.parentElement;
     }

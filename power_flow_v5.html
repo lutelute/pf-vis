@@ -19,7 +19,7 @@
             --accent-pink: #ec4899;
             --text-primary: #f1f5f9;
             --text-secondary: #94a3b8;
-            --text-muted: #64748b;
+            --text-muted: #8a98ab;
             --border: #2d2d3d;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1972,7 +1972,7 @@ function drawConvergence() {
     }
     
     if (allData.length === 0) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('実行すると表示', w / 2, h / 2);
@@ -2091,7 +2091,7 @@ function drawVoltageCompare() {
     }
     
     if (!hasData) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('実行すると電圧プロファイルを表示', w / 2, h / 2);
@@ -2175,7 +2175,7 @@ function drawAngleCompare() {
     const dcE = engines['dc'];
     
     if (!acAlgo || !dcE) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('AC解とDC解が必要', w / 2, h / 2);
@@ -2196,7 +2196,7 @@ function drawAngleCompare() {
     
     // Zero line
     const zeroY = pad.top + maxD / range * pH;
-    ctx.strokeStyle = '#64748b';
+    ctx.strokeStyle = '#8a98ab';
     ctx.setLineDash([2, 2]);
     ctx.beginPath();
     ctx.moveTo(pad.left, zeroY);
@@ -2255,7 +2255,7 @@ function drawVoltageError() {
     const refAlgo = ['nr', 'fdxb', 'fdbx', 'lm'].find(a => engines[a] && engines[a].converged);
     
     if (!refAlgo) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('基準AC解が必要', w / 2, h / 2);
@@ -2284,7 +2284,7 @@ function drawVoltageError() {
     }
     
     if (Object.keys(errorData).length === 0) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('他の手法を実行', w / 2, h / 2);
@@ -2359,7 +2359,7 @@ function drawQDistribution() {
     const acAlgo = ['nr', 'fdxb', 'fdbx', 'lm'].find(a => engines[a] && engines[a].converged);
     
     if (!acAlgo) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('AC解が必要', w / 2, h / 2);
@@ -2380,7 +2380,7 @@ function drawQDistribution() {
     
     // Zero line
     const zeroY = pad.top + (maxQ / range) * pH;
-    ctx.strokeStyle = '#64748b';
+    ctx.strokeStyle = '#8a98ab';
     ctx.setLineDash([2, 2]);
     ctx.beginPath();
     ctx.moveTo(pad.left, zeroY);
@@ -2422,7 +2422,7 @@ function drawDCAccuracy() {
     const dcE = engines['dc'];
     
     if (!acAlgo || !dcE) {
-        ctx.fillStyle = '#64748b';
+        ctx.fillStyle = '#8a98ab';
         ctx.font = '10px JetBrains Mono';
         ctx.textAlign = 'center';
         ctx.fillText('AC解とDC解が必要', w / 2, h / 2);
