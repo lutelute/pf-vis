@@ -402,6 +402,20 @@
 
         .viz-body canvas { width: 100%; height: 100%; }
 
+        .algo-internals {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border, #2d2d3d);
+            font-size: 11px;
+            line-height: 1.6;
+            color: #94a3b8;
+        }
+        .algo-internals code {
+            color: #79c0ff;
+            font-size: 11px;
+        }
+        .internals-line { font-family: 'JetBrains Mono', monospace; }
+
         .compare-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -765,13 +779,23 @@
                         </div>
                     </div>
 
-                    <!-- Voltage Profile -->
+                    <!-- Voltage / Angle Profile Convergence -->
                     <div class="viz-card">
                         <div class="viz-header">
-                            <div class="viz-title">📉 電圧プロファイル</div>
+                            <div class="viz-title">⚡ 電圧・位相角プロファイル（白破線 = 真の解）</div>
                         </div>
                         <div class="viz-body">
                             <canvas id="voltageCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Distance to True Solution -->
+                    <div class="viz-card">
+                        <div class="viz-header">
+                            <div class="viz-title">🎯 真の解への距離 max|x − x*|（片対数）</div>
+                        </div>
+                        <div class="viz-body">
+                            <canvas id="distCanvas"></canvas>
                         </div>
                     </div>
                 </div>
@@ -2228,6 +2252,51 @@
     let selectedAlgos = ['nr', 'fdxb', 'gs'];
     let running = false;
     let currentCase = null;
+    let refSolution = null;  // 真の解 (NR高精度解)。全手法の収束先の基準
+
+    // 各手法の更新式 (結果カードに常時表示する)
+    const ALGO_FORMULAS = {
+        nr: 'J·Δx = [ΔP; ΔQ]',
+        fdxb: "B′Δθ = ΔP/|V| → B″Δ|V| = ΔQ/|V|",
+        fdbx: "B″Δ|V| = ΔQ/|V| → B′Δθ = ΔP/|V|",
+        gs: 'V_i ← (1/Y_ii)[S_i*/V_i* − ΣY_ij V_j] 逐次',
+        gj: 'V_i ← 同式を全母線一斉更新',
+        dc: 'Bθ = P（線形・1回で直接解）',
+        lm: '(JᵀJ + μI)Δx = Jᵀf',
+        rnr: 'x ← x + 0.8·Δx_NR'
+    };
+
+    /**
+     * 1反復実行し、更新量と「真の解への距離」を計測する。
+     * 教材の核: 各手法が今なにをどれだけ動かし、解にどれだけ近づいたかを見える化する。
+     */
+    function iterateEngine(algo, engine) {
+        const Vprev = [...engine.V];
+        const Dprev = [...engine.delta];
+        const result = engine.runIteration(algo);
+
+        let maxdV = 0, maxdD = 0, argV = 0, argD = 0;
+        for (let i = 0; i < engine.nBus; i++) {
+            const dv = Math.abs(engine.V[i] - Vprev[i]);
+            const dd = Math.abs(engine.delta[i] - Dprev[i]);
+            if (dv > maxdV) { maxdV = dv; argV = i; }
+            if (dd > maxdD) { maxdD = dd; argD = i; }
+        }
+
+        let dist = NaN;
+        if (refSolution) {
+            dist = 0;
+            for (let i = 0; i < engine.nBus; i++) {
+                dist = Math.max(dist,
+                    Math.abs(engine.V[i] - refSolution.V[i]),
+                    Math.abs(engine.delta[i] - refSolution.delta[i]));
+            }
+        }
+        if (!engine.distHistory) engine.distHistory = [];
+        engine.distHistory.push(dist);
+        engine.lastUpdateInfo = { maxdV, maxdD, argV, argD, dist };
+        return result;
+    }
 
     function init() {
         buildAlgoCheckboxes();
@@ -2301,7 +2370,18 @@
     function reset() {
         running = false;
         engines = {};
-        
+
+        // 真の解: NRを高精度でサイレント実行して基準にする
+        refSolution = null;
+        try {
+            const refEngine = new PowerFlowEngine(currentCase);
+            for (let it = 0; it < 60; it++) {
+                const r = refEngine.runIteration('nr');
+                if (r.maxError < 1e-10 || !isFinite(r.maxError)) break;
+            }
+            refSolution = { V: [...refEngine.V], delta: [...refEngine.delta] };
+        } catch (e) { refSolution = null; }
+
         for (const algo of selectedAlgos) {
             engines[algo] = new PowerFlowEngine(currentCase);
         }
@@ -2329,7 +2409,7 @@
                 if (engine.converged || engine.diverged || engine.iteration >= maxIter) continue;
                 
                 allDone = false;
-                const result = engine.runIteration(algo);
+                const result = iterateEngine(algo, engine);
                 
                 if (result.maxError < tolerance) {
                     engine.converged = true;
@@ -2366,7 +2446,7 @@
             const engine = engines[algo];
             if (engine.converged || engine.diverged) continue;
             
-            const result = engine.runIteration(algo);
+            const result = iterateEngine(algo, engine);
             if (result.maxError < tolerance) {
                 engine.converged = true;
                 engine.currentStep = 'done';
@@ -2439,6 +2519,13 @@
                             <span class="algo-stat-value">${isFinite(engine.maxPError) ? engine.maxPError.toExponential(2) : '∞'}</span>
                         </div>
                     </div>
+                    <div class="algo-internals">
+                        <code>${ALGO_FORMULAS[algo] || ''}</code>
+                        ${engine.lastUpdateInfo ? `
+                        <div class="internals-line">今反復の更新: max|Δδ| = ${(engine.lastUpdateInfo.maxdD * 180 / Math.PI).toFixed(3)}°(母線${engine.lastUpdateInfo.argD + 1}) / max|ΔV| = ${engine.lastUpdateInfo.maxdV.toFixed(4)}(母線${engine.lastUpdateInfo.argV + 1})</div>
+                        <div class="internals-line">真の解までの距離: ${isFinite(engine.lastUpdateInfo.dist) ? 'max|x−x*| = ' + engine.lastUpdateInfo.dist.toExponential(2) : '—'}</div>
+                        ` : '<div class="internals-line">実行すると各反復の更新量と真の解までの距離を表示</div>'}
+                    </div>
                 </div>
             `;
         }
@@ -2466,6 +2553,7 @@
         drawIterationBar();
         drawNetwork();
         drawVoltageProfile();
+        drawDistChart();
     }
 
     function drawConvergence() {
@@ -2685,46 +2773,184 @@
         const rect = canvas.parentElement.getBoundingClientRect();
         canvas.width = rect.width - 24;
         canvas.height = rect.height - 24;
-        
+
         const w = canvas.width, h = canvas.height;
-        const padding = { top: 20, right: 20, bottom: 30, left: 45 };
-        
         ctx.fillStyle = '#12121a';
         ctx.fillRect(0, 0, w, h);
-        
-        const firstAlgo = selectedAlgos[0];
-        if (!engines[firstAlgo]) return;
-        
-        const results = engines[firstAlgo].getBusResults();
-        const voltages = results.map(r => r.V);
-        
-        const minV = Math.min(...voltages, 0.9);
-        const maxV = Math.max(...voltages, 1.1);
-        
+
+        if (!currentCase) return;
+        const nBus = currentCase.bus.length;
+
+        // 上段: |V| プロファイル、下段: δ プロファイル。各手法の現在値が
+        // 白破線(真の解)に重なっていく「動き」を見るチャート。
+        const panels = [
+            { key: 'V', label: '|V| [p.u.]', getVal: (e, i) => e.V[i], getRef: i => refSolution ? refSolution.V[i] : null },
+            { key: 'delta', label: 'δ [deg]', getVal: (e, i) => e.delta[i] * 180 / Math.PI, getRef: i => refSolution ? refSolution.delta[i] * 180 / Math.PI : null }
+        ];
+        const panelH = h / 2;
+        const padding = { top: 16, right: 12, bottom: 20, left: 48 };
+
+        panels.forEach((panel, p) => {
+            const y0 = p * panelH;
+            const plotW = w - padding.left - padding.right;
+            const plotH = panelH - padding.top - padding.bottom;
+
+            // 値域: 全手法の現在値 + 真の解
+            let vals = [];
+            for (const algo of selectedAlgos) {
+                const e = engines[algo];
+                if (!e) continue;
+                for (let i = 0; i < nBus; i++) vals.push(panel.getVal(e, i));
+            }
+            if (refSolution) for (let i = 0; i < nBus; i++) vals.push(panel.getRef(i));
+            if (vals.length === 0) return;
+            let vMin = Math.min(...vals), vMax = Math.max(...vals);
+            if (vMax - vMin < 1e-6) { vMax += 0.05; vMin -= 0.05; }
+            const margin = (vMax - vMin) * 0.1;
+            vMin -= margin; vMax += margin;
+
+            const X = i => padding.left + (nBus <= 1 ? 0 : i / (nBus - 1) * plotW);
+            const Y = v => y0 + padding.top + (vMax - v) / (vMax - vMin) * plotH;
+
+            // 軸・ラベル
+            ctx.strokeStyle = '#2d2d3d';
+            ctx.strokeRect(padding.left, y0 + padding.top, plotW, plotH);
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '10px JetBrains Mono';
+            ctx.textAlign = 'left';
+            ctx.fillText(panel.label, padding.left + 4, y0 + 11);
+            ctx.textAlign = 'right';
+            ctx.fillText(vMax.toFixed(panel.key === 'V' ? 3 : 1), padding.left - 4, y0 + padding.top + 9);
+            ctx.fillText(vMin.toFixed(panel.key === 'V' ? 3 : 1), padding.left - 4, y0 + padding.top + plotH);
+
+            // 各手法の現在プロファイル
+            for (const algo of selectedAlgos) {
+                const e = engines[algo];
+                if (!e) continue;
+                ctx.strokeStyle = ALGORITHMS[algo].color;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                for (let i = 0; i < nBus; i++) {
+                    const x = X(i), y = Y(panel.getVal(e, i));
+                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                // 点も打つ
+                ctx.fillStyle = ALGORITHMS[algo].color;
+                for (let i = 0; i < nBus; i++) {
+                    ctx.beginPath();
+                    ctx.arc(X(i), Y(panel.getVal(e, i)), 2, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            // 真の解 (白破線・最前面): 各手法の線がこの破線に重なったら収束
+            if (refSolution) {
+                ctx.strokeStyle = 'rgba(255,255,255,0.9)';
+                ctx.setLineDash([5, 4]);
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                for (let i = 0; i < nBus; i++) {
+                    const x = X(i), y = Y(panel.getRef(i));
+                    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 母線番号 (下段のみ)
+            if (p === 1) {
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'center';
+                const step = Math.max(1, Math.ceil(nBus / 15));
+                for (let i = 0; i < nBus; i += step) {
+                    ctx.fillText(String(i + 1), X(i), y0 + padding.top + plotH + 12);
+                }
+            }
+        });
+    }
+
+    /** 真の解への距離 max|x−x*| の推移 (片対数) */
+    function drawDistChart() {
+        const canvas = document.getElementById('distCanvas');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        const rect = canvas.parentElement.getBoundingClientRect();
+        canvas.width = rect.width - 24;
+        canvas.height = rect.height - 24;
+
+        const w = canvas.width, h = canvas.height;
+        const padding = { top: 15, right: 15, bottom: 30, left: 55 };
+        ctx.fillStyle = '#12121a';
+        ctx.fillRect(0, 0, w, h);
+
+        if (!refSolution) {
+            ctx.fillStyle = '#94a3b8';
+            ctx.font = '12px JetBrains Mono';
+            ctx.textAlign = 'center';
+            ctx.fillText('基準解なし', w / 2, h / 2);
+            return;
+        }
+
+        // 値域
+        let maxIter = 1, minLog = -0.9, maxLog = 0.5;
+        let anyData = false;
+        for (const algo of selectedAlgos) {
+            const e = engines[algo];
+            if (!e || !e.distHistory || e.distHistory.length === 0) continue;
+            anyData = true;
+            maxIter = Math.max(maxIter, e.distHistory.length);
+            for (const d of e.distHistory) {
+                if (d > 0 && isFinite(d)) {
+                    minLog = Math.min(minLog, Math.log10(d));
+                    maxLog = Math.max(maxLog, Math.log10(d));
+                }
+            }
+        }
+        minLog = Math.max(minLog, -12);
         const plotW = w - padding.left - padding.right;
         const plotH = h - padding.top - padding.bottom;
-        const barWidth = Math.max(plotW / results.length - 2, 4);
-        
-        // Safe zone
-        const v095Y = padding.top + (maxV - 0.95) / (maxV - minV) * plotH;
-        const v105Y = padding.top + (maxV - 1.05) / (maxV - minV) * plotH;
-        ctx.fillStyle = 'rgba(34, 197, 94, 0.1)';
-        ctx.fillRect(padding.left, v105Y, plotW, v095Y - v105Y);
-        
-        // Bars
-        results.forEach((bus, i) => {
-            const x = padding.left + i * (barWidth + 2);
-            const barH = (bus.V - minV) / (maxV - minV) * plotH;
-            const y = padding.top + plotH - barH;
-            
-            ctx.fillStyle = bus.type === 'Slack' ? '#10b981' : bus.type === 'PV' ? '#f59e0b' : '#3b82f6';
-            ctx.fillRect(x, y, barWidth, barH);
-        });
-        
+
+        // 軸
+        ctx.strokeStyle = '#2d2d3d';
+        ctx.strokeRect(padding.left, padding.top, plotW, plotH);
         ctx.fillStyle = '#94a3b8';
         ctx.font = '10px JetBrains Mono';
+        for (let lg = Math.ceil(maxLog); lg >= Math.floor(minLog); lg -= 2) {
+            const y = padding.top + (maxLog - lg) / (maxLog - minLog) * plotH;
+            if (y < padding.top - 1 || y > padding.top + plotH + 1) continue;
+            ctx.textAlign = 'right';
+            ctx.fillText(`1e${lg}`, padding.left - 5, y + 3);
+            ctx.strokeStyle = 'rgba(45,45,61,0.5)';
+            ctx.beginPath();
+            ctx.moveTo(padding.left, y);
+            ctx.lineTo(padding.left + plotW, y);
+            ctx.stroke();
+        }
         ctx.textAlign = 'center';
-        ctx.fillText('ノード', w / 2, h - 5);
+        ctx.fillText('反復回数', padding.left + plotW / 2, h - 6);
+
+        if (!anyData) {
+            ctx.fillText('実行すると各手法の「解までの距離」が減っていく様子を表示', padding.left + plotW / 2, padding.top + plotH / 2);
+            return;
+        }
+
+        for (const algo of selectedAlgos) {
+            const e = engines[algo];
+            if (!e || !e.distHistory) continue;
+            ctx.strokeStyle = ALGORITHMS[algo].color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            let started = false;
+            e.distHistory.forEach((d, k) => {
+                if (!(d > 0) || !isFinite(d)) return;
+                const x = padding.left + (maxIter <= 1 ? 0 : k / (maxIter - 1) * plotW);
+                const y = padding.top + (maxLog - Math.log10(d)) / (maxLog - minLog) * plotH;
+                started ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+                started = true;
+            });
+            ctx.stroke();
+        }
     }
 
     document.addEventListener('DOMContentLoaded', init);
