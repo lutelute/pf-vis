@@ -238,6 +238,39 @@ try {
     test('Comparison', false, e.message);
 }
 
+// Test 7: solveWithTrace（シミュレータ用API）が solve と完全等価であること
+console.log('\n🎞 solveWithTrace (トレースAPIの等価性)');
+try {
+    const eq = (a, b) => Math.max(...a.busResults.map((x, i) => Math.abs(x.V - b.busResults[i].V)));
+
+    const nrA = new PowerFlowEngine(IEEE_14_BUS).solveNewtonRaphson({ tolerance: 1e-6, maxIterations: 50 });
+    const nrB = new PowerFlowEngine(IEEE_14_BUS).solveWithTrace({ algorithm: 'nr', tolerance: 1e-6, maxIterations: 50 });
+    test('NR: trace版の反復回数が solve と一致', nrA.iterations === nrB.iterations,
+        `${nrA.iterations} vs ${nrB.iterations}`);
+    test('NR: trace版の解が solve と一致', eq(nrA, nrB) < 1e-12);
+    test('NR: コマ数 = 反復+1', nrB.trace.length === nrB.iterations + 1, `${nrB.trace.length}`);
+
+    const gsA = new PowerFlowEngine(window.IEEE_9_BUS).solveGaussSeidel({ tolerance: 1e-6, maxIterations: 500 });
+    const gsB = new PowerFlowEngine(window.IEEE_9_BUS).solveWithTrace({ algorithm: 'gs', tolerance: 1e-6, maxIterations: 500, subSteps: true });
+    test('GS: subSteps版の反復回数が solve と一致', gsA.iterations === gsB.iterations,
+        `${gsA.iterations} vs ${gsB.iterations}`);
+    test('GS: subSteps版の解が solve と一致', eq(gsA, gsB) < 1e-12);
+    test('GS: サブコマ数 = 反復×(母線-1)+1', gsB.trace.length === gsB.iterations * 8 + 1, `${gsB.trace.length}`);
+
+    const fdA = new PowerFlowEngine(IEEE_14_BUS).solveFastDecoupled({ tolerance: 1e-6, maxIterations: 100 });
+    const fdB = new PowerFlowEngine(IEEE_14_BUS).solveWithTrace({ algorithm: 'fdxb', tolerance: 1e-6, maxIterations: 100, subSteps: true });
+    test('FDXB: subSteps版の反復回数が solve と一致', fdA.iterations === fdB.iterations,
+        `${fdA.iterations} vs ${fdB.iterations}`);
+    test('FDXB: 半反復コマ(P/Q)が記録される',
+        fdB.trace.some(f => f.phase === 'P') && fdB.trace.some(f => f.phase === 'Q'));
+
+    const dcB = new PowerFlowEngine(IEEE_14_BUS).solveWithTrace({ algorithm: 'dc' });
+    test('DC: 2コマ（初期値→直接求解）で |V|=1', dcB.trace.length === 2 &&
+        dcB.trace[1].V.every(v => Math.abs(v - 1) < 1e-9));
+} catch (e) {
+    test('solveWithTrace 実行', false, e.message);
+}
+
 // Summary
 console.log('\n========================================');
 console.log(`Summary: ${passed} passed, ${failed} failed`);

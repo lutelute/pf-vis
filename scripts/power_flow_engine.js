@@ -775,7 +775,21 @@ class PowerFlowEngine {
     _solveGaussSeidelStep() {
         for (let i = 0; i < this.nBus; i++) {
             if (i === this.slackBus) continue;
+            this._gsUpdateBus(i);
+        }
+        return this._calcStepResult();
+    }
 
+    /**
+     * Gauss-Seidel: 母線 i を1つだけ更新する（1スイープの最小単位）
+     *
+     * @private
+     * @description _solveGaussSeidelStep のスイープ本体を純粋に抽出したもの。
+     * solveWithTrace の subSteps モードが「1母線ずつ」のスナップショットを
+     * 撮るために分離されている（挙動は抽出前と同一。verify_algorithms.mjs で担保）。
+     * @param {number} i - 母線インデックス（0始まり・スラック以外）
+     */
+    _gsUpdateBus(i) {
             // Get specified powers
             const Pload = this.busData[i][2] / this.baseMVA;
             const Qload = this.busData[i][3] / this.baseMVA;
@@ -812,7 +826,7 @@ class PowerFlowEngine {
 
             // Calculate 1/Yii
             const Yii_mag2 = this.Ybus.re[i][i] ** 2 + this.Ybus.im[i][i] ** 2;
-            if (Yii_mag2 < 1e-12) continue;
+            if (Yii_mag2 < 1e-12) return;
 
             // New voltage: Vi = (S*/V* - Σ Yij*Vj) / Yii
             const rhs_re = SoverVconj_re - sumYV_re;
@@ -834,9 +848,15 @@ class PowerFlowEngine {
                 this.V[i] = this.V[i] + alpha * (newVmag - this.V[i]);
                 this.V[i] = Math.max(0.5, Math.min(1.5, this.V[i]));
             }
-        }
+    }
 
-        // Calculate final mismatches
+    /**
+     * 反復末のミスマッチ集計（GS/FDXB 共通の締め処理）
+     *
+     * @private
+     * @returns {Object} { maxError, deltaP, deltaQ }
+     */
+    _calcStepResult() {
         const { deltaP, deltaQ } = this._calcMismatch();
         this.maxPError = deltaP.length > 0 ? Math.max(...deltaP.map(d => Math.abs(d.value))) : 0;
         this.maxQError = deltaQ.length > 0 ? Math.max(...deltaQ.map(d => Math.abs(d.value))) : 0;
@@ -889,8 +909,22 @@ class PowerFlowEngine {
      */
     _solveFastDecoupledStep() {
         const { deltaP, deltaQ } = this._calcMismatch();
+        this._fdApplyAngleHalf(deltaP);
+        this._fdApplyVoltageHalf(deltaQ);
 
-        // P-δ subproblem: B' × Δδ = ΔP/V
+        // Recalculate mismatches after updates
+        return this._calcStepResult();
+    }
+
+    /**
+     * FDXB: P–δ 半反復（B' × Δδ = ΔP/V を解いて角度を更新）
+     *
+     * @private
+     * @description _solveFastDecoupledStep から純粋に抽出。solveWithTrace の
+     * subSteps モードが半反復ごとのスナップショットを撮るための分離。
+     * @param {Array<Object>} deltaP - 反復冒頭で計算したPミスマッチ
+     */
+    _fdApplyAngleHalf(deltaP) {
         if (deltaP.length > 0) {
             const Bp = this._buildBPrime(deltaP.map(d => d.bus));
             const fp = deltaP.map(d => d.value / this.V[d.bus]);
@@ -902,8 +936,16 @@ class PowerFlowEngine {
                 }
             }
         }
+    }
 
-        // Q-V subproblem: B'' × ΔV = ΔQ/V
+    /**
+     * FDXB: Q–V 半反復（B'' × ΔV = ΔQ/V を解いて電圧を更新）
+     *
+     * @private
+     * @param {Array<Object>} deltaQ - 反復冒頭で計算したQミスマッチ
+     *（角度更新後に再計算しないのが本実装の流儀。抽出前と同一）
+     */
+    _fdApplyVoltageHalf(deltaQ) {
         if (deltaQ.length > 0) {
             const Bpp = this._buildBMatrix(deltaQ.map(d => d.bus));
             const fq = deltaQ.map(d => d.value / this.V[d.bus]);
@@ -916,17 +958,6 @@ class PowerFlowEngine {
                 }
             }
         }
-
-        // Recalculate mismatches after updates
-        const newMismatch = this._calcMismatch();
-        this.maxPError = newMismatch.deltaP.length > 0 ? Math.max(...newMismatch.deltaP.map(d => Math.abs(d.value))) : 0;
-        this.maxQError = newMismatch.deltaQ.length > 0 ? Math.max(...newMismatch.deltaQ.map(d => Math.abs(d.value))) : 0;
-
-        return {
-            maxError: Math.max(this.maxPError, this.maxQError),
-            deltaP: newMismatch.deltaP,
-            deltaQ: newMismatch.deltaQ
-        };
     }
 
     /**
@@ -1332,6 +1363,120 @@ class PowerFlowEngine {
      */
     solveDC() {
         return this.solve({ algorithm: 'dc' });
+    }
+
+    /**
+     * トレース付き求解（シミュレータ用の追加API）
+     *
+     * @description solve() と同じ反復・同じ収束判定で解きながら、各反復
+     * （subSteps=true なら GS は1母線更新ごと・FDXB は半反復ごと）の
+     * 全母線状態スナップショットを記録して返す。可視化ページはこの
+     * trace を「再生」するだけでよく、アニメーションのために計算を
+     * 再実装する必要がなくなる（見せかけ実装の混入防止）。
+     *
+     * 実行前に状態を再初期化するため、同じインスタンスで繰り返し呼べる。
+     *
+     * @param {Object} [options={}] - solve() と同じ + subSteps
+     * @param {string} [options.algorithm='nr'] - 'nr' | 'fdxb' | 'gs' | 'dc'
+     * @param {number} [options.tolerance=1e-6]
+     * @param {number} [options.maxIterations=100]
+     * @param {number} [options.acceleration=1.0] - GS加速係数
+     * @param {boolean} [options.subSteps=false] - GS/FDXB のサブ反復も記録
+     * @returns {Object} solve() の返り値 + trace
+     * @returns {Array<Object>} return.trace - スナップショット列。各要素:
+     *   { iteration, V:Array, delta:Array, maxError,
+     *     busUpdated?:number(GSサブ), phase?:'P'|'Q'(FDサブ), partial?:true }
+     *   partial 付きコマの maxError は直前反復末の値（サブ反復中は未集計）。
+     */
+    solveWithTrace(options = {}) {
+        const {
+            algorithm = 'nr',
+            tolerance = 1e-6,
+            maxIterations = 100,
+            acceleration = 1.0,
+            subSteps = false
+        } = options;
+
+        this._initialize();
+        this._gsAlpha = acceleration;
+
+        const trace = [];
+        const snap = (extra = {}) => trace.push({
+            iteration: this.iteration,
+            V: this.V.slice(),
+            delta: this.delta.slice(),
+            maxError: Math.max(this.maxPError, this.maxQError),
+            ...extra
+        });
+
+        if (algorithm === 'dc') {
+            snap({ label: 'init' });
+            this._solveDC();
+            snap({ label: 'solved' });
+            return {
+                converged: true,
+                iterations: 1,
+                maxError: 0,
+                busResults: this.getBusResults(),
+                errorHistory: this.errorHistory,
+                trace
+            };
+        }
+
+        // 初期状態のミスマッチを集計してから最初のスナップショット
+        this._calcStepResult();
+        snap();
+
+        while (this.iteration < maxIterations) {
+            let result;
+            if (subSteps && algorithm === 'gs') {
+                this.iteration++;
+                for (let i = 0; i < this.nBus; i++) {
+                    if (i === this.slackBus) continue;
+                    this._gsUpdateBus(i);
+                    snap({ busUpdated: i, partial: true });
+                }
+                result = this._calcStepResult();
+                trace[trace.length - 1].maxError = result.maxError;
+                delete trace[trace.length - 1].partial;
+                this.errorHistory.push({
+                    iteration: this.iteration,
+                    maxP: this.maxPError, maxQ: this.maxQError, max: result.maxError
+                });
+            } else if (subSteps && algorithm === 'fdxb') {
+                this.iteration++;
+                const { deltaP, deltaQ } = this._calcMismatch();
+                this._fdApplyAngleHalf(deltaP);
+                snap({ phase: 'P', partial: true });
+                this._fdApplyVoltageHalf(deltaQ);
+                result = this._calcStepResult();
+                snap({ phase: 'Q' });
+                this.errorHistory.push({
+                    iteration: this.iteration,
+                    maxP: this.maxPError, maxQ: this.maxQError, max: result.maxError
+                });
+            } else {
+                result = this.runIteration(algorithm);
+                snap();
+            }
+
+            if (result.maxError < tolerance) {
+                this.converged = true;
+                break;
+            }
+            if (!isFinite(result.maxError)) {
+                break;
+            }
+        }
+
+        return {
+            converged: this.converged,
+            iterations: this.iteration,
+            maxError: Math.max(this.maxPError, this.maxQError),
+            busResults: this.getBusResults(),
+            errorHistory: this.errorHistory,
+            trace
+        };
     }
 
     /**

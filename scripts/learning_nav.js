@@ -75,6 +75,17 @@
             next: { href: 'exercises.html', label: '演習問題で総仕上げ' },
             exercise: 'Stage 6'
         },
+        'power_flow_simulator.html': {
+            stage: '補助', order: '—',
+            goals: [
+                '計算トレースの再生で「アルゴリズムの歩き方」を体感する（GSは1母線ずつ・FDは半反復ずつ）',
+                '複素電圧平面の軌跡から手法の個性（加速する崖・行脚・階段）を読み取る',
+                '競争モードと網羅実測表で、収束次数の差を時間と回数の実測として掴む'
+            ],
+            prev: { href: 'power_flow_intuitive_v6_fixed.html', label: '入門: 収束過程直感的理解' },
+            next: { href: 'power_flow_process_visualizer_v2.html', label: '基礎: 計算過程ステップ表示' },
+            exercise: 'Stage 1〜3'
+        },
         'power_flow_visualizer.html': {
             stage: '補助', order: '—',
             goals: [

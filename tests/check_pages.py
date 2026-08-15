@@ -20,6 +20,7 @@ PAGES = [
     ("学習アトラス", "map.html"),
     ("MATPOWER準拠分析スイート", "power_flow_v5.html"),
     ("多手法可視化", "power_flow_visualizer.html"),
+    ("アルゴリズム・シミュレータ", "power_flow_simulator.html"),
     ("計算過程ステップ表示", "power_flow_process_visualizer_v2.html"),
     ("MATPOWER準拠実装", "power_flow_matpower_v2.html"),
     ("収束過程直感的理解 (v6_fixed)", "power_flow_intuitive_v6_fixed.html"),

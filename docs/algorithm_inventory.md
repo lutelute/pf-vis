@@ -13,7 +13,18 @@
 | `fdxb` | Fast Decoupled XB | `_solveFastDecoupledStep` | B′=`_buildBPrime`(1/xのみ)、B″=`_buildBMatrix`(-Im Ybus) |
 | `dc` | DC潮流 | `_solveDC` | B=`_buildBPrime(buses, true)`（1/(x·τ)） |
 
-利用ページ: `power_flow_matpower_v2.html` / `dc_accuracy_analysis.html` / `power_flow_visualizer.html`
+利用ページ: `power_flow_matpower_v2.html` / `dc_accuracy_analysis.html` / `power_flow_visualizer.html` / `power_flow_simulator.html`
+
+### solveWithTrace API（2026-08-15 追加）
+
+シミュレータ用に `solveWithTrace({algorithm, tolerance, maxIterations, subSteps})` を追加。
+solve() と同じ反復・同じ収束判定で解きながら全母線状態のスナップショット列（trace）を返す。
+`subSteps: true` で GS は1母線更新ごと・FDXB は半反復ごとに記録。
+内部は `_gsUpdateBus` / `_fdApplyAngleHalf` / `_fdApplyVoltageHalf` / `_calcStepResult` の
+**純粋抽出**（挙動不変）で実現しており、solve() との反復回数・解の完全一致を
+`tests/verify_algorithms.mjs` の「🎞 solveWithTrace」9テストで恒久的に担保している。
+**可視化ページはこの trace を再生するだけにすること**（アニメーションのための計算再実装は
+見せかけ実装バグ#6/#13 の温床。トレース再生ならば構造的に混入しない）。
 
 ## 自己完結実装を持つページ
 

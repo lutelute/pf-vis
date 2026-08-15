@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アルゴリズム・シミュレータ — 潮流計算の「歩き方」を再生する</title>
+<link rel="stylesheet" href="styles/main.css">
+<style>
+/* ===== シミュレータ固有スタイル（和紙・墨・青緑1本の流儀に従う） ===== */
+.sim-wrap { max-width: 1100px; margin: 0 auto; padding: 18px 20px 80px; }
+.sim-head { border-bottom: 3px double var(--border); padding-bottom: 12px; margin-bottom: 10px; }
+.sim-head h1 { font-family: var(--mincho); font-size: 26px; color: var(--text-primary); margin: 0; }
+.sim-head .sub { color: var(--text-secondary); font-size: 14px; margin-top: 6px; }
+.sim-lead { font-size: 14.5px; line-height: 1.9; color: var(--text-primary); margin: 10px 0 16px; }
+.sim-lead b { color: var(--accent-blue); }
+
+.mode-tabs { display: flex; gap: 8px; margin: 14px 0 6px; flex-wrap: wrap; }
+.mode-tabs button {
+    font-size: 14px; font-weight: 600; padding: 8px 18px; border-radius: 20px;
+    border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); cursor: pointer;
+}
+.mode-tabs button.on { background: var(--text-primary); border-color: var(--text-primary); color: var(--bg-surface); }
+
+.panel { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 16px 18px; margin: 14px 0; }
+.panel-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); letter-spacing: 0.04em; margin-bottom: 8px; }
+.controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 14px; margin: 6px 0; }
+.controls label { color: var(--text-secondary); }
+.controls select, .controls input[type=number] {
+    font-family: ui-monospace, Menlo, monospace; font-size: 13.5px;
+    border: 1px solid var(--border); border-radius: 6px; padding: 5px 8px;
+    background: var(--bg-card); color: var(--text-primary);
+}
+.controls input[type=range] { accent-color: var(--accent-blue); }
+.transport { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; }
+.transport button {
+    font-size: 14px; padding: 7px 14px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary);
+}
+.transport button.primary { background: var(--accent-blue); border-color: var(--accent-blue); color: #fff; }
+.transport input[type=range] { flex: 1 1 160px; accent-color: var(--accent-blue); }
+.readout { display: flex; gap: 18px; flex-wrap: wrap; align-items: baseline; font-size: 13.5px;
+    background: var(--bg-surface); border: 1px solid var(--border); border-radius: 8px; padding: 9px 14px; margin: 8px 0; }
+.readout b { font-family: ui-monospace, Menlo, monospace; font-size: 15px; }
+.st-run { color: var(--accent-orange); font-weight: 700; }
+.st-ok { color: var(--accent-blue); font-weight: 700; }
+.st-bad { color: var(--accent-red); font-weight: 700; }
+
+.sim-cols { display: flex; gap: 14px; flex-wrap: wrap; }
+canvas.stage { width: 100%; height: auto; display: block; background: #fff; border-radius: 6px; }
+.chartbox { position: relative; }
+.sim-tip { position: absolute; pointer-events: none; display: none; background: var(--text-primary); color: var(--bg-surface);
+    font-family: ui-monospace, Menlo, monospace; font-size: 12px; line-height: 1.5; padding: 6px 10px; border-radius: 6px; white-space: nowrap; z-index: 5; }
+.caption { font-size: 12.5px; color: var(--text-secondary); margin-top: 6px; line-height: 1.7; }
+.caption::before { content: "▸ 見方: "; color: var(--accent-blue); font-weight: 600; }
+
+.mini-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.mini-cell { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px 4px; background: var(--bg-card); }
+.mini-cell .hd { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; margin-bottom: 3px; }
+table.sim-data { border-collapse: collapse; width: 100%; font-size: 13px; }
+table.sim-data th { text-align: left; font-size: 11.5px; color: var(--text-secondary); border-bottom: 2px solid var(--border); padding: 6px 9px; }
+table.sim-data td { border-bottom: 1px solid var(--border); padding: 6px 9px; }
+table.sim-data td.num, table.sim-data th.num { text-align: right; font-family: ui-monospace, Menlo, monospace; }
+.mx-cell { cursor: pointer; white-space: nowrap; }
+.mx-cell:hover { background: rgba(25, 123, 108, 0.07); }
+.aha { font-family: var(--mincho); font-size: 15.5px; background: var(--bg-surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 20px; margin: 22px 0 12px; line-height: 1.9; }
+.aha::before { content: "💡 "; }
+.backlink { font-size: 13px; margin-top: 26px; }
+.backlink a { color: var(--accent-blue); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="sim-wrap">
+    <div class="sim-head">
+        <h1>⏵ アルゴリズム・シミュレータ</h1>
+        <div class="sub">計算の全記録（トレース）をそのまま再生する — 系統図・複素電圧平面・収束曲線の同期アニメーション</div>
+    </div>
+    <p class="sim-lead">
+        このページは共有計算エンジン（MATPOWER公式解と照合済み）に<b>トレース付き求解 API</b> を追加し、
+        ソルバーが実際に通った全状態をコマ送り再生します。アニメーションは演出ではなく<b>実際に行われた計算の再生</b>で、
+        どのコマの数値も本物です。Gauss-Seidel は<b>1母線ずつ</b>、高速分離法は<b>P–θ / Q–V の半反復ずつ</b>コマが刻まれます。
+    </p>
+
+    <div class="mode-tabs">
+        <button id="tabSingle" class="on">① アルゴリズムを見る（直感的理解）</button>
+        <button id="tabRace">② 手法を競わせる（特徴比較）</button>
+        <button id="tabMatrix">③ 全手法×全系統（網羅実測）</button>
+    </div>
+
+    <div class="panel">
+        <div class="controls">
+            <label>系統:
+                <select id="caseSel">
+                    <option value="case9">WSCC 9母線</option>
+                    <option value="case2">2母線（最小）</option>
+                    <option value="case5">5母線（基本）</option>
+                    <option value="case14">IEEE 14母線</option>
+                    <option value="case30">IEEE 30母線</option>
+                </select>
+            </label>
+            <label id="methodWrap">手法:
+                <select id="methodSel">
+                    <option value="nr">Newton-Raphson</option>
+                    <option value="gs">Gauss-Seidel（1母線ずつ再生）</option>
+                    <option value="fdxb">高速分離法 XB（半反復ずつ再生）</option>
+                    <option value="dc">DC潮流（反復なし）</option>
+                </select>
+            </label>
+            <label>負荷倍率 λ = <b id="lamVal">1.00</b>
+                <input type="range" id="lamSlider" min="0.4" max="1.6" value="1.0" step="0.05" style="width:120px">
+            </label>
+            <label>再生速度
+                <input type="range" id="speedSlider" min="1" max="10" value="4" step="1" style="width:100px">
+            </label>
+        </div>
+        <div class="transport">
+            <button id="playBtn" class="primary">▶ 再生</button>
+            <button id="stepBtn">⏭ 1コマ</button>
+            <button id="resetBtn">↻ 最初から</button>
+            <input type="range" id="scrub" min="0" max="1" value="0" step="1" aria-label="進行">
+            <span id="frameLabel" style="font-family:ui-monospace,monospace;font-size:12.5px;min-width:100px"></span>
+        </div>
+        <div class="readout" id="readout"></div>
+    </div>
+
+    <!-- ① 単独 -->
+    <div id="singleView">
+        <div class="sim-cols">
+            <div class="panel" style="flex:3 1 460px">
+                <div class="panel-title">系統図 — 電圧の沈みと潮流（このコマの状態から毎回計算）</div>
+                <canvas id="netCv" class="stage"></canvas>
+                <div class="caption">円の塗り＝電圧の高低（紅く沈む＝1.0より低い／青緑＝高い）、針＝位相角δ、
+                線上の数字＝有効電力[MW]、破線の流れ＝潮流の向き。二重枠＝スラック、青緑枠＝PV母線。
+                GS再生中は「いま更新している母線」がリングで光ります（30母線では数値ラベルを省略）。</div>
+            </div>
+            <div style="flex:2 1 340px;min-width:0">
+                <div class="panel">
+                    <div class="panel-title">複素電圧平面 — 解へ収束していく軌跡</div>
+                    <canvas id="planeCv" class="stage"></canvas>
+                    <div class="caption">各母線の電圧 V=|V|e^(jδ) を点で表示、軌跡（尾）が残ります。
+                    NRは数歩で加速して着地、GSは小刻みな行脚、高速分離法は「角度→大きさ」交互の階段。
+                    手法の個性は式ではなく<b>状態空間の歩き方</b>に現れます。</div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">収束曲線（再生と同期・対数軸）</div>
+                    <div id="convChart" class="chartbox"></div>
+                    <div class="caption">再生中のコマまでの実測値だけが描かれます。サブ反復中の誤差は反復末に更新。</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ② 競争 -->
+    <div id="raceView" style="display:none">
+        <div class="panel">
+            <div class="panel-title">4手法・同時再生 — 同じ系統・同じ初期値・同じ収束判定（1e-6）</div>
+            <div class="mini-grid" id="miniGrid"></div>
+            <div class="caption">1コマ＝1反復で全手法が同時に進み、収束した手法はその場で停止 —
+            NRが終わった後もGSが回り続ける時間の長さが、収束次数の差の体感です。
+            DCは反復しない別の問題（損失ゼロの線形系統）を解くため誤差競争には参加しません。</div>
+        </div>
+        <div class="panel">
+            <div class="panel-title">誤差の競争（再生と同期・対数軸）</div>
+            <div id="raceChart" class="chartbox"></div>
+            <div id="raceTable" style="margin-top:10px"></div>
+        </div>
+    </div>
+
+    <!-- ③ 網羅 -->
+    <div id="matrixView" style="display:none">
+        <div class="panel">
+            <div class="panel-title">全4手法 × 全5系統 — この場で一斉に解いて実測する</div>
+            <div class="controls">
+                <button id="runMatrixBtn" class="primary" style="border:none;background:var(--accent-blue);color:#fff;padding:8px 16px;border-radius:6px;cursor:pointer">⚙ 一斉実行（20ケース）</button>
+                <span id="matrixStatus" style="font-size:13px;color:var(--text-secondary)"></span>
+            </div>
+            <div style="overflow-x:auto">
+                <table class="sim-data" id="matrixTable"></table>
+            </div>
+            <div class="caption">セルは「反復回数 · 実測ms · 実測収束次数p」。<b>セルをクリックするとその手法×系統がモード①で開きます</b>。
+            最下行のNR総損失は電力収支（発電=負荷+損失）を通った値で、IEEE14の 13.393 MW / WSCC9 の 4.641 MW は
+            MATPOWER公式値と一致します。</div>
+        </div>
+    </div>
+
+    <div class="aha">同じ方程式・同じ答えでも、そこへ向かう「歩き方」はこれほど違う。
+    このページの動きはすべて共有エンジンのトレース（solveWithTrace）の再生であり、
+    可視化のための計算再実装は1行もない — だから見えているものは、計算そのものである。</div>
+
+    <div class="backlink">
+        関連: <a href="power_flow_intuitive_v6_fixed.html">入門: 収束過程直感的理解</a> ·
+        <a href="power_flow_process_visualizer_v2.html">基礎: 計算過程ステップ表示（実数値ヤコビアン）</a> ·
+        <a href="power_flow_compare.html">比較: アルゴリズム同時比較（8手法）</a> ·
+        <a href="exercises.html">演習問題</a>
+    </div>
+</div>
+
+<script src="scripts/ieee_cases.js"></script>
+<script src="scripts/power_flow_engine.js"></script>
+<script src="scripts/learning_nav.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* ============================================================
+ * 定義（本サイトの既存規約に従う）
+ *  - 手法色は power_flow_compare.html の ALGORITHMS と同一
+ *  - 計算はすべて共有エンジン。ページ内に潮流計算の再実装はない
+ * ============================================================ */
+var RAD = Math.PI / 180;
+var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var METHODS = {
+    nr:   { name: 'Newton-Raphson', color: '#2f5d9e', tol: 1e-8, maxIter: 50,
+            trait: '完全な線形化を毎回やり直す。2次収束', fps: 1.6 },
+    gs:   { name: 'Gauss-Seidel',   color: '#8f6625', tol: 1e-6, maxIter: 1500,
+            trait: '1母線ずつ帳尻を合わせて回る。線形収束', fps: 26 },
+    fdxb: { name: '高速分離法 XB',  color: '#2e7d4f', tol: 1e-6, maxIter: 300,
+            trait: 'B′/B″を固定して使い回す。分解は初回だけ', fps: 3 },
+    dc:   { name: 'DC潮流',         color: '#6f54c4', tol: 0, maxIter: 1,
+            trait: '反復なしの線形化。損失ゼロの別問題を厳密に解く', fps: 1.2 }
+};
+var CASE_DEFS = {
+    case2:  { name: '2母線',   data: function () { return window.IEEE_2_BUS; } },
+    case5:  { name: '5母線',   data: function () { return window.IEEE_5_BUS; } },
+    case9:  { name: 'WSCC9',   data: function () { return window.IEEE_9_BUS; } },
+    case14: { name: 'IEEE14',  data: function () { return window.IEEE_14_BUS; } },
+    case30: { name: 'IEEE30',  data: function () { return window.IEEE_30_BUS; } }
+};
+/* 単線結線図の手置き座標（教科書の定番配置） */
+var LAYOUTS = {
+    case2: { w: 640, h: 170, pos: { 1: [120, 85], 2: [520, 85] } },
+    case5: { w: 640, h: 360, pos: { 1: [100, 180], 2: [320, 90], 3: [320, 270], 4: [520, 250], 5: [520, 110] } },
+    case9: { w: 640, h: 430, pos: { 4: [320, 340], 5: [485, 275], 6: [485, 145], 7: [320, 80], 8: [155, 145], 9: [155, 275], 1: [320, 405], 3: [590, 95], 2: [50, 95] } },
+    case14: { w: 680, h: 470, pos: { 1: [60, 330], 2: [185, 400], 3: [420, 425], 4: [400, 315], 5: [255, 285], 7: [490, 270], 8: [610, 300], 9: [500, 190], 10: [440, 120], 11: [330, 130], 6: [220, 170], 12: [130, 105], 13: [265, 70], 14: [420, 45] } },
+    case30: { w: 740, h: 520, pos: { 1: [55, 470], 2: [185, 470], 3: [130, 390], 4: [250, 390], 5: [330, 485], 6: [420, 385], 7: [440, 460], 8: [545, 430], 28: [630, 345], 9: [430, 300], 10: [500, 250], 11: [355, 255], 12: [185, 300], 13: [100, 260], 14: [140, 210], 15: [215, 215], 16: [285, 255], 17: [355, 200], 18: [150, 150], 19: [225, 120], 20: [310, 155], 21: [545, 250], 22: [590, 210], 23: [395, 75], 24: [525, 130], 25: [600, 85], 26: [665, 45], 27: [655, 160], 29: [715, 95], 30: [715, 195] } }
+};
+var TYPE_COLOR = { 3: '#8f6625', 2: '#197b6c', 1: '#52504a' };   // 系統図の枠
+var PLANE_COLOR = { 3: '#8f6625', 2: '#197b6c', 1: '#2f5d9e' };  // 複素平面の点
+
+function scaledCase(caseKey, lambda) {
+    var cd = JSON.parse(JSON.stringify(CASE_DEFS[caseKey].data()));
+    if (lambda !== 1.0) {
+        cd.bus.forEach(function (b) { b[2] *= lambda; b[3] *= lambda; });
+        cd.gen.forEach(function (g) { g[1] *= lambda; });
+    }
+    return cd;
+}
+
+/* 実測収束次数 p ≈ ln(e_k+1/e_k)/ln(e_k/e_k-1)（compare と同じ流儀） */
+function convergenceOrder(errList) {
+    var h = errList.filter(function (e) { return e > 1e-12; });
+    var ps = [];
+    for (var k = 2; k < h.length; k++) {
+        if (h[k] < h[k - 1] && h[k - 1] < h[k - 2]) {
+            ps.push(Math.log(h[k] / h[k - 1]) / Math.log(h[k - 1] / h[k - 2]));
+        }
+    }
+    if (!ps.length) return null;
+    return ps.reduce(function (a, b) { return a + b; }, 0) / ps.length;
+}
+
+/* ============================================================
+ * 折れ線チャート（fable 版 chart.js から移植・キリ番目盛り/対数/ホバー）
+ * ============================================================ */
+function niceTicks(min, max, target, allInt) {
+    var span = max - min;
+    if (!(span > 0)) return [min];
+    var step0 = span / target;
+    var mag = Math.pow(10, Math.floor(Math.log10(step0)));
+    var norm = step0 / mag;
+    var step = (norm < 1.5 ? 1 : norm < 3.5 ? 2 : norm < 7.5 ? 5 : 10) * mag;
+    if (allInt) step = Math.max(1, Math.round(step));
+    var ticks = [];
+    for (var v = Math.ceil(min / step) * step; v <= max + step * 1e-9; v += step) {
+        ticks.push(Math.abs(v) < step * 1e-9 ? 0 : v);
+    }
+    return ticks;
+}
+function logTicks(logMin, logMax, target) {
+    var step = Math.max(1, Math.ceil((logMax - logMin) / target));
+    var ticks = [];
+    for (var e = Math.ceil(logMin); e <= Math.floor(logMax); e += step) ticks.push(e);
+    return ticks;
+}
+function linePlot(container, spec) {
+    var series = spec.series, yLog = !!spec.yLog, height = spec.height || 260;
+    var xTickFmt = spec.xTickFmt || String;
+    var annotations = spec.annotations || [];
+    container.classList.add('chartbox');
+    container.innerHTML = '';
+    var canvas = document.createElement('canvas');
+    var tip = document.createElement('div');
+    tip.className = 'sim-tip';
+    container.appendChild(canvas); container.appendChild(tip);
+    var W = Math.max(320, container.clientWidth || 640), H = height;
+    var dpr = window.devicePixelRatio || 1;
+    canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.height = H + 'px';
+    var ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+    var padL = 72, padR = 96, padT = 16, padB = 44;
+    var pw = W - padL - padR, ph = H - padT - padB;
+
+    var xmin = Infinity, xmax = -Infinity, ymin = Infinity, ymax = -Infinity;
+    series.forEach(function (s) { s.points.forEach(function (p) {
+        if (!isFinite(p.x) || !isFinite(p.y)) return;
+        if (yLog && p.y <= 0) return;
+        xmin = Math.min(xmin, p.x); xmax = Math.max(xmax, p.x);
+        ymin = Math.min(ymin, p.y); ymax = Math.max(ymax, p.y);
+    }); });
+    if (!isFinite(xmin)) { xmin = 0; xmax = 1; ymin = 0; ymax = 1; }
+    if (xmin === xmax) { xmin -= 0.5; xmax += 0.5; }
+    if (yLog) { ymin = Math.log10(ymin); ymax = Math.log10(ymax); }
+    if (ymin === ymax) { ymin -= 0.5; ymax += 0.5; }
+    var yr = ymax - ymin; ymin -= yr * 0.06; ymax += yr * 0.06;
+    var X = function (x) { return padL + (x - xmin) / (xmax - xmin) * pw; };
+    var Yv = function (y) { var v = yLog ? Math.log10(y) : y; return padT + (1 - (v - ymin) / (ymax - ymin)) * ph; };
+
+    ctx.font = '11px ui-monospace, Menlo, monospace';
+    ctx.strokeStyle = 'rgba(150,145,125,0.22)'; ctx.fillStyle = '#52504a'; ctx.lineWidth = 1;
+    var allIntX = series.every(function (s) { return s.points.every(function (p) { return !isFinite(p.x) || Number.isInteger(p.x); }); });
+    var trim = function (v) { return String(+Number(v).toPrecision(10)); };
+    var yTickVals = yLog ? logTicks(ymin, ymax, 5) : niceTicks(ymin, ymax, 5, false);
+    yTickVals.forEach(function (v) {
+        var y = padT + (1 - (v - ymin) / (ymax - ymin)) * ph;
+        ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(padL + pw, y); ctx.stroke();
+        ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+        ctx.fillText(yLog ? ('1e' + Math.round(v)) : trim(v), padL - 8, y);
+    });
+    niceTicks(xmin, xmax, Math.min(8, Math.max(2, Math.round(pw / 90))), allIntX && (xmax - xmin) > 3).forEach(function (v) {
+        var x = X(v);
+        ctx.beginPath(); ctx.moveTo(x, padT); ctx.lineTo(x, padT + ph); ctx.stroke();
+        ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+        ctx.fillText(xTickFmt(v), x, padT + ph + 8);
+    });
+    ctx.fillStyle = '#52504a'; ctx.font = '12px -apple-system, sans-serif'; ctx.textAlign = 'center';
+    if (spec.xLabel) ctx.fillText(spec.xLabel, padL + pw / 2, H - 14);
+    if (spec.yLabel) { ctx.save(); ctx.translate(11, padT + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText(spec.yLabel, 0, 0); ctx.restore(); }
+
+    annotations.forEach(function (a) {
+        ctx.strokeStyle = a.color || 'rgba(120,115,100,0.8)'; ctx.setLineDash([5, 4]); ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        if (a.x !== undefined) { ctx.moveTo(X(a.x), padT); ctx.lineTo(X(a.x), padT + ph); }
+        else { ctx.moveTo(padL, Yv(a.y)); ctx.lineTo(padL + pw, Yv(a.y)); }
+        ctx.stroke(); ctx.setLineDash([]);
+        if (a.label) {
+            ctx.fillStyle = a.color || '#52504a'; ctx.font = '11px -apple-system, sans-serif';
+            if (a.x !== undefined) {
+                var nearRight = X(a.x) > padL + pw * 0.72;
+                ctx.textAlign = nearRight ? 'right' : 'left'; ctx.textBaseline = 'top';
+                ctx.fillText(a.label, X(a.x) + (nearRight ? -5 : 5), padT + 4);
+            } else {
+                var tw = ctx.measureText(a.label).width;
+                ctx.save(); ctx.fillStyle = 'rgba(255,255,255,0.9)';
+                ctx.fillRect(padL + 4, Yv(a.y) - 17, tw + 6, 14); ctx.restore();
+                ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+                ctx.fillText(a.label, padL + 6, Yv(a.y) - 4);
+            }
+        }
+    });
+
+    var labelSlots = [];
+    series.forEach(function (s) {
+        var pts = s.points.filter(function (p) { return isFinite(p.y) && (!yLog || p.y > 0); });
+        if (!pts.length) return;
+        ctx.strokeStyle = s.color; ctx.lineWidth = 2;
+        if (s.dash) ctx.setLineDash(s.dash);
+        ctx.beginPath();
+        pts.forEach(function (p, i) { var x = X(p.x), y = Yv(p.y); if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); });
+        ctx.stroke(); ctx.setLineDash([]);
+        if (s.marker || pts.length <= 30) {
+            ctx.fillStyle = s.color;
+            pts.forEach(function (p) { ctx.beginPath(); ctx.arc(X(p.x), Yv(p.y), 3, 0, 7); ctx.fill(); });
+        }
+        if (s.noLabel) return;
+        var last = pts[pts.length - 1];
+        var ly = Yv(last.y);
+        while (labelSlots.some(function (v) { return Math.abs(v - ly) < 14; })) ly += 14;
+        labelSlots.push(ly);
+        ctx.fillStyle = s.color; ctx.font = '600 11.5px -apple-system, sans-serif';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        var tw2 = ctx.measureText(s.label).width;
+        var lx = Math.min(Math.min(X(last.x), padL + pw) + 8, W - tw2 - 4);
+        ctx.fillText(s.label, lx, ly);
+    });
+
+    canvas.addEventListener('mousemove', function (ev) {
+        var rect = canvas.getBoundingClientRect();
+        var mx = ev.clientX - rect.left;
+        if (mx < padL || mx > padL + pw) { tip.style.display = 'none'; return; }
+        var xv = xmin + (mx - padL) / pw * (xmax - xmin);
+        var rows = [];
+        series.forEach(function (s) {
+            var best = null, bd = Infinity;
+            s.points.forEach(function (p) {
+                if (!isFinite(p.y) || (yLog && p.y <= 0)) return;
+                var d = Math.abs(p.x - xv);
+                if (d < bd) { bd = d; best = p; }
+            });
+            if (best) rows.push({ label: s.label, color: s.color, x: best.x, y: best.y });
+        });
+        if (!rows.length) { tip.style.display = 'none'; return; }
+        tip.innerHTML = '<b>' + xTickFmt(rows[0].x) + '</b><br>' + rows.map(function (r) {
+            return '<span style="color:' + r.color + '">●</span> ' + r.label + ': ' +
+                (yLog ? r.y.toExponential(2) : Math.round(r.y * 1000) / 1000);
+        }).join('<br>');
+        tip.style.display = 'block';
+        tip.style.left = Math.min(mx + 14, W - 190) + 'px';
+        tip.style.top = Math.max(4, ev.clientY - rect.top - 10) + 'px';
+    });
+    canvas.addEventListener('mouseleave', function () { tip.style.display = 'none'; });
+}
+
+/* ============================================================
+ * トレース実行（共有エンジンの solveWithTrace を呼ぶだけ）
+ * ============================================================ */
+function runTraced(method, caseKey, lambda, subSteps) {
+    var cd = scaledCase(caseKey, lambda);
+    var eng = new window.PowerFlowEngine(cd);
+    var m = METHODS[method];
+    var res = eng.solveWithTrace({
+        algorithm: method, tolerance: m.tol || 1e-6,
+        maxIterations: m.maxIter, subSteps: !!subSteps
+    });
+    // 表示用エンジン（枝潮流をコマの状態から計算するために状態を注入して使う）
+    var flowEng = new window.PowerFlowEngine(cd);
+    return { eng: eng, res: res, flowEng: flowEng, caseKey: caseKey, method: method,
+             slackBus: eng.slackBus, busTypes: cd.bus.map(function (b) { return b[1]; }),
+             busIds: cd.bus.map(function (b) { return b[0]; }),
+             loads: cd.bus.map(function (b) { return b[2]; }) };
+}
+
+function framesOf(sim, subSteps) {
+    var res = sim.res, frames = [];
+    if (sim.method === 'dc') {
+        frames.push({ V: res.trace[0].V, delta: res.trace[0].delta, iteration: 0, maxError: null, label: '初期値（|V|=1, θ=0）' });
+        frames.push({ V: res.trace[1].V, delta: res.trace[1].delta, iteration: 0, maxError: null, label: '直接求解（反復なし）' });
+        return frames;
+    }
+    res.trace.forEach(function (f, k) {
+        var label;
+        if (f.busUpdated !== undefined) label = '反復 ' + f.iteration + ' — 母線' + sim.busIds[f.busUpdated] + 'を更新';
+        else if (f.phase) label = '反復 ' + f.iteration + ' — ' + (f.phase === 'P' ? 'P–θ半反復（角度）' : 'Q–V半反復（電圧）');
+        else if (k === 0) label = '初期値';
+        else label = '反復 ' + f.iteration;
+        if (k === res.trace.length - 1) label += res.converged ? '（収束）' : '（上限到達）';
+        frames.push({ V: f.V, delta: f.delta, iteration: f.iteration, maxError: f.maxError,
+                      busHi: f.busUpdated, partial: f.partial, label: label });
+    });
+    return frames;
+}
+
+/* ============================================================
+ * 描画
+ * ============================================================ */
+function setupCanvas(cv, w, h) {
+    var dpr = window.devicePixelRatio || 1;
+    cv.width = w * dpr; cv.height = h * dpr;
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return ctx;
+}
+
+function drawNet(ctx, W, H, sim, V, delta, tSec, busHi) {
+    var lay = LAYOUTS[sim.caseKey];
+    var n = V.length;
+    var dense = n > 20;
+    var m = dense ? 18 : 30;
+    var sc = Math.min((W - 2 * m) / lay.w, (H - 2 * m) / lay.h);
+    var ox = m + (W - 2 * m - lay.w * sc) / 2, oy = m + (H - 2 * m - lay.h * sc) / 2;
+    var P = function (id) { return [ox + lay.pos[id][0] * sc, oy + lay.pos[id][1] * sc]; };
+    ctx.clearRect(0, 0, W, H);
+
+    // 枝潮流: 表示用エンジンにこのコマの状態を注入して共有実装で計算
+    sim.flowEng.V = V.slice();
+    sim.flowEng.delta = delta.slice();
+    var flows = sim.flowEng.getBranchFlows();
+
+    flows.forEach(function (fl) {
+        var p1 = P(fl.from), p2 = P(fl.to);
+        var mag = Math.abs(fl.Pij);
+        var dir = fl.Pij >= 0 ? 1 : -1;
+        ctx.strokeStyle = 'rgba(82,80,74,0.85)';
+        ctx.lineWidth = Math.min(4.5, 1 + mag / 60);
+        ctx.setLineDash([7, 7]);
+        ctx.lineDashOffset = -tSec * (8 + Math.min(60, mag * 0.5)) * dir;
+        ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+        ctx.setLineDash([]);
+        var mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+        var ang = Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+        if (dir < 0) ang += Math.PI;
+        ctx.fillStyle = '#197b6c';
+        ctx.beginPath();
+        ctx.moveTo(mx + Math.cos(ang) * 7, my + Math.sin(ang) * 7);
+        ctx.lineTo(mx + Math.cos(ang + 2.6) * 8, my + Math.sin(ang + 2.6) * 8);
+        ctx.lineTo(mx + Math.cos(ang - 2.6) * 8, my + Math.sin(ang - 2.6) * 8);
+        ctx.closePath(); ctx.fill();
+        if (!dense) {
+            var px = ang + Math.PI / 2;
+            ctx.font = '10px ui-monospace, Menlo, monospace';
+            ctx.fillStyle = '#197b6c'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(mag.toFixed(1), mx + Math.cos(px) * 13, my + Math.sin(px) * 13);
+        }
+    });
+
+    for (var i = 0; i < n; i++) {
+        var id = sim.busIds[i];
+        var xy = P(id), x = xy[0], y = xy[1];
+        var R = dense ? 10 : 14;
+        var dev = V[i] - 1.0;
+        var tint = dev < 0
+            ? 'rgba(202,60,78,' + Math.min(0.45, -dev * 5).toFixed(3) + ')'
+            : 'rgba(25,123,108,' + Math.min(0.45, dev * 5).toFixed(3) + ')';
+        ctx.beginPath(); ctx.arc(x, y, R, 0, 7);
+        ctx.fillStyle = '#ffffff'; ctx.fill();
+        ctx.beginPath(); ctx.arc(x, y, R, 0, 7);
+        ctx.fillStyle = tint; ctx.fill();
+        ctx.strokeStyle = TYPE_COLOR[sim.busTypes[i]];
+        ctx.lineWidth = sim.busTypes[i] === 1 ? 2 : 3;
+        ctx.stroke();
+        if (sim.busTypes[i] === 3) { // スラックは二重枠
+            ctx.beginPath(); ctx.arc(x, y, R - 3.5, 0, 7); ctx.lineWidth = 1.4; ctx.stroke();
+        }
+        ctx.strokeStyle = '#1a1a17'; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(x, y);
+        ctx.lineTo(x + Math.cos(delta[i]) * (R - 2), y - Math.sin(delta[i]) * (R - 2));
+        ctx.stroke();
+        if (busHi === i) {
+            ctx.strokeStyle = 'rgba(143,102,37,' + (0.55 + 0.4 * Math.sin(tSec * 7)).toFixed(3) + ')';
+            ctx.lineWidth = 3;
+            ctx.beginPath(); ctx.arc(x, y, R + 5, 0, 7); ctx.stroke();
+        }
+        ctx.fillStyle = '#1a1a17';
+        ctx.font = '600 ' + (dense ? 9.5 : 11) + 'px -apple-system, sans-serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(String(id), x, dense ? y : y - 4);
+        if (dense) continue;
+
+        ctx.font = '9.5px ui-monospace, Menlo, monospace';
+        ctx.fillStyle = '#52504a';
+        var vTxt = V[i].toFixed(3) + '∠' + (delta[i] / RAD).toFixed(1) + '°';
+        var side = lay.pos[id][1] < lay.h / 2 ? 'above' : 'below';
+        // ほぼ垂直の枝がある側を避ける
+        var vertUp = false, vertDown = false;
+        flows.forEach(function (fl) {
+            var other = fl.from === id ? fl.to : (fl.to === id ? fl.from : null);
+            if (other === null) return;
+            if (lay.pos[other][1] < lay.pos[id][1] - 40 && Math.abs(lay.pos[other][0] - lay.pos[id][0]) < 30) vertUp = true;
+            if (lay.pos[other][1] > lay.pos[id][1] + 40 && Math.abs(lay.pos[other][0] - lay.pos[id][0]) < 30) vertDown = true;
+        });
+        if (side === 'below' && vertDown && !vertUp) side = 'above';
+        if (side === 'above' && vertUp && !vertDown) side = 'below';
+        if (vertUp && vertDown) {
+            ctx.textAlign = 'left'; ctx.fillText(vTxt, x + R + 6, y); ctx.textAlign = 'center';
+        } else {
+            ctx.fillText(vTxt, x, side === 'above' ? y - R - 10 : y + R + 10);
+        }
+    }
+}
+
+function planeBounds(frames) {
+    var rMin = 1, rMax = 1, iMin = 0, iMax = 0;
+    frames.forEach(function (f) {
+        for (var k = 0; k < f.V.length; k++) {
+            var re = f.V[k] * Math.cos(f.delta[k]);
+            var im = f.V[k] * Math.sin(f.delta[k]);
+            rMin = Math.min(rMin, re); rMax = Math.max(rMax, re);
+            iMin = Math.min(iMin, im); iMax = Math.max(iMax, im);
+        }
+    });
+    var padR = Math.max(0.03, (rMax - rMin) * 0.12);
+    var padI = Math.max(0.03, (iMax - iMin) * 0.12);
+    return { rMin: rMin - padR, rMax: rMax + padR, iMin: iMin - padI, iMax: iMax + padI };
+}
+
+function drawPlane(ctx, W, H, sim, frames, upto, Vn, dn, bounds, mini) {
+    ctx.clearRect(0, 0, W, H);
+    var X = function (re) { return (re - bounds.rMin) / (bounds.rMax - bounds.rMin) * (W - 20) + 10; };
+    var Y = function (im) { return H - 16 - (im - bounds.iMin) / (bounds.iMax - bounds.iMin) * (H - 26); };
+
+    ctx.strokeStyle = 'rgba(150,145,125,0.5)'; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    ctx.beginPath();
+    var started = false;
+    for (var a = -60; a <= 20; a += 1.5) {
+        var re0 = Math.cos(a * RAD), im0 = Math.sin(a * RAD);
+        if (re0 < bounds.rMin || re0 > bounds.rMax || im0 < bounds.iMin || im0 > bounds.iMax) { started = false; continue; }
+        if (!started) { ctx.moveTo(X(re0), Y(im0)); started = true; }
+        else ctx.lineTo(X(re0), Y(im0));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+    if (bounds.iMin < 0 && bounds.iMax > 0) {
+        ctx.strokeStyle = 'rgba(150,145,125,0.32)';
+        ctx.beginPath(); ctx.moveTo(10, Y(0)); ctx.lineTo(W - 10, Y(0)); ctx.stroke();
+    }
+    if (!mini) {
+        ctx.fillStyle = '#737166'; ctx.font = '9.5px -apple-system, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText('|V|=1', X(Math.cos(-52 * RAD)) + 4, Y(Math.sin(-52 * RAD)));
+        ctx.textAlign = 'right'; ctx.fillText('Re', W - 6, Math.max(12, Y(0) - 5));
+    }
+
+    var step = Math.max(1, Math.floor(upto / 260));
+    var dense = sim.busTypes.length > 20;
+    for (var k = 0; k < sim.busTypes.length; k++) {
+        var col = PLANE_COLOR[sim.busTypes[k]];
+        var reN = Vn[k] * Math.cos(dn[k]), imN = Vn[k] * Math.sin(dn[k]);
+        if (sim.busTypes[k] === 3) {
+            ctx.strokeStyle = col; ctx.lineWidth = 1.6;
+            ctx.beginPath();
+            ctx.moveTo(X(reN) - 4, Y(imN)); ctx.lineTo(X(reN) + 4, Y(imN));
+            ctx.moveTo(X(reN), Y(imN) - 4); ctx.lineTo(X(reN), Y(imN) + 4);
+            ctx.stroke();
+            continue;
+        }
+        ctx.strokeStyle = col; ctx.globalAlpha = 0.3; ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        var first = true;
+        for (var f = 0; f <= upto; f += step) {
+            var fr = frames[Math.min(f, frames.length - 1)];
+            var re = fr.V[k] * Math.cos(fr.delta[k]), im = fr.V[k] * Math.sin(fr.delta[k]);
+            if (first) { ctx.moveTo(X(re), Y(im)); first = false; }
+            else ctx.lineTo(X(re), Y(im));
+        }
+        if (!first) ctx.lineTo(X(reN), Y(imN));
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = col;
+        ctx.beginPath(); ctx.arc(X(reN), Y(imN), mini ? 3 : 4, 0, 7); ctx.fill();
+        if (!mini && !dense) {
+            ctx.font = '9.5px ui-monospace, Menlo, monospace';
+            ctx.fillStyle = '#52504a'; ctx.textAlign = 'left';
+            ctx.fillText(String(sim.busIds[k]), X(reN) + 6, Y(imN) - 4);
+        }
+    }
+}
+
+/* ============================================================
+ * アプリ状態・再生ループ
+ * ============================================================ */
+var mode = 'single';
+var sim = null, frames = [], bounds = null;
+var race = null;
+var fi = 0, playing = false;
+var lastConvIter = -1, lastRaceTick = -1;
+var raceCtxs = {};
+var RACE_METHODS = ['nr', 'fdxb', 'gs', 'dc'];
+
+function $(id) { return document.getElementById(id); }
+var els = {};
+['caseSel', 'methodSel', 'methodWrap', 'lamSlider', 'lamVal', 'speedSlider', 'playBtn', 'stepBtn',
+ 'resetBtn', 'scrub', 'frameLabel', 'readout', 'netCv', 'planeCv', 'convChart', 'singleView',
+ 'raceView', 'matrixView', 'miniGrid', 'raceChart', 'raceTable', 'runMatrixBtn', 'matrixStatus',
+ 'matrixTable'].forEach(function (id) { els[id] = $(id); });
+
+function totalFrames() { return mode === 'single' ? frames.length : race.maxTicks; }
+function baseFps() {
+    if (mode === 'race') return 3;
+    if (sim.method === 'gs') return 26;
+    return METHODS[sim.method].fps;
+}
+
+function rebuild() {
+    if (mode === 'matrix') return;
+    playing = false; updatePlayBtn();
+    var caseKey = els.caseSel.value;
+    var lambda = Number(els.lamSlider.value);
+    els.lamVal.textContent = lambda.toFixed(2);
+    if (mode === 'single') {
+        var method = els.methodSel.value;
+        var wantSub = (method === 'gs' || method === 'fdxb') && CASE_DEFS[caseKey].data().bus.length <= 20;
+        sim = runTraced(method, caseKey, lambda, wantSub);
+        frames = framesOf(sim, wantSub);
+        bounds = planeBounds(frames);
+        // 検証用に公開
+        window.simState = { mode: 'single', method: method, caseKey: caseKey,
+            frames: frames.length, iterations: sim.res.iterations, converged: sim.res.converged };
+    } else {
+        race = { runs: {}, states: {}, maxTicks: 2 };
+        RACE_METHODS.forEach(function (m2) {
+            var s = runTraced(m2, caseKey, lambda, false);
+            race.runs[m2] = s;
+            race.states[m2] = s.res.trace.map(function (f) { return { V: f.V, delta: f.delta }; });
+            if (m2 !== 'dc') race.maxTicks = Math.max(race.maxTicks, race.states[m2].length);
+        });
+        race.sim = race.runs.nr; // 型・ID参照用
+        var all = [];
+        RACE_METHODS.forEach(function (m3) { race.states[m3].forEach(function (s) { all.push(s); }); });
+        bounds = planeBounds(all.map(function (s) { return { V: s.V, delta: s.delta }; }));
+        buildMiniGrid();
+        window.simState = { mode: 'race', caseKey: caseKey,
+            iterations: { nr: race.runs.nr.res.iterations, gs: race.runs.gs.res.iterations, fdxb: race.runs.fdxb.res.iterations } };
+    }
+    fi = REDUCED ? totalFrames() - 1 : 0;
+    els.scrub.max = totalFrames() - 1;
+    els.scrub.value = Math.floor(fi);
+    lastConvIter = -1; lastRaceTick = -1;
+    els.methodWrap.style.display = mode === 'single' ? '' : 'none';
+}
+
+function updatePlayBtn() { els.playBtn.textContent = playing ? '⏸ 一時停止' : '▶ 再生'; }
+
+function drawSingle(tSec) {
+    var N = frames.length;
+    var i0 = Math.min(Math.floor(fi), N - 1);
+    var i1 = Math.min(i0 + 1, N - 1);
+    var frac = Math.min(1, fi - i0);
+    var f0 = frames[i0], f1 = frames[i1];
+    var V = f0.V.map(function (v, k) { return v + (f1.V[k] - v) * frac; });
+    var delta = f0.delta.map(function (v, k) { return v + (f1.delta[k] - v) * frac; });
+    var fd = frac > 0.02 ? f1 : f0;
+
+    var lay = LAYOUTS[sim.caseKey];
+    var wCss = els.netCv.clientWidth || 560;
+    var hCss = Math.round(wCss * lay.h / lay.w);
+    var key = wCss + ':' + sim.caseKey;
+    if (els.netCv._k !== key) { setupCanvas(els.netCv, wCss, hCss); els.netCv._k = key; els.netCv.style.height = hCss + 'px'; }
+    drawNet(els.netCv.getContext('2d'), wCss, hCss, sim, V, delta, tSec, fd.busHi);
+
+    var pw = els.planeCv.clientWidth || 380, ph = 290;
+    if (els.planeCv._w !== pw) { setupCanvas(els.planeCv, pw, ph); els.planeCv._w = pw; els.planeCv.style.height = ph + 'px'; }
+    drawPlane(els.planeCv.getContext('2d'), pw, ph, sim, frames, i0, V, delta, bounds, false);
+
+    if (fd.iteration !== lastConvIter) {
+        lastConvIter = fd.iteration;
+        if (sim.method === 'dc') {
+            els.convChart.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);padding:16px 6px">DC潮流は反復しないため収束曲線はありません。線形方程式 P = Bθ を1回解いて終わり — 精度の代償は <a href="dc_accuracy_analysis.html">DC潮流精度検証</a> で。</p>';
+        } else {
+            var errs = sim.res.errorHistory.map(function (e) { return e.max; });
+            var pts = [];
+            for (var k = 0; k < Math.min(fd.iteration, errs.length); k++) pts.push({ x: k + 1, y: errs[k] });
+            if (pts.length) {
+                linePlot(els.convChart, {
+                    series: [{ label: METHODS[sim.method].name, color: METHODS[sim.method].color, points: pts, marker: pts.length < 40, noLabel: true }],
+                    xLabel: '反復', yLabel: '最大ミスマッチ [p.u.]', yLog: true, height: 190,
+                    xTickFmt: function (v) { return String(Math.round(v)); },
+                    annotations: [{ y: METHODS[sim.method].tol, label: '収束判定', color: '#52504a' }]
+                });
+            } else {
+                els.convChart.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);padding:16px 6px">再生すると反復ごとの誤差がここに積み上がります。</p>';
+            }
+        }
+    }
+
+    var misTxt = (fd.maxError === null || fd.maxError === undefined) ? '—'
+        : fd.maxError.toExponential(2) + ' p.u.（' + (fd.maxError * 100).toFixed(2) + ' MVA相当）';
+    var st = i0 >= N - 1
+        ? (sim.res.converged ? '<span class="st-ok">✓ 収束</span>' : '<span class="st-bad">上限到達</span>')
+        : '<span class="st-run">再生中</span>';
+    els.readout.innerHTML =
+        '<span>手法: <b style="color:' + METHODS[sim.method].color + '">' + METHODS[sim.method].name + '</b></span>' +
+        '<span>' + fd.label + '</span>' +
+        '<span>最大ミスマッチ: <b>' + misTxt + '</b>' + (fd.partial ? '（反復末に更新）' : '') + '</span>' +
+        '<span>' + st + '</span>';
+    els.frameLabel.textContent = 'コマ ' + (i0 + 1) + ' / ' + N;
+}
+
+function buildMiniGrid() {
+    els.miniGrid.innerHTML = '';
+    raceCtxs = {};
+    RACE_METHODS.forEach(function (m) {
+        var cell = document.createElement('div');
+        cell.className = 'mini-cell';
+        cell.title = METHODS[m].trait;
+        cell.innerHTML = '<div class="hd"><b style="color:' + METHODS[m].color + '">' + METHODS[m].name + '</b>' +
+            '<span id="stamp_' + m + '" style="font-family:ui-monospace,monospace;font-size:11.5px"></span></div>' +
+            '<canvas class="stage"></canvas>';
+        els.miniGrid.appendChild(cell);
+        var cv = cell.querySelector('canvas');
+        var w = cv.clientWidth || 250, h = 185;
+        setupCanvas(cv, w, h); cv.style.height = h + 'px';
+        raceCtxs[m] = { cv: cv, w: w, h: h };
+    });
+}
+
+function drawRace() {
+    var t = Math.min(Math.floor(fi), race.maxTicks - 1);
+    RACE_METHODS.forEach(function (m) {
+        var states = race.states[m];
+        var idx = Math.min(t, states.length - 1);
+        var s = states[idx];
+        var rc = raceCtxs[m];
+        drawPlane(rc.cv.getContext('2d'), rc.w, rc.h, race.runs[m], states.map(function (x) { return { V: x.V, delta: x.delta }; }), idx, s.V, s.delta, bounds, true);
+        var stamp = $('stamp_' + m);
+        if (m === 'dc') {
+            stamp.textContent = t >= 1 ? '直接求解（反復0回）' : '待機';
+        } else {
+            var run = race.runs[m].res;
+            stamp.innerHTML = idx >= states.length - 1
+                ? (run.converged ? '<span class="st-ok">✓ ' + run.iterations + '回で収束</span>' : '<span class="st-bad">未収束</span>')
+                : '反復 ' + idx;
+        }
+    });
+    if (t !== lastRaceTick) {
+        lastRaceTick = t;
+        var mk = function (m) {
+            var errs = race.runs[m].res.errorHistory.map(function (e) { return e.max; });
+            var pts = [];
+            for (var k = 0; k < Math.min(t, errs.length); k++) pts.push({ x: k + 1, y: errs[k] });
+            return { label: METHODS[m].name, color: METHODS[m].color, points: pts };
+        };
+        var series = ['nr', 'fdxb', 'gs'].map(mk).filter(function (s) { return s.points.length; });
+        if (series.length) {
+            linePlot(els.raceChart, {
+                series: series,
+                xLabel: '反復', yLabel: '最大ミスマッチ [p.u.]', yLog: true, height: 270,
+                xTickFmt: function (v) { return String(Math.round(v)); },
+                annotations: [{ y: 1e-6, label: '収束判定 1e-6', color: '#52504a' }]
+            });
+        } else {
+            els.raceChart.innerHTML = '<p style="font-size:13px;color:var(--text-secondary);padding:14px 6px">▶ 再生すると3手法の誤差がここで競争します。</p>';
+        }
+        if (t >= race.maxTicks - 1) {
+            var row = function (m) {
+                var r = race.runs[m].res;
+                var errs = r.errorHistory.map(function (e) { return e.max; });
+                var p = convergenceOrder(m === 'gs' ? errs.slice(20) : errs);
+                return '<tr><td><b style="color:' + METHODS[m].color + '">' + METHODS[m].name + '</b></td>' +
+                    '<td style="font-size:12px;color:var(--text-secondary)">' + METHODS[m].trait + '</td>' +
+                    '<td class="num">' + r.iterations + '</td>' +
+                    '<td class="num">' + (p ? p.toFixed(2) : '—') + '</td></tr>';
+            };
+            els.raceTable.innerHTML = '<table class="sim-data">' +
+                '<tr><th>手法</th><th>性格</th><th class="num">反復回数</th><th class="num">実測次数 p</th></tr>' +
+                ['nr', 'fdxb', 'gs'].map(row).join('') + '</table>';
+        } else {
+            els.raceTable.innerHTML = '';
+        }
+    }
+    els.readout.innerHTML =
+        '<span>1コマ = 1反復（4手法同時）</span>' +
+        '<span>反復 <b>' + t + '</b> / ' + (race.maxTicks - 1) + '</span>' +
+        '<span>' + (t >= race.maxTicks - 1 ? '<span class="st-ok">✓ 全手法終了</span>' : '<span class="st-run">再生中</span>') + '</span>';
+    els.frameLabel.textContent = 'コマ ' + (t + 1) + ' / ' + race.maxTicks;
+}
+
+/* ---------- ③ 網羅実測表 ---------- */
+function runMatrix() {
+    els.matrixStatus.textContent = '計算中…（全て今この場で解いています）';
+    els.runMatrixBtn.disabled = true;
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+        var caseKeys = Object.keys(CASE_DEFS);
+        var results = {}, losses = {};
+        caseKeys.forEach(function (ck) {
+            Object.keys(METHODS).forEach(function (m) {
+                var t0 = performance.now();
+                var s = runTraced(m, ck, 1.0, false);
+                var ms = performance.now() - t0;
+                var errs = s.res.errorHistory.map(function (e) { return e.max; });
+                var p = (m === 'dc') ? null : convergenceOrder(m === 'gs' ? errs.slice(20) : errs);
+                results[m + ':' + ck] = { res: s.res, ms: ms, p: p };
+                if (m === 'nr' && s.res.converged) {
+                    losses[ck] = s.eng.getBranchFlows().reduce(function (a, f) { return a + f.Ploss; }, 0);
+                }
+            });
+        });
+        window.matrixResults = { losses: losses };
+        Object.keys(results).forEach(function (k) {
+            window.matrixResults[k] = { iterations: results[k].res.iterations, converged: results[k].res.converged };
+        });
+
+        var cell = function (m, ck) {
+            var r = results[m + ':' + ck];
+            var attrs = ' class="num mx-cell" data-m="' + m + '" data-c="' + ck + '"';
+            if (m === 'dc') return '<td' + attrs + '>直接 · ' + r.ms.toFixed(1) + 'ms</td>';
+            if (!r.res.converged) return '<td' + attrs + '><span class="st-bad">✗ 上限</span></td>';
+            var pTxt = r.p === null ? '' : ' · p' + r.p.toFixed(1);
+            return '<td' + attrs + '>' + r.res.iterations + '回 · ' + r.ms.toFixed(1) + 'ms' + pTxt + '</td>';
+        };
+        els.matrixTable.innerHTML =
+            '<tr><th>手法（セルをクリックで①へ）</th>' + caseKeys.map(function (c) { return '<th class="num">' + CASE_DEFS[c].name + '</th>'; }).join('') + '</tr>' +
+            Object.keys(METHODS).map(function (m) {
+                return '<tr><td><b style="color:' + METHODS[m].color + '">' + METHODS[m].name + '</b><br>' +
+                    '<span style="font-size:11px;color:var(--text-secondary)">' + METHODS[m].trait + '</span></td>' +
+                    caseKeys.map(function (c) { return cell(m, c); }).join('') + '</tr>';
+            }).join('') +
+            '<tr><td><b>NR総損失 [MW]</b>（収支検算済）</td>' +
+            caseKeys.map(function (c) {
+                return '<td class="num">' + (losses[c] !== undefined ? losses[c].toFixed(3) : '—') + '</td>';
+            }).join('') + '</tr>';
+        els.matrixTable.querySelectorAll('.mx-cell').forEach(function (td) {
+            td.addEventListener('click', function () {
+                els.caseSel.value = td.getAttribute('data-c');
+                els.methodSel.value = td.getAttribute('data-m');
+                setMode('single');
+            });
+        });
+        els.matrixStatus.textContent = '完了 — 4手法 × 5系統（λ=1.0。反復法 1e-6 / NR 1e-8）';
+        els.runMatrixBtn.disabled = false;
+    }); });
+}
+
+/* ---------- 再生ループ ---------- */
+var prevTs = null;
+function loop(ts) {
+    var tSec = ts / 1000;
+    var dt = prevTs === null ? 0 : Math.min(0.1, (ts - prevTs) / 1000);
+    prevTs = ts;
+    if (mode !== 'matrix') {
+        if (playing) {
+            var sMul = Math.pow(2, Number(els.speedSlider.value) - 4);
+            fi += baseFps() * sMul * dt;
+            if (fi >= totalFrames() - 1) { fi = totalFrames() - 1; playing = false; updatePlayBtn(); }
+            els.scrub.value = Math.floor(fi);
+        }
+        if (mode === 'single') drawSingle(tSec); else drawRace();
+    }
+    requestAnimationFrame(loop);
+}
+
+/* ---------- イベント ---------- */
+els.playBtn.addEventListener('click', function () {
+    if (fi >= totalFrames() - 1) fi = 0;
+    playing = !playing; updatePlayBtn();
+});
+els.stepBtn.addEventListener('click', function () {
+    playing = false; updatePlayBtn();
+    fi = Math.min(Math.floor(fi) + 1, totalFrames() - 1);
+    els.scrub.value = Math.floor(fi);
+});
+els.resetBtn.addEventListener('click', function () { playing = false; updatePlayBtn(); fi = 0; els.scrub.value = 0; });
+els.scrub.addEventListener('input', function () { playing = false; updatePlayBtn(); fi = Number(els.scrub.value); });
+els.caseSel.addEventListener('change', rebuild);
+els.methodSel.addEventListener('change', rebuild);
+els.lamSlider.addEventListener('input', rebuild);
+els.runMatrixBtn.addEventListener('click', runMatrix);
+$('tabSingle').addEventListener('click', function () { setMode('single'); });
+$('tabRace').addEventListener('click', function () { setMode('race'); });
+$('tabMatrix').addEventListener('click', function () { setMode('matrix'); });
+
+function setMode(m) {
+    mode = m;
+    $('tabSingle').classList.toggle('on', m === 'single');
+    $('tabRace').classList.toggle('on', m === 'race');
+    $('tabMatrix').classList.toggle('on', m === 'matrix');
+    els.singleView.style.display = m === 'single' ? '' : 'none';
+    els.raceView.style.display = m === 'race' ? '' : 'none';
+    els.matrixView.style.display = m === 'matrix' ? '' : 'none';
+    document.querySelectorAll('.transport, .readout').forEach(function (el) {
+        el.style.display = m === 'matrix' ? 'none' : '';
+    });
+    rebuild();
+}
+
+rebuild();
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>

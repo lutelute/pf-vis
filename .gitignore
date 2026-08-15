@@ -42,6 +42,10 @@ temp/
 # Auto Claude data directory
 .auto-claude/
 .auto-claude-status
+.claude/
+
+# ローカル実験場（公開対象外）
+fable/
 
 # Local work artifacts
 logs/

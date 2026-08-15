@@ -21,7 +21,12 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 | 5 | 発展 | [統合分析スイート](https://lutelute.github.io/pf-vis/power_flow_v5.html) | 発展的手法（Levenberg-Marquardt・連続潮流・HELM等）を含む8手法の横断分析 |
 | 6 | 応用 | [DC潮流精度検証](https://lutelute.github.io/pf-vis/dc_accuracy_analysis.html) | 線形近似（DC潮流）の精度と適用限界をAC解との比較で定量化 |
 
-補助ツール: [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) — 各手法を個別にじっくり実行・観察
+補助ツール:
+[アルゴリズム・シミュレータ](https://lutelute.github.io/pf-vis/power_flow_simulator.html) —
+共有エンジンの計算トレース（`solveWithTrace`）をそのまま再生する同期アニメーション。
+GSは1母線ずつ・高速分離法はP–θ/Q–V半反復ずつコマ送りでき、系統図（潮流・電圧の沈み・位相針）と
+複素電圧平面の収束軌跡・収束曲線が連動する。4手法同時レースと全手法×全5系統の網羅実測表つき /
+[多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) — 各手法を個別にじっくり実行・観察
 
 **✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、難易度表示つき）。
 数値入力の自動判定（22入力欄・達成状況はブラウザに保存）と考察問題の自己評価チェックリスト付き。
@@ -120,6 +125,7 @@ pf-vis/
 ├── power_flow_v5.html                    # 5. 統合分析スイート（発展）
 ├── dc_accuracy_analysis.html             # 6. DC潮流精度検証（応用）
 ├── power_flow_visualizer.html            # 補助: 多手法可視化
+├── power_flow_simulator.html             # 補助: アルゴリズム・シミュレータ（トレース再生）
 ├── getting_started.html                  # Step 0: はじめに (前提知識・用語集)
 ├── exercises.html                        # 演習問題 (全18問・自動判定つき)
 ├── scripts/

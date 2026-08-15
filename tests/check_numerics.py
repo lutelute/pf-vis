@@ -136,6 +136,40 @@ def main():
             check(f"損失 {expected} MW を表示", expected in r["bal"], f"case={r['caseName']}")
         check("実数値ヤコビアンを表示", r["jacCells"] > 0, f"cells={r['jacCells']}")
 
+        # ---------- simulator (トレース再生シミュレータ) ----------
+        print("\n■ アルゴリズム・シミュレータ (simulator)")
+        page.goto(f"{BASE}/power_flow_simulator.html")
+        page.wait_for_function("() => window.simState && window.simState.frames > 0")
+        r = page.evaluate("""() => window.simState""")
+        check("単独モード: NR(WSCC9) 収束", r["converged"])
+        check("NR コマ数 = 反復+1 (≦8)", 3 <= r["frames"] <= 8, f"frames={r['frames']}")
+        # GS のサブステップ再生（1母線ずつ）
+        page.evaluate("""() => {
+            const sel = document.getElementById('methodSel');
+            sel.value = 'gs'; sel.dispatchEvent(new Event('change'));
+        }""")
+        page.wait_for_function("() => window.simState.method === 'gs'")
+        r = page.evaluate("""() => window.simState""")
+        check("GS(WSCC9): 1母線ずつのコマ (= 反復×8+2±1)",
+              abs(r["frames"] - (r["iterations"] * 8 + 2)) <= 1,
+              f"frames={r['frames']}, iter={r['iterations']}")
+        # 網羅実測表: 損失が MATPOWER 公式値と一致すること
+        page.evaluate("() => { document.getElementById('tabMatrix').click(); }")
+        page.evaluate("() => { document.getElementById('runMatrixBtn').click(); }")
+        page.wait_for_function("() => window.matrixResults && window.matrixResults.losses", timeout=60000)
+        r = page.evaluate("""() => ({
+            l14: window.matrixResults.losses.case14, l9: window.matrixResults.losses.case9,
+            nr14: window.matrixResults['nr:case14'], gs14: window.matrixResults['gs:case14'],
+            n30: window.matrixResults['nr:case30']
+        })""")
+        check("網羅表: IEEE14 損失 13.393 MW (MATPOWER一致)", abs(r["l14"] - 13.393) < 0.01, f"loss={r['l14']:.3f}")
+        check("網羅表: WSCC9 損失 4.641 MW (MATPOWER一致)", abs(r["l9"] - 4.641) < 0.01, f"loss={r['l9']:.3f}")
+        check("網羅表: NR(case14) ≦6回で収束", r["nr14"]["converged"] and r["nr14"]["iterations"] <= 6,
+              f"iter={r['nr14']['iterations']}")
+        check("網羅表: GS(case14) 収束 (線形収束の回数)", r["gs14"]["converged"] and r["gs14"]["iterations"] > 50,
+              f"iter={r['gs14']['iterations']}")
+        check("網羅表: NR(case30) 収束", r["n30"]["converged"], f"iter={r['n30']['iterations']}")
+
         # ---------- learn_newton (講演スタイル教材) ----------
         print("\n■ 講演: Newton-Raphson (learn_newton)")
         page.goto(f"{BASE}/learn_newton.html")
