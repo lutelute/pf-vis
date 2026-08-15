@@ -4,7 +4,7 @@
 
 ## 共有エンジン `scripts/power_flow_engine.js`
 
-全ページの基準実装。MATPOWER公式解と照合検証済み（`tests/verify_algorithms.mjs`, 22テスト）。
+全ページの基準実装。MATPOWER公式解と照合検証済み（`tests/verify_algorithms.mjs`, 59テスト）。
 
 | コード | 手法 | 実装メソッド | 備考 |
 |---|---|---|---|
@@ -25,6 +25,32 @@ solve() と同じ反復・同じ収束判定で解きながら全母線状態の
 `tests/verify_algorithms.mjs` の「🎞 solveWithTrace」9テストで恒久的に担保している。
 **可視化ページはこの trace を再生するだけにすること**（アニメーションのための計算再実装は
 見せかけ実装バグ#6/#13 の温床。トレース再生ならば構造的に混入しない）。
+
+### 2026-08-16 エンジン強化（モデルの正確化＋解析API）
+
+独立実装とのクロス検証（Ybus・電圧・損失・枝潮流）で洗い出した潜在欠陥を修正:
+
+1. **位相シフト（SHIFT列）を無視していた** → `_branchAdmittance` ヘルパを新設し
+   MATPOWER定義（Yft=−y·e^{jφ}/τ 等）で実装。Ybus と getBranchFlows が同じヘルパを
+   使う構造にして二重実装を解消。検証: 「シフトφで |V| 不変・δ がちょうど −φ ずれる」厳密性質
+2. **枝STATUS列を無視していた**（停止枝も計算に混入）→ Ybus/B′/潮流から除外。N-1解析が可能に
+3. **発電機STATUS列を無視していた** → 停止発電機は注入せず、稼働発電機のいない
+   PV母線はPQに降格（MATPOWER準拠）
+4. **r=0 枝を r=1e-6 に置換するハック** → 厳密に r=0 のまま扱う（case9 損失が
+   4.6414→4.6410 MW となり基準値 4.641 に正確一致）
+
+追加した解析API（すべて `tests/verify_algorithms.mjs` で検証済み・計59テスト）:
+
+| API | 内容 |
+|---|---|
+| `getPowerBalance()` | 電力収支検算（発電=負荷+損失+シャント、残差）。ページ側の自前計算を置き換え可能 |
+| `getMismatchSnapshot()` | 母線別ミスマッチ（p.u.+MW併記）。「帳尻の狂いがどこに残っているか」の可視化用 |
+| `estimateConvergenceOrder({skip})` | errorHistory から実測収束次数 p を推定 |
+| `solve({enforceQLimits:true})` | PV母線のQ制約考慮（超過時にQを制約値に固定してPQ切替・NRのみ・既定off） |
+| `tracePVCurve({lambdaMax,...})` | λ連続求解によるPV曲線トレース（前解を初期値に・ノーズ点近似を返す） |
+
+ヤコビアン（getJacobianSnapshot）は**有限差分との全要素照合**テストで恒久検証。
+利用例: `power_flow_simulator.html`（ミスマッチのにじみ表示・収支バー・PV曲線パネル・ホバー詳細）。
 
 ## 自己完結実装を持つページ
 

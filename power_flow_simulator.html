@@ -129,9 +129,14 @@ table.sim-data td.num, table.sim-data th.num { text-align: right; font-family: u
         <div class="sim-cols">
             <div class="panel" style="flex:3 1 460px">
                 <div class="panel-title">系統図 — 電圧の沈みと潮流（このコマの状態から毎回計算）</div>
-                <canvas id="netCv" class="stage"></canvas>
+                <div style="position:relative">
+                    <canvas id="netCv" class="stage"></canvas>
+                    <div id="netTip" class="sim-tip"></div>
+                </div>
                 <div class="caption">円の塗り＝電圧の高低（紅く沈む＝1.0より低い／青緑＝高い）、針＝位相角δ、
                 線上の数字＝有効電力[MW]、破線の流れ＝潮流の向き。二重枠＝スラック、青緑枠＝PV母線。
+                <b>橙のにじみ＝その母線に残っている帳尻の狂い（ミスマッチ）</b>で、収束とともに消えていきます。
+                <b>母線や枝にマウスを載せると詳細数値</b>（V∠δ・P/Q・ミスマッチ・損失）。
                 GS再生中は「いま更新している母線」がリングで光ります（30母線では数値ラベルを省略）。</div>
             </div>
             <div style="flex:2 1 340px;min-width:0">
@@ -146,6 +151,16 @@ table.sim-data td.num, table.sim-data th.num { text-align: right; font-family: u
                     <div class="panel-title">収束曲線（再生と同期・対数軸）</div>
                     <div id="convChart" class="chartbox"></div>
                     <div class="caption">再生中のコマまでの実測値だけが描かれます。サブ反復中の誤差は反復末に更新。</div>
+                </div>
+                <div class="panel">
+                    <div class="panel-title">系統の限界 — PV曲線（λ連続求解の実測）</div>
+                    <div class="controls" style="margin:2px 0 6px">
+                        <button id="pvBtn" style="border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);padding:6px 14px;border-radius:6px;cursor:pointer">⚡ この系統の限界を実測する</button>
+                        <span id="pvStatus" style="font-size:12.5px;color:var(--text-secondary)"></span>
+                    </div>
+                    <div id="pvChart" class="chartbox"></div>
+                    <div class="caption">全負荷を λ 倍しながら前の解を初期値にNRで連続求解（エンジンの tracePVCurve）。
+                    曲線の右端＝これ以上負荷を増やすと解が消えるノーズ点。最低電圧の母線番号つき。</div>
                 </div>
             </div>
         </div>
@@ -423,12 +438,13 @@ function runTraced(method, caseKey, lambda, subSteps) {
         algorithm: method, tolerance: m.tol || 1e-6,
         maxIterations: m.maxIter, subSteps: !!subSteps
     });
-    // 表示用エンジン（枝潮流をコマの状態から計算するために状態を注入して使う）
+    // 表示用エンジン（枝潮流・ミスマッチ・収支をコマの状態から計算するために状態を注入して使う）
     var flowEng = new window.PowerFlowEngine(cd);
     return { eng: eng, res: res, flowEng: flowEng, caseKey: caseKey, method: method,
              slackBus: eng.slackBus, busTypes: cd.bus.map(function (b) { return b[1]; }),
              busIds: cd.bus.map(function (b) { return b[0]; }),
-             loads: cd.bus.map(function (b) { return b[2]; }) };
+             loads: cd.bus.map(function (b) { return b[2]; }),
+             qloads: cd.bus.map(function (b) { return b[3]; }) };
 }
 
 function framesOf(sim, subSteps) {
@@ -472,13 +488,16 @@ function drawNet(ctx, W, H, sim, V, delta, tSec, busHi) {
     var P = function (id) { return [ox + lay.pos[id][0] * sc, oy + lay.pos[id][1] * sc]; };
     ctx.clearRect(0, 0, W, H);
 
-    // 枝潮流: 表示用エンジンにこのコマの状態を注入して共有実装で計算
+    // 枝潮流・母線別ミスマッチ: 表示用エンジンにこのコマの状態を注入して共有実装で計算
     sim.flowEng.V = V.slice();
     sim.flowEng.delta = delta.slice();
     var flows = sim.flowEng.getBranchFlows();
+    var mis = sim.flowEng.getMismatchSnapshot();
+    var hits = { buses: [], branches: [] };
 
-    flows.forEach(function (fl) {
+    flows.forEach(function (fl, k) {
         var p1 = P(fl.from), p2 = P(fl.to);
+        hits.branches.push({ x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1], k: k });
         var mag = Math.abs(fl.Pij);
         var dir = fl.Pij >= 0 ? 1 : -1;
         ctx.strokeStyle = 'rgba(82,80,74,0.85)';
@@ -508,6 +527,16 @@ function drawNet(ctx, W, H, sim, V, delta, tSec, busHi) {
         var id = sim.busIds[i];
         var xy = P(id), x = xy[0], y = xy[1];
         var R = dense ? 10 : 14;
+        hits.buses.push({ x: x, y: y, R: R, i: i });
+        // 帳尻の狂い（ミスマッチ）を琥珀のにじみで: 収束とともに消えていく
+        var misMag = Math.abs(mis.perBus[i].dP_pu) + Math.abs(mis.perBus[i].dQ_pu);
+        if (misMag > 1e-6) {
+            var haloA = Math.min(0.5, 0.1 + misMag * 1.2);
+            ctx.fillStyle = 'rgba(191,115,20,' + haloA.toFixed(3) + ')';
+            ctx.beginPath();
+            ctx.arc(x, y, R + 4 + Math.min(12, misMag * 22), 0, 7);
+            ctx.fill();
+        }
         var dev = V[i] - 1.0;
         var tint = dev < 0
             ? 'rgba(202,60,78,' + Math.min(0.45, -dev * 5).toFixed(3) + ')'
@@ -557,6 +586,55 @@ function drawNet(ctx, W, H, sim, V, delta, tSec, busHi) {
             ctx.fillText(vTxt, x, side === 'above' ? y - R - 10 : y + R + 10);
         }
     }
+
+    // ホバー詳細のためのヒット領域と現在値を保存（座標はCSSピクセル）
+    var cv = ctx.canvas;
+    cv._hits = hits;
+    cv._sim = sim;
+    cv._V = V; cv._delta = delta;
+    cv._flows = flows; cv._mis = mis;
+}
+
+/* 系統図ホバー: 母線・枝の詳細数値（V∠δ・P/Q・ミスマッチ・損失） */
+function distToSegment(px, py, sgm) {
+    var dx = sgm.x2 - sgm.x1, dy = sgm.y2 - sgm.y1;
+    var len2 = dx * dx + dy * dy;
+    if (len2 < 1e-9) return Math.hypot(px - sgm.x1, py - sgm.y1);
+    var t = Math.max(0, Math.min(1, ((px - sgm.x1) * dx + (py - sgm.y1) * dy) / len2));
+    return Math.hypot(px - (sgm.x1 + t * dx), py - (sgm.y1 + t * dy));
+}
+
+function netHoverHtml(cv, mx, my) {
+    var hits = cv._hits;
+    if (!hits) return null;
+    for (var bi = 0; bi < hits.buses.length; bi++) {
+        var b = hits.buses[bi];
+        var dx = mx - b.x, dy = my - b.y;
+        if (dx * dx + dy * dy <= (b.R + 6) * (b.R + 6)) {
+            var i = b.i, sim = cv._sim;
+            var typeName = sim.busTypes[i] === 3 ? 'スラック' : (sim.busTypes[i] === 2 ? 'PV' : 'PQ');
+            var m = cv._mis.perBus[i];
+            var misTxt = (m.hasP ? 'ΔP ' + m.dP_MW.toFixed(2) + ' MW' : 'ΔP —') +
+                         ' / ' + (m.hasQ ? 'ΔQ ' + m.dQ_MVAr.toFixed(2) + ' MVAr' : 'ΔQ —');
+            return '<b>母線' + sim.busIds[i] + '（' + typeName + '）</b><br>' +
+                'V = ' + cv._V[i].toFixed(4) + ' ∠ ' + (cv._delta[i] * 180 / Math.PI).toFixed(2) + '°<br>' +
+                '発電 ' + (sim.flowEng.Pgen[i] * 100).toFixed(1) + ' MW / 負荷 ' + sim.loads[i].toFixed(1) + '+j' + sim.qloads[i].toFixed(1) + ' MVA<br>' +
+                'ミスマッチ: ' + misTxt;
+        }
+    }
+    for (var ki = 0; ki < hits.branches.length; ki++) {
+        var sg = hits.branches[ki];
+        if (distToSegment(mx, my, sg) < 6) {
+            var fl = cv._flows[sg.k];
+            if (fl.status === 0) return '<b>枝 ' + fl.from + '–' + fl.to + '</b><br>停止中（STATUS=0）';
+            var fwd = fl.Pij >= 0;
+            return '<b>枝 ' + fl.from + '–' + fl.to + '</b><br>' +
+                'P: ' + Math.abs(fl.Pij).toFixed(2) + ' MW（' + (fwd ? fl.from + '→' + fl.to : fl.to + '→' + fl.from) + '）<br>' +
+                'Q: ' + fl.Qij.toFixed(2) + ' MVAr（' + fl.from + '側）<br>' +
+                '損失: ' + fl.Ploss.toFixed(3) + ' MW / ' + fl.Qloss.toFixed(2) + ' MVAr';
+        }
+    }
+    return null;
 }
 
 function planeBounds(frames) {
@@ -649,9 +727,9 @@ var RACE_METHODS = ['nr', 'fdxb', 'gs', 'dc'];
 function $(id) { return document.getElementById(id); }
 var els = {};
 ['caseSel', 'methodSel', 'methodWrap', 'lamSlider', 'lamVal', 'speedSlider', 'playBtn', 'stepBtn',
- 'resetBtn', 'scrub', 'frameLabel', 'readout', 'netCv', 'planeCv', 'convChart', 'singleView',
+ 'resetBtn', 'scrub', 'frameLabel', 'readout', 'netCv', 'netTip', 'planeCv', 'convChart', 'singleView',
  'raceView', 'matrixView', 'miniGrid', 'raceChart', 'raceTable', 'runMatrixBtn', 'matrixStatus',
- 'matrixTable'].forEach(function (id) { els[id] = $(id); });
+ 'matrixTable', 'pvBtn', 'pvStatus', 'pvChart'].forEach(function (id) { els[id] = $(id); });
 
 function totalFrames() { return mode === 'single' ? frames.length : race.maxTicks; }
 function baseFps() {
@@ -696,6 +774,45 @@ function rebuild() {
     els.scrub.value = Math.floor(fi);
     lastConvIter = -1; lastRaceTick = -1;
     els.methodWrap.style.display = mode === 'single' ? '' : 'none';
+    // PV曲線は系統ごとの結果なので、系統・手法を変えたらリセット
+    if (mode === 'single') {
+        els.pvChart.innerHTML = '';
+        els.pvStatus.textContent = '';
+        els.pvBtn.disabled = false;
+    }
+}
+
+/* ---------- PV曲線（エンジンの tracePVCurve をそのまま描く） ---------- */
+function runPVCurve() {
+    els.pvStatus.textContent = '実測中…（λを上げながら連続求解）';
+    els.pvBtn.disabled = true;
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+        var caseKey = els.caseSel.value;
+        var cd = scaledCase(caseKey, 1.0);
+        var eng = new window.PowerFlowEngine(cd);
+        var t0 = performance.now();
+        var curve = eng.tracePVCurve({ lambdaMax: 6, initialStep: 0.05 });
+        var ms = performance.now() - t0;
+        if (!curve.points.length || curve.noseLambda === null) {
+            els.pvStatus.textContent = '基準負荷で解けない系統です';
+            els.pvBtn.disabled = false;
+            return;
+        }
+        var nose = curve.points[curve.points.length - 1];
+        var totalLoad = cd.bus.reduce(function (s, b) { return s + b[2]; }, 0);
+        linePlot(els.pvChart, {
+            series: [{ label: '|V|min', color: '#197b6c', noLabel: true, marker: false,
+                points: curve.points.map(function (p) { return { x: p.lambda, y: p.Vmin }; }) }],
+            xLabel: '負荷倍率 λ', yLabel: '最低電圧 [p.u.]', height: 200,
+            xTickFmt: function (v) { return String(Math.round(v * 100) / 100); },
+            annotations: [{ x: curve.noseLambda, label: 'ノーズ λ≈' + curve.noseLambda.toFixed(2), color: '#ca3c4e' }]
+        });
+        els.pvStatus.textContent = 'ノーズ点 λ≈' + curve.noseLambda.toFixed(3) +
+            '（総負荷 ' + (totalLoad * curve.noseLambda).toFixed(0) + ' MW 相当）・最低電圧は母線' + nose.VminBus +
+            '（' + nose.Vmin.toFixed(3) + ' p.u.）・' + curve.points.length + '点を ' + ms.toFixed(0) + 'ms で実測';
+        window.simState.noseLambda = curve.noseLambda;
+        els.pvBtn.disabled = false;
+    }); });
 }
 
 function updatePlayBtn() { els.playBtn.textContent = playing ? '⏸ 一時停止' : '▶ 再生'; }
@@ -747,10 +864,23 @@ function drawSingle(tSec) {
     var st = i0 >= N - 1
         ? (sim.res.converged ? '<span class="st-ok">✓ 収束</span>' : '<span class="st-bad">上限到達</span>')
         : '<span class="st-run">再生中</span>';
+    // 収束したコマでは電力収支の検算を常設（解の妥当性の一次情報）
+    var balHtml = '';
+    if (i0 >= N - 1 && sim.res.converged && sim.method !== 'dc') {
+        if (sim._balKey !== i0) { sim._balKey = i0; sim._bal = sim.flowEng.getPowerBalance(); }
+        var bb = sim._bal;
+        var balOk = Math.abs(bb.residualMW) < 1e-3;
+        balHtml = '<span>収支: 発電 <b>' + bb.genMW.toFixed(2) + '</b> = 負荷 ' + bb.loadMW.toFixed(2) +
+            ' + 損失 ' + bb.lossMW.toFixed(3) + ' MW <span class="' + (balOk ? 'st-ok' : 'st-bad') + '">残差 ' +
+            bb.residualMW.toExponential(1) + (balOk ? ' ✓' : ' ✗') + '</span></span>';
+        window.simState.balanceResidual = bb.residualMW;
+        window.simState.lossMW = bb.lossMW;
+    }
     els.readout.innerHTML =
         '<span>手法: <b style="color:' + METHODS[sim.method].color + '">' + METHODS[sim.method].name + '</b></span>' +
         '<span>' + fd.label + '</span>' +
         '<span>最大ミスマッチ: <b>' + misTxt + '</b>' + (fd.partial ? '（反復末に更新）' : '') + '</span>' +
+        balHtml +
         '<span>' + st + '</span>';
     els.frameLabel.textContent = 'コマ ' + (i0 + 1) + ' / ' + N;
 }
@@ -924,6 +1054,20 @@ els.caseSel.addEventListener('change', rebuild);
 els.methodSel.addEventListener('change', rebuild);
 els.lamSlider.addEventListener('input', rebuild);
 els.runMatrixBtn.addEventListener('click', runMatrix);
+els.pvBtn.addEventListener('click', runPVCurve);
+els.netCv.addEventListener('mousemove', function (ev) {
+    var rect = els.netCv.getBoundingClientRect();
+    var html = netHoverHtml(els.netCv, ev.clientX - rect.left, ev.clientY - rect.top);
+    if (html) {
+        els.netTip.innerHTML = html;
+        els.netTip.style.display = 'block';
+        els.netTip.style.left = Math.min(ev.clientX - rect.left + 14, rect.width - 210) + 'px';
+        els.netTip.style.top = Math.max(4, ev.clientY - rect.top - 10) + 'px';
+    } else {
+        els.netTip.style.display = 'none';
+    }
+});
+els.netCv.addEventListener('mouseleave', function () { els.netTip.style.display = 'none'; });
 $('tabSingle').addEventListener('click', function () { setMode('single'); });
 $('tabRace').addEventListener('click', function () { setMode('race'); });
 $('tabMatrix').addEventListener('click', function () { setMode('matrix'); });

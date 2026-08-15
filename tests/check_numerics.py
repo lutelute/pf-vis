@@ -143,6 +143,23 @@ def main():
         r = page.evaluate("""() => window.simState""")
         check("単独モード: NR(WSCC9) 収束", r["converged"])
         check("NR コマ数 = 反復+1 (≦8)", 3 <= r["frames"] <= 8, f"frames={r['frames']}")
+        # 最終コマへ → 電力収支の検算が表示されること（発電=負荷+損失）
+        page.evaluate("""() => {
+            const s = document.getElementById('scrub');
+            s.value = s.max; s.dispatchEvent(new Event('input'));
+        }""")
+        page.wait_for_function("() => window.simState.balanceResidual !== undefined")
+        r = page.evaluate("""() => ({ res: window.simState.balanceResidual,
+                                       loss: window.simState.lossMW,
+                                       txt: document.getElementById('readout').innerText })""")
+        check("収支検算を表示（残差 < 1e-3 MW）", abs(r["res"]) < 1e-3, f"res={r['res']:.2e}")
+        check("収支の損失 = 4.641 MW (WSCC9)", abs(r["loss"] - 4.641) < 0.01, f"loss={r['loss']:.3f}")
+        check("読み出しに収支テキスト", "収支" in r["txt"] and "残差" in r["txt"])
+        # PV曲線（エンジン tracePVCurve）: WSCC9 のノーズ点 λ≈2.64
+        page.evaluate("() => { document.getElementById('pvBtn').click(); }")
+        page.wait_for_function("() => window.simState.noseLambda !== undefined", timeout=30000)
+        r = page.evaluate("""() => window.simState.noseLambda""")
+        check("PV曲線: ノーズ点 λ≈2.64 (WSCC9)", 2.4 < r < 2.9, f"λ={r:.3f}")
         # GS のサブステップ再生（1母線ずつ）
         page.evaluate("""() => {
             const sel = document.getElementById('methodSel');

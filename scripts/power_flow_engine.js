@@ -164,14 +164,23 @@ class PowerFlowEngine {
         // Initialize generator power arrays
         this.Pgen = new Array(this.nBus).fill(0);
         this.Qgen = new Array(this.nBus).fill(0);
+        // 母線ごとのQ制約（稼働発電機の合算。発電機なし = 無制約）
+        this.Qmax = new Array(this.nBus).fill(0);
+        this.Qmin = new Array(this.nBus).fill(0);
+        const servedBuses = new Set();
 
-        // Apply generator data
+        // Apply generator data (STATUS=0 の停止発電機は存在しない扱い)
         for (const gen of this.genData) {
+            if (gen[7] === 0) continue;  // Column 7: STATUS
             const busIdx = gen[0] - 1;  // Convert 1-indexed to 0-indexed
+            servedBuses.add(busIdx);
 
             // Column 1: PG (MW), Column 2: QG (MVAr) - convert to p.u.
             this.Pgen[busIdx] += gen[1] / this.baseMVA;
             this.Qgen[busIdx] += gen[2] / this.baseMVA;
+            // Column 3: QMAX, Column 4: QMIN (MVAr)
+            this.Qmax[busIdx] += gen[3] / this.baseMVA;
+            this.Qmin[busIdx] += gen[4] / this.baseMVA;
 
             // Apply voltage setpoint for PV and slack buses
             // Column 5: VG (voltage setpoint)
@@ -179,6 +188,18 @@ class PowerFlowEngine {
                 this.V[busIdx] = gen[5];
             }
         }
+        for (let i = 0; i < this.nBus; i++) {
+            if (!servedBuses.has(i)) { this.Qmax[i] = Infinity; this.Qmin[i] = -Infinity; }
+        }
+
+        // 稼働発電機のいないPV母線は電圧を維持できない → PQとして解く（MATPOWER準拠）
+        this.pvBuses = this.pvBuses.filter(i => {
+            if (servedBuses.has(i)) return true;
+            this.pqBuses.push(i);
+            return false;
+        });
+        // Q制約で PV→PQ に切り替えた母線の記録（enforceQLimits 用）
+        this.qLimitHits = [];
 
         // Build admittance matrix
         this._buildYbus();
@@ -227,6 +248,47 @@ class PowerFlowEngine {
      *   where B_c is the total line charging susceptance.
      * ═══════════════════════════════════════════════════════════════════════
      */
+    /**
+     * 枝の2×2アドミタンスブロック（MATPOWER定義・唯一の実装）
+     *
+     * @private
+     * @description Ybus 組み立てと getBranchFlows の両方がこのヘルパを使う。
+     * タップ比 τ・位相シフト φ（SHIFT列, deg）・充電容量 b を定義通りに扱う:
+     *   Yff = (y + jb/2)/τ²,  Yft = −y·e^{jφ}/τ,
+     *   Ytf = −y·e^{−jφ}/τ,  Ytt =  y + jb/2
+     * r=0（純リアクタンス枝）はそのまま厳密に扱う（旧実装の r→1e-6 置換は廃止）。
+     * @param {Array<number>} branch - MATPOWER枝行
+     * @returns {Object|null} {yffRe..yttIm} または null（STATUS=0・縮退枝）
+     */
+    _branchAdmittance(branch) {
+        if (branch[10] === 0) return null;  // STATUS: 停止枝は系統に存在しない
+        const r = branch[2];
+        const x = branch[3];
+        const b = branch[4];
+        const tap = branch[8] || 1;
+        const shift = (branch[9] || 0) * Math.PI / 180;
+        if (Math.abs(r) < 1e-12 && Math.abs(x) < 1e-12) return null;  // 縮退枝
+
+        const z2 = r * r + x * x;
+        const g = r / z2;             // Re(y)
+        const bS = -x / z2;           // Im(y)
+        const t = tap === 0 ? 1 : tap;
+        const c = Math.cos(shift), s = Math.sin(shift);
+
+        return {
+            yffRe: g / (t * t),
+            yffIm: (bS + b / 2) / (t * t),
+            // y·e^{jφ} = (g·c − b·s) + j(g·s + b·c)
+            yftRe: -(g * c - bS * s) / t,
+            yftIm: -(g * s + bS * c) / t,
+            // y·e^{−jφ} = (g·c + b·s) + j(b·c − g·s)
+            ytfRe: -(g * c + bS * s) / t,
+            ytfIm: -(bS * c - g * s) / t,
+            yttRe: g,
+            yttIm: bS + b / 2
+        };
+    }
+
     _buildYbus() {
         // Initialize Ybus as zero matrix: Y = [0]_nxn
         for (let i = 0; i < this.nBus; i++) {
@@ -236,41 +298,18 @@ class PowerFlowEngine {
 
         // Process each branch to build Ybus
         for (const branch of this.branchData) {
-            const from = branch[0] - 1;  // F_BUS (1-indexed to 0-indexed)
-            const to = branch[1] - 1;    // T_BUS
-            let r = branch[2];           // BR_R (resistance, p.u.)
-            let x = branch[3];           // BR_X (reactance, p.u.)
-            const b = branch[4];         // BR_B (total line charging, p.u.)
-            const tap = branch[8] || 1;  // TAP (transformer tap ratio, 0 = line)
-
-            // Handle zero impedance branches (treat as very small impedance)
-            if (Math.abs(r) < 1e-8 && Math.abs(x) < 1e-8) continue;
-            if (Math.abs(r) < 1e-8) r = 1e-6;
-            if (Math.abs(x) < 1e-8) x = 1e-6;
-
-            // Series admittance: y = 1/z = 1/(r + jx)
-            // Using complex division: y = (r - jx)/(r² + x²) = g + jb
-            const z2 = r * r + x * x;    // |z|² = r² + x²
-            const g = r / z2;            // g = Re(y) = r/(r² + x²) [Conductance]
-            const bSeries = -x / z2;     // b = Im(y) = -x/(r² + x²) [Susceptance]
-
-            // Handle tap ratio (0 means transmission line, use 1)
-            const tapRatio = tap === 0 ? 1 : tap;  // τ (tau)
-
-            // Off-diagonal elements: Y_ij = Y_ji = -y/τ (mutual admittance)
-            // Negative sign because current flows out of bus i into the line
-            this.Ybus.re[from][to] -= g / tapRatio;
-            this.Ybus.im[from][to] -= bSeries / tapRatio;
-            this.Ybus.re[to][from] -= g / tapRatio;
-            this.Ybus.im[to][from] -= bSeries / tapRatio;
-
-            // Diagonal elements (self-admittance with tap ratio and line charging)
-            // From-bus: Y_ii += (y + jB_c/2)/τ² (MATPOWER convention: tap on from side)
-            this.Ybus.re[from][from] += g / (tapRatio * tapRatio);
-            this.Ybus.im[from][from] += (bSeries + b / 2) / (tapRatio * tapRatio);
-            // To-bus: Y_jj += y + jB_c/2 (no tap ratio on receiving end)
-            this.Ybus.re[to][to] += g;
-            this.Ybus.im[to][to] += bSeries + b / 2;
+            const adm = this._branchAdmittance(branch);
+            if (!adm) continue;  // 停止枝 (STATUS=0) または縮退枝
+            const from = branch[0] - 1;
+            const to = branch[1] - 1;
+            this.Ybus.re[from][from] += adm.yffRe;
+            this.Ybus.im[from][from] += adm.yffIm;
+            this.Ybus.re[from][to] += adm.yftRe;
+            this.Ybus.im[from][to] += adm.yftIm;
+            this.Ybus.re[to][from] += adm.ytfRe;
+            this.Ybus.im[to][from] += adm.ytfIm;
+            this.Ybus.re[to][to] += adm.yttRe;
+            this.Ybus.im[to][to] += adm.yttIm;
         }
 
         // Add shunt admittances from bus data: Y_ii += G_sh + jB_sh
@@ -980,6 +1019,7 @@ class PowerFlowEngine {
         const B = Array(n).fill(null).map(() => Array(n).fill(0));
 
         for (const branch of this.branchData) {
+            if (branch[10] === 0) continue;  // STATUS: 停止枝は除外
             const from = branch[0] - 1;
             const to = branch[1] - 1;
             let x = branch[3];
@@ -1259,7 +1299,8 @@ class PowerFlowEngine {
             algorithm = 'nr',
             tolerance = 1e-6,
             maxIterations = 100,
-            acceleration = 1.0
+            acceleration = 1.0,
+            enforceQLimits = false
         } = options;
 
         // Acceleration factor for Gauss-Seidel (ignored by other methods)
@@ -1278,6 +1319,36 @@ class PowerFlowEngine {
         }
 
         // Iterative solution for AC power flow
+        this._runToConvergence(algorithm, tolerance, maxIterations);
+
+        // Q制約の考慮（オプション・NRのみ）: 収束解で発電機QがQMAX/QMINを
+        // 超えたPV母線を、Qを制約値に固定したPQ母線に切り替えて解き直す。
+        // 実系統の「電圧を維持しきれない発電機」の挙動（MATPOWER enforce_q_lims 相当の簡易版）
+        if (enforceQLimits && algorithm === 'nr' && this.converged) {
+            for (let round = 0; round < 10; round++) {
+                if (!this._applyQLimits()) break;
+                this.converged = false;
+                this.iteration = 0;
+                this._runToConvergence(algorithm, tolerance, maxIterations);
+                if (!this.converged) break;
+            }
+        }
+
+        return {
+            converged: this.converged,
+            iterations: this.iteration,
+            maxError: Math.max(this.maxPError, this.maxQError),
+            busResults: this.getBusResults(),
+            errorHistory: this.errorHistory,
+            qLimitHits: this.qLimitHits
+        };
+    }
+
+    /**
+     * 収束するまで反復する（solve の内側ループ。純粋抽出）
+     * @private
+     */
+    _runToConvergence(algorithm, tolerance, maxIterations) {
         while (this.iteration < maxIterations) {
             const result = this.runIteration(algorithm);
 
@@ -1290,14 +1361,36 @@ class PowerFlowEngine {
                 break;  // Diverged
             }
         }
+    }
 
-        return {
-            converged: this.converged,
-            iterations: this.iteration,
-            maxError: Math.max(this.maxPError, this.maxQError),
-            busResults: this.getBusResults(),
-            errorHistory: this.errorHistory
-        };
+    /**
+     * PV母線のQ制約チェックと PV→PQ 切替
+     *
+     * @private
+     * @returns {boolean} 1母線でも切り替えたら true
+     */
+    _applyQLimits() {
+        const { Q } = this._calcPowerInjection();
+        let switched = false;
+        for (const i of [...this.pvBuses]) {
+            const Qload = this.busData[i][3] / this.baseMVA;
+            const Qg = Q[i] + Qload;  // この母線の発電機が出しているQ (p.u.)
+            let hit = null;
+            if (Qg > this.Qmax[i] + 1e-9) hit = 'max';
+            else if (Qg < this.Qmin[i] - 1e-9) hit = 'min';
+            if (!hit) continue;
+
+            this.Qgen[i] = hit === 'max' ? this.Qmax[i] : this.Qmin[i];
+            this.pvBuses = this.pvBuses.filter(b => b !== i);
+            this.pqBuses.push(i);
+            this.qLimitHits.push({
+                bus: this.busData[i][0],
+                limit: hit,
+                QgenMVAr: this.Qgen[i] * this.baseMVA
+            });
+            switched = true;
+        }
+        return switched;
     }
 
     /**
@@ -1541,47 +1634,41 @@ class PowerFlowEngine {
         const flows = [];
 
         for (const branch of this.branchData) {
+            const adm = this._branchAdmittance(branch);
+            if (!adm) {
+                // 停止枝・縮退枝: 潮流ゼロの行を返す（枝インデックスの整合を保つ）
+                flows.push({
+                    from: branch[0], to: branch[1], status: 0,
+                    Pij: 0, Qij: 0, Pji: 0, Qji: 0, Ploss: 0, Qloss: 0
+                });
+                continue;
+            }
             const from = branch[0] - 1;
             const to = branch[1] - 1;
-            let r = branch[2];
-            let x = branch[3];
-            const b = branch[4];
-            const tap = branch[8] || 1;
 
-            // Handle zero impedance
-            if (Math.abs(r) < 1e-8) r = 1e-6;
-            if (Math.abs(x) < 1e-8) x = 1e-6;
+            // 電圧を直交形式に（Ybus と同じアドミタンスブロックで S = V·I^H を計算。
+            // タップ・シフト・充電容量の扱いが _branchAdmittance の一箇所に集約される）
+            const VfRe = this.V[from] * Math.cos(this.delta[from]);
+            const VfIm = this.V[from] * Math.sin(this.delta[from]);
+            const VtRe = this.V[to] * Math.cos(this.delta[to]);
+            const VtIm = this.V[to] * Math.sin(this.delta[to]);
 
-            // Series admittance
-            const z2 = r * r + x * x;
-            const g = r / z2;
-            const bSeries = -x / z2;
-            const tapRatio = tap === 0 ? 1 : tap;
+            // I_f = Yff·Vf + Yft·Vt,  I_t = Ytf·Vf + Ytt·Vt
+            const IfRe = adm.yffRe * VfRe - adm.yffIm * VfIm + adm.yftRe * VtRe - adm.yftIm * VtIm;
+            const IfIm = adm.yffRe * VfIm + adm.yffIm * VfRe + adm.yftRe * VtIm + adm.yftIm * VtRe;
+            const ItRe = adm.ytfRe * VfRe - adm.ytfIm * VfIm + adm.yttRe * VtRe - adm.yttIm * VtIm;
+            const ItIm = adm.ytfRe * VfIm + adm.ytfIm * VfRe + adm.yttRe * VtIm + adm.yttIm * VtRe;
 
-            // Get voltages in rectangular form
-            const Vi = this.V[from];
-            const Vj = this.V[to];
-            const di = this.delta[from];
-            const dj = this.delta[to];
-
-            // Calculate complex power flow Sij = Vi * conj(Iij)
-            const thetaij = di - dj;
-
-            // Power from i to j
-            const Pij = Vi * Vi * g / (tapRatio * tapRatio) -
-                       Vi * Vj * (g * Math.cos(thetaij) + bSeries * Math.sin(thetaij)) / tapRatio;
-            const Qij = -Vi * Vi * (bSeries + b / 2) / (tapRatio * tapRatio) -
-                        Vi * Vj * (g * Math.sin(thetaij) - bSeries * Math.cos(thetaij)) / tapRatio;
-
-            // Power from j to i
-            const Pji = Vj * Vj * g -
-                       Vi * Vj * (g * Math.cos(thetaij) - bSeries * Math.sin(thetaij)) / tapRatio;
-            const Qji = -Vj * Vj * (bSeries + b / 2) +
-                        Vi * Vj * (g * Math.sin(thetaij) + bSeries * Math.cos(thetaij)) / tapRatio;
+            // S = V·I^H
+            const Pij = VfRe * IfRe + VfIm * IfIm;
+            const Qij = VfIm * IfRe - VfRe * IfIm;
+            const Pji = VtRe * ItRe + VtIm * ItIm;
+            const Qji = VtIm * ItRe - VtRe * ItIm;
 
             flows.push({
                 from: branch[0],
                 to: branch[1],
+                status: 1,
                 Pij: Pij * this.baseMVA,
                 Qij: Qij * this.baseMVA,
                 Pji: Pji * this.baseMVA,
@@ -1661,6 +1748,178 @@ class PowerFlowEngine {
             pBuses: deltaP.map(d => d.bus),
             qBuses: deltaQ.map(d => d.bus)
         };
+    }
+
+    /**
+     * 電力収支の検算（解の妥当性の一次情報）
+     *
+     * @description 総発電（スラックは解かれた注入から逆算）＝総負荷＋総損失＋シャント消費
+     * が成り立つかを現在の状態から計算する。residualMW ≈ 0 が「解けている」ことの検算。
+     * 無効電力側も併せて返す（充電容量・シャントがあるため P ほど単純ではない参考値）。
+     *
+     * @returns {Object} { genMW, loadMW, lossMW, shuntMW, residualMW,
+     *                     genMVAr, loadMVAr }
+     */
+    getPowerBalance() {
+        const { P, Q } = this._calcPowerInjection();
+        let genMW = 0, loadMW = 0, genMVAr = 0, loadMVAr = 0, shuntMW = 0;
+        for (let i = 0; i < this.nBus; i++) {
+            loadMW += this.busData[i][2];
+            loadMVAr += this.busData[i][3];
+            shuntMW += this.busData[i][4] * this.V[i] * this.V[i];  // GS·V² (MW)
+            if (i === this.slackBus) {
+                genMW += P[i] * this.baseMVA + this.busData[i][2];
+            } else {
+                genMW += this.Pgen[i] * this.baseMVA;
+            }
+            if (i === this.slackBus || this.pvBuses.includes(i)) {
+                genMVAr += Q[i] * this.baseMVA + this.busData[i][3];
+            } else {
+                genMVAr += this.Qgen[i] * this.baseMVA;
+            }
+        }
+        const lossMW = this.getBranchFlows().reduce((s, f) => s + f.Ploss, 0);
+        return {
+            genMW, loadMW, lossMW, shuntMW,
+            residualMW: genMW - loadMW - lossMW - shuntMW,
+            genMVAr, loadMVAr
+        };
+    }
+
+    /**
+     * 母線ごとのミスマッチ（p.u. と MW/MVAr 併記）
+     *
+     * @description 「帳尻の狂いがどの母線に残っているか」を可視化するための
+     * スナップショット。スラックにP行は無く、PV母線にQ行は無い（解く変数が無いため）。
+     *
+     * @returns {Object} { perBus: [{bus, hasP, hasQ, dP_pu, dQ_pu, dP_MW, dQ_MVAr}],
+     *                     maxError }
+     */
+    getMismatchSnapshot() {
+        const { deltaP, deltaQ } = this._calcMismatch();
+        const perBus = this.busData.map(b => ({
+            bus: b[0], hasP: false, hasQ: false,
+            dP_pu: 0, dQ_pu: 0, dP_MW: 0, dQ_MVAr: 0
+        }));
+        let maxError = 0;
+        for (const d of deltaP) {
+            perBus[d.bus].hasP = true;
+            perBus[d.bus].dP_pu = d.value;
+            perBus[d.bus].dP_MW = d.value * this.baseMVA;
+            maxError = Math.max(maxError, Math.abs(d.value));
+        }
+        for (const d of deltaQ) {
+            perBus[d.bus].hasQ = true;
+            perBus[d.bus].dQ_pu = d.value;
+            perBus[d.bus].dQ_MVAr = d.value * this.baseMVA;
+            maxError = Math.max(maxError, Math.abs(d.value));
+        }
+        return { perBus, maxError };
+    }
+
+    /**
+     * 実測収束次数 p ≈ ln(e_k+1/e_k) / ln(e_k/e_k−1)
+     *
+     * @description errorHistory の単調減少区間から推定する。
+     * 教科書の「NRは2次・GSは線形」をその場の実測で確かめるための値。
+     *
+     * @param {Object} [options={}]
+     * @param {number} [options.skip=0] - 先頭の反復を除外する数（GSの立ち上がり用）
+     * @returns {number|null} 推定次数（推定不能なら null）
+     */
+    estimateConvergenceOrder({ skip = 0 } = {}) {
+        const h = this.errorHistory.slice(skip).map(e => e.max).filter(e => e > 1e-12);
+        const ps = [];
+        for (let k = 2; k < h.length; k++) {
+            if (h[k] < h[k - 1] && h[k - 1] < h[k - 2]) {
+                ps.push(Math.log(h[k] / h[k - 1]) / Math.log(h[k - 1] / h[k - 2]));
+            }
+        }
+        if (!ps.length) return null;
+        return ps.reduce((a, b) => a + b, 0) / ps.length;
+    }
+
+    /**
+     * PV曲線トレース（連続潮流の簡易版）
+     *
+     * @description 全負荷（と非スラック発電）を λ 倍しながら、前の解を初期値に
+     * NRで連続求解する。収束しなくなったらステップを半分にして詰め、
+     * 到達できた最大 λ（ノーズ点の近似）を返す。実行後、ケースデータと
+     * 状態は λ=1 の解に復元される。
+     *
+     * @param {Object} [options={}]
+     * @param {number} [options.lambdaMax=3] - 探索上限
+     * @param {number} [options.initialStep=0.05]
+     * @param {number} [options.minStep=1e-4] - これ未満にステップが縮んだら終了
+     * @param {number} [options.tolerance=1e-8]
+     * @returns {Object} { points: [{lambda, Vmin, VminBus, lossMW, V}], noseLambda }
+     */
+    tracePVCurve(options = {}) {
+        const {
+            lambdaMax = 3, initialStep = 0.05, minStep = 1e-4, tolerance = 1e-8
+        } = options;
+
+        const basePd = this.busData.map(b => b[2]);
+        const baseQd = this.busData.map(b => b[3]);
+        const basePg = this.Pgen.slice();
+        const applyLambda = (lam) => {
+            for (let i = 0; i < this.nBus; i++) {
+                this.busData[i][2] = basePd[i] * lam;
+                this.busData[i][3] = baseQd[i] * lam;
+                if (i !== this.slackBus) this.Pgen[i] = basePg[i] * lam;
+            }
+        };
+        const solveHere = () => {
+            this.converged = false;
+            this.iteration = 0;
+            this.errorHistory = [];
+            this._runToConvergence('nr', tolerance, 40);
+            return this.converged;
+        };
+        const recordPoint = (lam, points) => {
+            let vmin = Infinity, vminBus = -1;
+            for (let i = 0; i < this.nBus; i++) {
+                if (i === this.slackBus) continue;
+                if (this.V[i] < vmin) { vmin = this.V[i]; vminBus = this.busData[i][0]; }
+            }
+            const lossMW = this.getBranchFlows().reduce((s, f) => s + f.Ploss, 0);
+            points.push({ lambda: lam, Vmin: vmin, VminBus: vminBus, lossMW, V: [...this.V] });
+        };
+
+        const points = [];
+        applyLambda(1);
+        if (!solveHere()) {
+            // 基準負荷で解けない系統: データを戻して空を返す
+            applyLambda(1);
+            return { points, noseLambda: null };
+        }
+        recordPoint(1, points);
+        const baseState = { V: [...this.V], delta: [...this.delta] };
+
+        let lambda = 1, step = initialStep;
+        let lastGood = { V: [...this.V], delta: [...this.delta] };
+        while (step >= minStep && lambda < lambdaMax) {
+            const trial = Math.min(lambda + step, lambdaMax);
+            applyLambda(trial);
+            if (solveHere()) {
+                lambda = trial;
+                lastGood = { V: [...this.V], delta: [...this.delta] };
+                recordPoint(lambda, points);
+                if (lambda >= lambdaMax) break;
+            } else {
+                // 失敗: 最後の良い解に戻ってステップを詰める
+                this.V = [...lastGood.V];
+                this.delta = [...lastGood.delta];
+                step /= 2;
+            }
+        }
+
+        // λ=1 のデータと解に復元して終了
+        applyLambda(1);
+        this.V = [...baseState.V];
+        this.delta = [...baseState.delta];
+        this.converged = true;
+        return { points, noseLambda: lambda };
     }
 }
 

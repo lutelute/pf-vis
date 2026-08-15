@@ -271,6 +271,134 @@ try {
     test('solveWithTrace 実行', false, e.message);
 }
 
+// Test 8: モデルの正確化（位相シフト・STATUS・r=0の厳密扱い）
+console.log('\n🔩 モデルの正確化');
+try {
+    // (a) 位相シフト: 2母線でシフトφを入れると |V2| は不変・δ2 はちょうど −φ ずれる
+    //     （枝方程式で Vt→Vt·e^{jφ} と置換すると無シフト問題に帰着する厳密な性質）
+    const mkShift = (phi) => {
+        const cd = JSON.parse(JSON.stringify(window.IEEE_2_BUS));
+        cd.branch[0][9] = phi;
+        const e = new PowerFlowEngine(cd);
+        e.solveNewtonRaphson({ tolerance: 1e-12, maxIterations: 40 });
+        return e;
+    };
+    const s0 = mkShift(0), s5 = mkShift(5);
+    test('シフト5°: |V2| は不変', Math.abs(s0.V[1] - s5.V[1]) < 1e-9,
+        `${s0.V[1].toFixed(9)} vs ${s5.V[1].toFixed(9)}`);
+    const dDeg = (s5.delta[1] - s0.delta[1]) * 180 / Math.PI;
+    test('シフト5°: δ2 はちょうど −5° ずれる', Math.abs(dDeg + 5) < 1e-7, `Δδ=${dDeg.toFixed(7)}°`);
+
+    // (b) 枝STATUS: 停止枝は Ybus から消え、N-1 状態が解ける
+    const cdN1 = JSON.parse(JSON.stringify(IEEE_14_BUS));
+    cdN1.branch[17][10] = 0; // 枝 10-11 停止
+    const eN1 = new PowerFlowEngine(cdN1);
+    test('停止枝は Ybus に入らない', eN1.Ybus.re[9][10] === 0 && eN1.Ybus.im[9][10] === 0);
+    const rN1 = eN1.solveNewtonRaphson({ tolerance: 1e-8, maxIterations: 40 });
+    const lossN1 = eN1.getBranchFlows().reduce((s, f) => s + f.Ploss, 0);
+    test('N-1 (枝10-11停止) が解ける', rN1.converged, `${rN1.iterations} 回`);
+    test('N-1 で損失が基準と変わる', Math.abs(lossN1 - 13.393) > 0.001, `${lossN1.toFixed(3)} MW`);
+    test('N-1 でも電力収支が成立', Math.abs(eN1.getPowerBalance().residualMW) < 1e-6);
+
+    // (c) 発電機STATUS: 停止発電機は注入されず、その母線は PQ として解かれる
+    const cdG = JSON.parse(JSON.stringify(IEEE_14_BUS));
+    cdG.gen[1][7] = 0; // bus2 の発電機停止
+    const eG = new PowerFlowEngine(cdG);
+    const rG = eG.solveNewtonRaphson({ tolerance: 1e-8, maxIterations: 40 });
+    test('発電機停止でも収束', rG.converged);
+    test('停止発電機の母線は電圧設定値を維持しない（PQ降格）',
+        Math.abs(eG.V[1] - 1.045) > 1e-3, `V2=${eG.V[1].toFixed(4)}`);
+    test('停止発電機の出力はゼロ', rG.busResults[1].Pgen === 0 && rG.busResults[1].Qgen === 0);
+    test('発電機停止でも電力収支が成立', Math.abs(eG.getPowerBalance().residualMW) < 1e-6);
+} catch (e) {
+    test('モデル正確化テスト実行', false, e.message);
+}
+
+// Test 9: 解析API（電力収支・ミスマッチ・実測次数・ヤコビアン照合）
+console.log('\n🧮 解析API');
+try {
+    const e14 = new PowerFlowEngine(IEEE_14_BUS);
+    e14.solveNewtonRaphson({ tolerance: 1e-10, maxIterations: 40 });
+    const bal = e14.getPowerBalance();
+    test('収支: 発電 272.39 MW（スラックは解かれた値）', Math.abs(bal.genMW - 272.39) < 0.05,
+        `${bal.genMW.toFixed(2)} MW`);
+    test('収支: 発電 = 負荷 + 損失（残差 < 1e-6 MW）', Math.abs(bal.residualMW) < 1e-6,
+        `${bal.genMW.toFixed(3)} = ${bal.loadMW.toFixed(3)} + ${bal.lossMW.toFixed(3)} (res ${bal.residualMW.toExponential(1)})`);
+
+    const mis = e14.getMismatchSnapshot();
+    test('ミスマッチ: 収束後は全母線 < 1e-9', mis.maxError < 1e-9, mis.maxError.toExponential(1));
+    test('ミスマッチ: スラックにP行なし・PV母線にQ行なし',
+        !mis.perBus[0].hasP && !mis.perBus[1].hasQ && mis.perBus[3].hasQ);
+
+    const pNR = e14.estimateConvergenceOrder();
+    test('実測次数: NR p ≈ 2', pNR !== null && pNR > 1.5 && pNR < 2.6, `p=${pNR?.toFixed(2)}`);
+    const eGS = new PowerFlowEngine(IEEE_14_BUS);
+    eGS.solveGaussSeidel({ tolerance: 1e-6, maxIterations: 500 });
+    const pGS = eGS.estimateConvergenceOrder({ skip: 20 });
+    test('実測次数: GS p ≈ 1', pGS !== null && pGS > 0.8 && pGS < 1.2, `p=${pGS?.toFixed(2)}`);
+
+    // ヤコビアンの有限差分照合: getJacobianSnapshot の全要素を
+    // 「実際に θ/V を微小に動かした再計算」と突き合わせる
+    const eJ = new PowerFlowEngine(window.IEEE_9_BUS);
+    const snap = eJ.getJacobianSnapshot();
+    const nP = snap.pBuses.length, nQ = snap.qBuses.length;
+    const eps = 1e-7;
+    let maxDiffPlus = 0, maxDiffMinus = 0;
+    for (let c = 0; c < nP + nQ; c++) {
+        const before = eJ._calcPowerInjection();
+        if (c < nP) eJ.delta[snap.pBuses[c]] += eps;
+        else eJ.V[snap.qBuses[c - nP]] += eps;
+        const after = eJ._calcPowerInjection();
+        if (c < nP) eJ.delta[snap.pBuses[c]] -= eps;
+        else eJ.V[snap.qBuses[c - nP]] -= eps;
+        for (let r = 0; r < nP + nQ; r++) {
+            const fd = ((r < nP ? after.P[snap.pBuses[r]] : after.Q[snap.qBuses[r - nP]])
+                - (r < nP ? before.P[snap.pBuses[r]] : before.Q[snap.qBuses[r - nP]])) / eps;
+            const scale = Math.max(1, Math.abs(snap.J[r][c]));
+            maxDiffMinus = Math.max(maxDiffMinus, Math.abs(snap.J[r][c] - fd) / scale);
+            maxDiffPlus = Math.max(maxDiffPlus, Math.abs(snap.J[r][c] + fd) / scale);
+        }
+    }
+    const fdOK = Math.min(maxDiffMinus, maxDiffPlus);
+    test(`ヤコビアン全${(nP + nQ) * (nP + nQ)}要素が有限差分と一致 (<1e-4)`, fdOK < 1e-4,
+        `max相対誤差 ${fdOK.toExponential(1)}（符号規約: ${maxDiffMinus < maxDiffPlus ? 'J=∂(P,Q)/∂(θ,V)' : 'J=−∂(P,Q)/∂(θ,V)'}）`);
+} catch (e) {
+    test('解析APIテスト実行', false, e.message);
+}
+
+// Test 10: Q制約考慮NR と PV曲線トレース
+console.log('\n⚡ Q制約・PV曲線');
+try {
+    // Q制約: bus2 の QMAX をきつく（20 MVAr）して解くと、Qは制約値に張り付き電圧が下がる
+    const cdQ = JSON.parse(JSON.stringify(IEEE_14_BUS));
+    cdQ.gen[1][3] = 20; // QMAX
+    const eQ0 = new PowerFlowEngine(cdQ);
+    eQ0.solveNewtonRaphson({ tolerance: 1e-8 });
+    test('Q制約なし（既定）: V2 は設定値 1.045 を維持', Math.abs(eQ0.V[1] - 1.045) < 1e-6);
+
+    const eQ = new PowerFlowEngine(cdQ);
+    const rQ = eQ.solveNewtonRaphson({ tolerance: 1e-8, enforceQLimits: true });
+    test('Q制約あり: 収束', rQ.converged);
+    test('Q制約あり: bus2 が QMAX に到達', rQ.qLimitHits.some(h => h.bus === 2 && h.limit === 'max'),
+        JSON.stringify(rQ.qLimitHits));
+    test('Q制約あり: bus2 の電圧が設定値から低下', eQ.V[1] < 1.045 - 1e-3, `V2=${eQ.V[1].toFixed(4)}`);
+    test('Q制約あり: 電力収支が成立', Math.abs(eQ.getPowerBalance().residualMW) < 1e-6);
+
+    // PV曲線: WSCC9 の負荷を増やしていくとノーズ点がある
+    const ePV = new PowerFlowEngine(window.IEEE_9_BUS);
+    const curve = ePV.tracePVCurve({ lambdaMax: 5, initialStep: 0.1 });
+    test('PV曲線: ノーズ点が λ>1.2 に存在', curve.noseLambda !== null && curve.noseLambda > 1.2 && curve.noseLambda < 5,
+        `λ_max=${curve.noseLambda?.toFixed(4)}`);
+    test('PV曲線: 点数 ≥ 5', curve.points.length >= 5, `${curve.points.length} 点`);
+    const monotonic = curve.points.every((p, k) => k === 0 || p.Vmin <= curve.points[k - 1].Vmin + 1e-9);
+    test('PV曲線: 上枝で最低電圧が単調低下', monotonic);
+    test('PV曲線: 実行後に λ=1 の解へ復元', Math.abs(ePV.getPowerBalance().residualMW) < 1e-6 &&
+        Math.abs(ePV.busData[4][2] - 90) < 1e-9);
+    console.log(`     [記録] WSCC9 ノーズ点 λ≈${curve.noseLambda?.toFixed(3)}（総負荷 ${(315 * curve.noseLambda).toFixed(0)} MW 相当）`);
+} catch (e) {
+    test('Q制約・PV曲線テスト実行', false, e.message);
+}
+
 // Summary
 console.log('\n========================================');
 console.log(`Summary: ${passed} passed, ${failed} failed`);

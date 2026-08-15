@@ -103,9 +103,9 @@ MATPOWER の公式解と照合して検証しています:
 検証テストの実行:
 
 ```bash
-node tests/verify_algorithms.mjs   # ① エンジン単体: MATPOWER基準解との照合 (24テスト)
+node tests/verify_algorithms.mjs   # ① エンジン単体: MATPOWER照合+モデル性質+解析API (59テスト)
 python3 tests/check_pages.py       # ② 全ページのJSエラー検出 (要 playwright)
-python3 tests/check_numerics.py    # ③ E2E数値回帰: 各ツールを駆動し核心数値を検証 (45テスト)
+python3 tests/check_numerics.py    # ③ E2E数値回帰: 各ツールを駆動し核心数値を検証 (85テスト)
 python3 tests/check_layout.py      # ④ レイアウト検証: 3画面幅×全ページで
                                    #    はみ出し/コントラスト比/canvas文字/タップ領域 (要 playwright)
 ```
