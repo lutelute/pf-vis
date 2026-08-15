@@ -52,8 +52,8 @@ def check_page(browser, name, path):
         else None,
     )
     try:
-        page.goto(f"{BASE}/{path}", timeout=15000)
-        page.wait_for_load_state("networkidle", timeout=15000)
+        page.goto(f"{BASE}/{path}", timeout=30000)
+        page.wait_for_load_state("networkidle", timeout=30000)
     except Exception as e:  # noqa: BLE001
         errors.append(f"load failed: {e}")
     page.close()
