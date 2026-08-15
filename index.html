@@ -29,8 +29,8 @@
         </header>
 
         <main>
-            <!-- 入口: はじめて → 地図 -->
-            <section class="learning-path" aria-label="入口" style="border-left: 3px solid var(--accent-blue); padding: 20px 30px; margin-top: 8px;">
+            <!-- 入口: はじめて → 地図 + ページ内ナビ -->
+            <section class="learning-path" aria-label="入口" style="border-left: 3px solid var(--accent-blue); padding: 18px 30px; margin-top: 8px;">
                 <p style="margin: 0; font-size: 1.02rem;">
                     はじめての方へ:
                     <a href="getting_started.html" style="color: var(--accent-blue); font-weight: 700;">&#128682; はじめに</a>
@@ -39,27 +39,40 @@
                     <a href="map.html" style="color: var(--accent-blue); font-weight: 700;">&#128506; 学習アトラス</a>
                     <span style="color: var(--text-secondary); font-size: 0.92rem;">（全16教材の俯瞰マップ。迷ったらこの地図から）</span>
                 </p>
+                <p style="margin: 10px 0 0; font-size: 0.92rem; color: var(--text-secondary);">
+                    このページ:
+                    <a href="#tools" style="color: var(--accent-blue);">&#128300; ツール</a> ·
+                    <a href="#path" style="color: var(--accent-blue);">&#129517; 道すじ</a> ·
+                    <a href="#lectures" style="color: var(--accent-blue);">&#127908; 講義</a> ·
+                    <a href="#exercises" style="color: var(--accent-blue);">&#9999;&#65039; 演習</a> ·
+                    <a href="#docs" style="color: var(--accent-blue);">&#128196; 資料</a>
+                </p>
             </section>
 
             <!-- ①ツール -->
-            <div class="group-head">
+            <div class="group-head" id="tools">
                 <h2>&#128300; ツール — 8つのシミュレータで動かして確かめる</h2>
-                <p>すべてブラウザ内の実計算（MATPOWER公式解と照合済み）。下の「道すじ」はこのツール群を巡る順番です。</p>
+                <p>すべてブラウザ内の実計算（MATPOWER公式解と照合済み）。バッジは下の「道すじ」の段階に対応します。</p>
             </div>
 
             <section class="visualizers" aria-label="可視化ツール一覧">
                 <article class="card" data-animate>
                     <div class="card-header">
-                        <div class="card-icon card-icon--red" aria-hidden="true">&#129504;</div>
-                        <h2 class="card-title">収束過程直感的理解</h2>
+                        <div class="card-icon card-icon--cyan" aria-hidden="true">&#9199;</div>
+                        <h2 class="card-title">アルゴリズム・シミュレータ <span class="path-badge">横断</span></h2>
                     </div>
-                    <p class="card-description">潮流計算の収束過程を視覚的・直感的に理解できる入門用可視化ツール</p>
-                    <ul class="card-features">
-                        <li>複素電圧平面での収束軌跡表示</li>
-                        <li>誤差面・ベクトル場表示</li>
-                        <li>2〜30ノードの段階的な問題設定</li>
-                        <li>NR法・GS法・勾配降下法・DC法</li>
-                    </ul>
+                    <p class="card-description">計算トレースの再生機。GSは1母線ずつ・高速分離法は半反復ずつコマ送りし、系統図・複素電圧平面・収束曲線が同期して動く。4手法同時レースと全手法×全5系統の網羅実測表つき。</p>
+                    <div class="card-footer">
+                        <a href="power_flow_simulator.html" class="btn btn-primary">起動 &rarr;</a>
+                    </div>
+                </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--red" aria-hidden="true">&#129504;</div>
+                        <h2 class="card-title">収束過程直感的理解 <span class="path-badge">入門</span></h2>
+                    </div>
+                    <p class="card-description">複素電圧平面の軌跡と誤差曲面で「非線形方程式の反復解法」を体感する入門ツール。2〜500ノード・NR/GS/勾配降下/DC。</p>
                     <div class="card-footer">
                         <a href="power_flow_intuitive_v6_fixed.html" class="btn btn-primary">起動 &rarr;</a>
                         <a href="docs/power_flow_intuitive.md" class="btn btn-secondary">&#128196; 技術詳細</a>
@@ -68,32 +81,10 @@
 
                 <article class="card" data-animate>
                     <div class="card-header">
-                        <div class="card-icon card-icon--cyan" aria-hidden="true">&#9199;</div>
-                        <h2 class="card-title">アルゴリズム・シミュレータ</h2>
-                    </div>
-                    <p class="card-description">計算の全記録（トレース）を再生し、アルゴリズムの「歩き方」を系統図・複素電圧平面・収束曲線の同期アニメーションで見る</p>
-                    <ul class="card-features">
-                        <li>GSは1母線ずつ・高速分離法はP–θ/Q–V半反復ずつコマ送り</li>
-                        <li>4手法同時レース（1コマ=1反復・収束スタンプ）</li>
-                        <li>全手法×全系統の網羅実測表（回数・ms・実測次数p）</li>
-                        <li>全アニメーションが共有エンジンの実計算の再生（見せかけなし）</li>
-                    </ul>
-                    <div class="card-footer">
-                        <a href="power_flow_simulator.html" class="btn btn-primary">起動 &rarr;</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
                         <div class="card-icon card-icon--purple" aria-hidden="true">&#128269;</div>
-                        <h2 class="card-title">計算過程ステップ表示</h2>
+                        <h2 class="card-title">計算過程ステップ表示 <span class="path-badge">基礎</span></h2>
                     </div>
-                    <p class="card-description">潮流計算アルゴリズムの各計算ステップを段階的に可視化する教育特化型ツール</p>
-                    <ul class="card-features">
-                        <li>6段階の計算過程表示</li>
-                        <li>ヤコビアン行列・ミスマッチ計算の詳細表示</li>
-                        <li>ステップ実行・自動実行の切替</li>
-                    </ul>
+                    <p class="card-description">Newton-Raphson法の1反復（ミスマッチ→ヤコビアン→修正量）を6段階で解剖。実数値ヤコビアンはクリックで物理的意味まで降りられる。</p>
                     <div class="card-footer">
                         <a href="power_flow_process_visualizer_v2.html" class="btn btn-primary">起動 &rarr;</a>
                         <a href="docs/power_flow_process_visualizer.md" class="btn btn-secondary">&#128196; 技術詳細</a>
@@ -103,14 +94,9 @@
                 <article class="card" data-animate>
                     <div class="card-header">
                         <div class="card-icon card-icon--orange" aria-hidden="true">&#9878;</div>
-                        <h2 class="card-title">アルゴリズム同時比較</h2>
+                        <h2 class="card-title">アルゴリズム同時比較 <span class="path-badge">比較</span></h2>
                     </div>
-                    <p class="card-description">主要4手法を同一系統で同時実行し、収束特性・計算量の違いを並べて理解する比較ツール</p>
-                    <ul class="card-features">
-                        <li>NR / Gauss-Seidel / 高速分離 / DC の同時実行</li>
-                        <li>収束曲線・反復回数の比較チャート</li>
-                        <li>各手法の特徴・計算量の解説付き</li>
-                    </ul>
+                    <p class="card-description">8手法を同一系統・同一条件で同時実行し、収束次数の違い（2次 vs 線形）を実測で見る。真の解への距離・実測次数pつき。</p>
                     <div class="card-footer">
                         <a href="power_flow_compare.html" class="btn btn-primary">起動 &rarr;</a>
                         <a href="docs/power_flow_compare.md" class="btn btn-secondary">&#128196; 技術詳細</a>
@@ -119,32 +105,10 @@
 
                 <article class="card" data-animate>
                     <div class="card-header">
-                        <div class="card-icon card-icon--green" aria-hidden="true">&#127919;</div>
-                        <h2 class="card-title">多手法可視化</h2>
-                    </div>
-                    <p class="card-description">各潮流計算アルゴリズムを個別に実行し、動作をじっくり観察できる可視化ツール</p>
-                    <ul class="card-features">
-                        <li>Newton-Raphson・高速分離・Gauss-Seidel</li>
-                        <li>収束曲線・性能分析チャート</li>
-                        <li>収束判定値・反復回数のパラメータ調整</li>
-                    </ul>
-                    <div class="card-footer">
-                        <a href="power_flow_visualizer.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/power_flow_visualizer.md" class="btn btn-secondary">&#128196; 技術詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
                         <div class="card-icon card-icon--cyan" aria-hidden="true">&#9881;</div>
-                        <h2 class="card-title">MATPOWER準拠実装</h2>
+                        <h2 class="card-title">MATPOWER準拠実装 <span class="path-badge">実践</span></h2>
                     </div>
-                    <p class="card-description">電力系統解析の標準ソフトウェアMATPOWERのデータ形式に準拠した潮流計算実装</p>
-                    <ul class="card-features">
-                        <li>mpc.bus / mpc.gen / mpc.branch 形式対応</li>
-                        <li>IEEE標準系統（2/5/9/14/30母線）</li>
-                        <li>共有計算エンジン使用（MATPOWER解と照合検証済み）</li>
-                    </ul>
+                    <p class="card-description">実務標準のMATPOWERデータ形式（bus/gen/branch）でIEEE標準系統（2/5/9/14/30母線）を解く。電力収支検算・実数値ヤコビアンつき。</p>
                     <div class="card-footer">
                         <a href="power_flow_matpower_v2.html" class="btn btn-primary">起動 &rarr;</a>
                         <a href="docs/power_flow_matpower_v2.md" class="btn btn-secondary">&#128196; 技術詳細</a>
@@ -154,14 +118,9 @@
                 <article class="card" data-animate>
                     <div class="card-header">
                         <div class="card-icon card-icon--blue" aria-hidden="true">&#128202;</div>
-                        <h2 class="card-title">統合分析スイート</h2>
+                        <h2 class="card-title">統合分析スイート <span class="path-badge">発展</span></h2>
                     </div>
-                    <p class="card-description">基本4手法に加え、発展的手法も含む8アルゴリズムを統合した分析プラットフォーム</p>
-                    <ul class="card-features">
-                        <li>NR・GS・高速分離・DC + LM法・連続潮流・HELM等</li>
-                        <li>手法間の比較表・ランキング表示</li>
-                        <li>IEEE標準系統・詳細メトリクス</li>
-                    </ul>
+                    <p class="card-description">LM法・連続潮流・HELM等の発展手法を含む8アルゴリズムの横断分析プラットフォーム。比較表・ランキング・詳細メトリクス。</p>
                     <div class="card-footer">
                         <a href="power_flow_v5.html" class="btn btn-primary">起動 &rarr;</a>
                         <a href="docs/power_flow_v5.md" class="btn btn-secondary">&#128214; 詳細</a>
@@ -171,23 +130,30 @@
                 <article class="card" data-animate>
                     <div class="card-header">
                         <div class="card-icon card-icon--green" aria-hidden="true">&#128207;</div>
-                        <h2 class="card-title">DC潮流精度検証</h2>
+                        <h2 class="card-title">DC潮流精度検証 <span class="path-badge">応用</span></h2>
                     </div>
-                    <p class="card-description">DC潮流計算（線形近似）の精度特性を定量的に分析し、AC潮流解と比較検証する分析ツール</p>
-                    <ul class="card-features">
-                        <li>DC近似の妥当性評価・適用限界の把握</li>
-                        <li>無効電力・電圧変動の影響の定量化</li>
-                        <li>系統条件別の精度特性分析</li>
-                    </ul>
+                    <p class="card-description">線形近似（DC潮流）の誤差をAC解と比較して定量化し、適用限界を見極める分析ツール。</p>
                     <div class="card-footer">
                         <a href="dc_accuracy_analysis.html" class="btn btn-primary">起動 &rarr;</a>
                         <a href="docs/dc_accuracy_analysis.md" class="btn btn-secondary">&#128196; 技術詳細</a>
                     </div>
                 </article>
+
+                <article class="card" data-animate>
+                    <div class="card-header">
+                        <div class="card-icon card-icon--green" aria-hidden="true">&#127919;</div>
+                        <h2 class="card-title">多手法可視化 <span class="path-badge">補助</span></h2>
+                    </div>
+                    <p class="card-description">各手法を個別にじっくり実行・観察できる補助ツール。パラメータ調整と手法カタログつき。</p>
+                    <div class="card-footer">
+                        <a href="power_flow_visualizer.html" class="btn btn-primary">起動 &rarr;</a>
+                        <a href="docs/power_flow_visualizer.md" class="btn btn-secondary">&#128196; 技術詳細</a>
+                    </div>
+                </article>
             </section>
 
             <!-- ②道すじ -->
-            <div class="group-head">
+            <div class="group-head" id="path">
                 <h2>&#129517; 道すじ — どの順で進むか</h2>
                 <p>上のツール群を巡る2本の道。標準は「推奨学習パス」、前提知識ゼロから登るなら「学習ラダー」。</p>
             </div>
@@ -272,7 +238,7 @@
             </section>
 
             <!-- ③講義 -->
-            <div class="group-head">
+            <div class="group-head" id="lectures">
                 <h2>&#127908; 講義 — スライドで1本の物語を通して聴く</h2>
                 <p>章立てスライドの講演スタイル教材（ブループリント形式）。数式は全て実数値つき・計算は全てその場の本物です。</p>
             </div>
@@ -303,7 +269,7 @@
             </section>
 
             <!-- ④演習 -->
-            <div class="group-head">
+            <div class="group-head" id="exercises">
                 <h2>&#9999;&#65039; 演習 — 腕試し</h2>
                 <p>学んだことを手と数値で確かめる場所。演習への入口はここに集約しています。</p>
             </div>
@@ -318,7 +284,7 @@
             </section>
 
             <!-- ⑤資料 -->
-            <div class="group-head">
+            <div class="group-head" id="docs">
                 <h2>&#128196; 資料 — 技術文書・ファイル構成</h2>
                 <p>各ツールの数理・実装・検証の詳細はこちら。</p>
             </div>
@@ -350,8 +316,9 @@
             </section>
 
             <section class="file-organization" aria-label="ファイル構成">
-                <h2 class="doc-title">&#128193; ファイル構成</h2>
-                <div class="file-info">
+                <details>
+                <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary); padding: 4px 0;">&#128193; ファイル構成（開発者向け・クリックで展開）</summary>
+                <div class="file-info" style="margin-top: 12px;">
                     <div class="file-category">
                         <h3>共有モジュール</h3>
                         <ul>
@@ -372,6 +339,7 @@
                         <p><small>旧バージョンは <a href="archive/">archive/</a> ディレクトリにあります。<br>詳細は <a href="archive/README.md">archive/README.md</a> をご覧ください。</small></p>
                     </div>
                 </div>
+                </details>
             </section>
         </main>
 

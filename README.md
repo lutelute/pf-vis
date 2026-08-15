@@ -15,16 +15,16 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 
 学習パスの各段階から呼ばれる本体。すべてブラウザ内の実計算で、外部基準（MATPOWER公式解）と照合済み。
 
-| ツール | 一言でいうと |
-|---|---|
-| [収束過程直感的理解](https://lutelute.github.io/pf-vis/power_flow_intuitive_v6_fixed.html) | 複素電圧平面の軌跡と誤差曲面で「反復解法」を体感（2〜500ノード） |
-| [アルゴリズム・シミュレータ](https://lutelute.github.io/pf-vis/power_flow_simulator.html) | 計算トレース（`solveWithTrace`）の再生機。GSは1母線ずつ・FDは半反復ずつコマ送り、4手法レース、全手法×全5系統の網羅実測表 |
-| [計算過程ステップ表示](https://lutelute.github.io/pf-vis/power_flow_process_visualizer_v2.html) | NR1反復の解剖。実数値ヤコビアン＋クリックで物理的意味 |
-| [アルゴリズム同時比較](https://lutelute.github.io/pf-vis/power_flow_compare.html) | 8手法を同一系統で同時実行。実測収束次数p・真の解への距離 |
-| [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) | 各手法を個別にじっくり実行・観察＋手法カタログ |
-| [MATPOWER準拠実装](https://lutelute.github.io/pf-vis/power_flow_matpower_v2.html) | 実務標準データ形式で解く。電力収支検算・実数値ヤコビアン |
-| [統合分析スイート](https://lutelute.github.io/pf-vis/power_flow_v5.html) | LM・緩和NR等を含む8手法の横断分析 |
-| [DC潮流精度検証](https://lutelute.github.io/pf-vis/dc_accuracy_analysis.html) | 線形近似の誤差をAC解との比較で定量化 |
+| 段階 | ツール | 一言でいうと |
+|---|---|---|
+| 横断 | [アルゴリズム・シミュレータ](https://lutelute.github.io/pf-vis/power_flow_simulator.html) | 計算トレース（`solveWithTrace`）の再生機。GSは1母線ずつ・FDは半反復ずつコマ送り、4手法レース、全手法×全5系統の網羅実測表 |
+| 入門 | [収束過程直感的理解](https://lutelute.github.io/pf-vis/power_flow_intuitive_v6_fixed.html) | 複素電圧平面の軌跡と誤差曲面で「反復解法」を体感（2〜500ノード） |
+| 基礎 | [計算過程ステップ表示](https://lutelute.github.io/pf-vis/power_flow_process_visualizer_v2.html) | NR1反復の解剖。実数値ヤコビアン＋クリックで物理的意味 |
+| 比較 | [アルゴリズム同時比較](https://lutelute.github.io/pf-vis/power_flow_compare.html) | 8手法を同一系統で同時実行。実測収束次数p・真の解への距離 |
+| 実践 | [MATPOWER準拠実装](https://lutelute.github.io/pf-vis/power_flow_matpower_v2.html) | 実務標準データ形式で解く。電力収支検算・実数値ヤコビアン |
+| 発展 | [統合分析スイート](https://lutelute.github.io/pf-vis/power_flow_v5.html) | LM・緩和NR等を含む8手法の横断分析 |
+| 応用 | [DC潮流精度検証](https://lutelute.github.io/pf-vis/dc_accuracy_analysis.html) | 線形近似の誤差をAC解との比較で定量化 |
+| 補助 | [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) | 各手法を個別にじっくり実行・観察＋手法カタログ |
 
 ## 📚 学習（道すじ・講義・演習）
 
