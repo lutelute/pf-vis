@@ -9,6 +9,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/main.css?v=2">
+    <style>
+    /* トップページの大分類見出し（種類ごとに1グループ: ツール/道すじ/講義/演習/資料） */
+    .group-head { margin: 44px 0 10px; border-bottom: 3px double var(--border); padding-bottom: 8px; }
+    .group-head h2 { font-family: var(--mincho); font-size: 1.45rem; margin: 0; color: var(--text-primary); }
+    .group-head p { margin: 4px 0 0; color: var(--text-secondary); font-size: 0.92rem; }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -23,132 +29,22 @@
         </header>
 
         <main>
-            <div style="margin: 8px 0 4px; border-bottom: 3px double var(--border); padding-bottom: 8px;" aria-hidden="false">
-                <h2 style="font-family: var(--mincho); font-size: 1.45rem; margin: 0; color: var(--text-primary);">&#128218; 学習 — 地図・パス・ラダー・講演で理解する</h2>
-                <p style="margin: 4px 0 0; color: var(--text-secondary); font-size: 0.92rem;">読んで・登って理解する縦の道。下の「ツール」と行き来しながら進みます。</p>
-            </div>
-
-            <section class="learning-path" aria-label="学習アトラス" style="border-left: 3px solid var(--accent-blue); padding: 20px 30px;">
+            <!-- 入口: はじめて → 地図 -->
+            <section class="learning-path" aria-label="入口" style="border-left: 3px solid var(--accent-blue); padding: 20px 30px; margin-top: 8px;">
                 <p style="margin: 0; font-size: 1.02rem;">
-                    🗺 <a href="map.html" style="color: var(--accent-blue); font-weight: 700;">学習アトラス — 全教材の俯瞰マップ</a>
-                    <span style="color: var(--text-secondary); font-size: 0.92rem;">
-                    — 全16教材をミニ可視化カードで2軸配置。推奨順路と昇級の進捗つき。迷ったらまずこの地図から。</span>
+                    はじめての方へ:
+                    <a href="getting_started.html" style="color: var(--accent-blue); font-weight: 700;">&#128682; はじめに</a>
+                    <span style="color: var(--text-secondary); font-size: 0.92rem;">（前提知識・用語・最初の5分）</span>
+                    →
+                    <a href="map.html" style="color: var(--accent-blue); font-weight: 700;">&#128506; 学習アトラス</a>
+                    <span style="color: var(--text-secondary); font-size: 0.92rem;">（全16教材の俯瞰マップ。迷ったらこの地図から）</span>
                 </p>
             </section>
 
-            <section class="learning-path" id="learning-path" aria-label="推奨学習パス">
-                <h2 class="doc-title">&#127891; 推奨学習パス</h2>
-                <p class="path-intro">はじめての方はまず <a href="getting_started.html" style="color: var(--accent-cyan); font-weight: 600;">&#128682; はじめに</a>（前提知識・用語・最初の5分）からどうぞ。その後、上から順に進むと、潮流計算の直感 → アルゴリズムの中身 → 手法比較 → 実務水準の解析、と段階的に理解できます。</p>
-                <ol class="path-steps">
-                    <li>
-                        <span class="path-badge">入門</span>
-                        <a href="power_flow_intuitive_v6_fixed.html">収束過程の直感的理解</a>
-                        <span class="path-desc">— 潮流計算は「非線形方程式の反復解法」。解に近づく様子を複素電圧平面で体感する</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">基礎</span>
-                        <a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>
-                        <span class="path-desc">— Newton-Raphson法の1反復（ミスマッチ計算 → ヤコビアン → 修正量）を式と数値で追う</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">比較</span>
-                        <a href="power_flow_compare.html">アルゴリズム同時比較</a>
-                        <span class="path-desc">— NR・Gauss-Seidel・高速分離・DCを同一系統で同時実行し、収束次数の違いを見る</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">実践</span>
-                        <a href="power_flow_matpower_v2.html">MATPOWER準拠実装</a>
-                        <span class="path-desc">— 実務標準のMATPOWERデータ形式（bus/gen/branch）で IEEE標準系統を解く</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">発展</span>
-                        <a href="power_flow_v5.html">統合分析スイート</a>
-                        <span class="path-desc">— 8手法（LM法・連続潮流・HELM等の発展手法を含む）の性能を横断分析する</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">応用</span>
-                        <a href="dc_accuracy_analysis.html">DC潮流の精度検証</a>
-                        <span class="path-desc">— 線形近似（DC潮流）はどこまで正確か。AC解と比較して適用限界を定量化する</span>
-                    </li>
-                </ol>
-                <p class="path-intro" style="margin-top: 16px; margin-bottom: 0;">
-                    各段階には <a href="exercises.html" style="color: var(--accent-cyan); font-weight: 600;">✏️ 演習問題</a>
-                    が用意されています（手計算チャレンジ・ツール操作・考察問題、全18問・解答つき）。
-                </p>
-            </section>
-
-            <section class="learning-path" id="ladder" aria-label="学習ラダー" style="border-left: 3px solid var(--accent-green);">
-                <h2 class="doc-title">&#129698; 学習ラダー — 小学生から博士課程まで</h2>
-                <p class="path-intro">前提知識がたし算だけの入口（L0）から研究の入口（L6）まで、同じ物理を言葉を変えながら登る縦の道です。既存の学習パスはL3〜L4に対応します（設計: <a href="docs/LADDER.md" style="color: var(--accent-cyan);">LADDER.md</a>）。</p>
-                <ol class="path-steps">
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-green);">L0</span>
-                        <a href="ladder_l0.html">電気はためられない — つくる・つかう・うしなうの釣り合い</a>
-                        <span class="path-desc">— 前提はたし算とかけ算だけ。裏の計算は本物（損失の厳密解・送電限界つき）。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-green);">L1</span>
-                        <a href="ladder_l1.html">電圧×電流 — 送電線が50万ボルトを使う理由</a>
-                        <span class="path-desc">— 前提は中学理科のV=IRとP=VI。損失I²Rの実計算で「電圧10倍→損失1/100」を突き止める。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-green);">L2</span>
-                        <a href="ladder_l2.html">回る矢印と2つの電力 — 交流の言葉</a>
-                        <span class="path-desc">— 前提は高校の三角関数。フェーザ実アニメと瞬時電力p(t)の実計算でP/Qの正体を掴み、P∝sinδでL3へ橋を架ける。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-orange);">橋</span>
-                        <a href="ladder_bridge.html">複素数という記法 — 回る矢印を代数にする</a>
-                        <span class="path-desc">— L2⇔L3の橋渡し: 矢印⇔複素数の往復・S=V·I*（p(t)平均との検算つき）・p.u.法・Ybusの入口。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">L3〜L4</span>
-                        <a href="getting_started.html">はじめに → 学習パス1〜6</a>
-                        <span class="path-desc">— 学部基礎〜修士: 潮流計算の本体（既存の学習パスがこの段）</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">L5</span>
-                        <a href="ladder_l5.html">連続潮流とPV曲線 — 解が消える点を追跡する</a>
-                        <span class="path-desc">— 実PV曲線トレース(上枝・下枝・ノーズ=det J=0の実測)。補償の逆説と安定余裕。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">L6</span>
-                        <a href="ladder_l6.html">研究の入口 — 収束の地図と、開いている問い</a>
-                        <span class="path-desc">— NR収束領域(basin)の実測地図・σ_min(J)崩落の実験＋研究5軸の文献地図。昇級課題3問でラダー踏破</span>
-                    </li>
-                </ol>
-            </section>
-
-            <section class="learning-path" aria-label="講演スタイル教材" style="border-left: 3px solid var(--accent-purple);">
-                <h2 class="doc-title">&#127908; 講演スタイル教材（ブループリント形式）</h2>
-                <p class="path-intro">章立てスライドで1本の物語を通す新形式。数式は全て実数値つき・計算は全てその場の本物です。</p>
-                <ol class="path-steps">
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演1</span>
-                        <a href="learn_newton.html">Newton-Raphson潮流計算 — 解けない方程式を、傾きで解く</a>
-                        <span class="path-desc">— 全16枚。ミスマッチの地図 → ヤコビアン導出 → 2次収束の実証 → 検算まで（🎲負荷可変）</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演2</span>
-                        <a href="learn_gs.html">Gauss-Seidel潮流計算 — 連立を解かずに、1母線ずつ</a>
-                        <span class="path-desc">— 全14枚。不動点・線形収束・共役の罠。加速係数ωが逆効果になる実測と、崩壊接近で失速する収束比率ρの実験</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演3</span>
-                        <a href="learn_dc.html">DC潮流 — 割り切りの技術</a>
-                        <span class="path-desc">— 全13枚。3つの割り切りで一次方程式へ。AC/DC誤差の負荷スイープ実測と「DCに見えないもの」</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演4</span>
-                        <a href="learn_collapse.html">電圧崩壊 — 解が消える瞬間</a>
-                        <span class="path-desc">— 全13枚。2解の接近・合体・消滅をPV曲線の実トレースで。初期値依存のNR実走と補償の逆説</span>
-                    </li>
-                </ol>
-            </section>
-
-            <div style="margin: 46px 0 10px; border-bottom: 3px double var(--border); padding-bottom: 8px;">
-                <h2 style="font-family: var(--mincho); font-size: 1.45rem; margin: 0; color: var(--text-primary);">&#128300; ツール — 8つのシミュレータで動かして確かめる</h2>
-                <p style="margin: 4px 0 0; color: var(--text-secondary); font-size: 0.92rem;">すべてブラウザ内の実計算（MATPOWER公式解と照合済み）。学習パスの各段階から呼ばれる本体でもあります。</p>
+            <!-- ①ツール -->
+            <div class="group-head">
+                <h2>&#128300; ツール — 8つのシミュレータで動かして確かめる</h2>
+                <p>すべてブラウザ内の実計算（MATPOWER公式解と照合済み）。下の「道すじ」はこのツール群を巡る順番です。</p>
             </div>
 
             <section class="visualizers" aria-label="可視化ツール一覧">
@@ -290,28 +186,150 @@
                 </article>
             </section>
 
+            <!-- ②道すじ -->
+            <div class="group-head">
+                <h2>&#129517; 道すじ — どの順で進むか</h2>
+                <p>上のツール群を巡る2本の道。標準は「推奨学習パス」、前提知識ゼロから登るなら「学習ラダー」。</p>
+            </div>
+
+            <section class="learning-path" id="learning-path" aria-label="推奨学習パス">
+                <h2 class="doc-title">&#127891; 推奨学習パス（標準の道）</h2>
+                <p class="path-intro"><a href="getting_started.html" style="color: var(--accent-cyan); font-weight: 600;">&#128682; はじめに</a> のあと、上から順に進むと、潮流計算の直感 → アルゴリズムの中身 → 手法比較 → 実務水準の解析、と段階的に理解できます。</p>
+                <ol class="path-steps">
+                    <li>
+                        <span class="path-badge">入門</span>
+                        <a href="power_flow_intuitive_v6_fixed.html">収束過程の直感的理解</a>
+                        <span class="path-desc">— 潮流計算は「非線形方程式の反復解法」。解に近づく様子を複素電圧平面で体感する</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">基礎</span>
+                        <a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>
+                        <span class="path-desc">— Newton-Raphson法の1反復（ミスマッチ計算 → ヤコビアン → 修正量）を式と数値で追う</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">比較</span>
+                        <a href="power_flow_compare.html">アルゴリズム同時比較</a>
+                        <span class="path-desc">— NR・Gauss-Seidel・高速分離・DCを同一系統で同時実行し、収束次数の違いを見る</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">実践</span>
+                        <a href="power_flow_matpower_v2.html">MATPOWER準拠実装</a>
+                        <span class="path-desc">— 実務標準のMATPOWERデータ形式（bus/gen/branch）で IEEE標準系統を解く</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">発展</span>
+                        <a href="power_flow_v5.html">統合分析スイート</a>
+                        <span class="path-desc">— 8手法（LM法・連続潮流・HELM等の発展手法を含む）の性能を横断分析する</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">応用</span>
+                        <a href="dc_accuracy_analysis.html">DC潮流の精度検証</a>
+                        <span class="path-desc">— 線形近似（DC潮流）はどこまで正確か。AC解と比較して適用限界を定量化する</span>
+                    </li>
+                </ol>
+            </section>
+
+            <section class="learning-path" id="ladder" aria-label="学習ラダー" style="border-left: 3px solid var(--accent-green);">
+                <h2 class="doc-title">&#129698; 学習ラダー（前提知識ゼロから登る道）</h2>
+                <p class="path-intro">たし算だけの入口（L0）から研究の入口（L6）まで、同じ物理を言葉を変えながら登ります。上の学習パスはL3〜L4に対応します（設計: <a href="docs/LADDER.md" style="color: var(--accent-cyan);">LADDER.md</a>）。</p>
+                <ol class="path-steps">
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-green);">L0</span>
+                        <a href="ladder_l0.html">電気はためられない — つくる・つかう・うしなうの釣り合い</a>
+                        <span class="path-desc">— 前提はたし算とかけ算だけ。裏の計算は本物（損失の厳密解・送電限界つき）。昇級課題3問</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-green);">L1</span>
+                        <a href="ladder_l1.html">電圧×電流 — 送電線が50万ボルトを使う理由</a>
+                        <span class="path-desc">— 前提は中学理科のV=IRとP=VI。損失I²Rの実計算で「電圧10倍→損失1/100」を突き止める。昇級課題3問</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-green);">L2</span>
+                        <a href="ladder_l2.html">回る矢印と2つの電力 — 交流の言葉</a>
+                        <span class="path-desc">— 前提は高校の三角関数。フェーザ実アニメと瞬時電力p(t)の実計算でP/Qの正体を掴み、P∝sinδでL3へ橋を架ける。昇級課題3問</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-orange);">橋</span>
+                        <a href="ladder_bridge.html">複素数という記法 — 回る矢印を代数にする</a>
+                        <span class="path-desc">— L2⇔L3の橋渡し: 矢印⇔複素数の往復・S=V·I*（p(t)平均との検算つき）・p.u.法・Ybusの入口。昇級課題3問</span>
+                    </li>
+                    <li>
+                        <span class="path-badge">L3〜L4</span>
+                        <a href="getting_started.html">はじめに → 学習パス1〜6</a>
+                        <span class="path-desc">— 学部基礎〜修士: 潮流計算の本体（上の推奨学習パスがこの段）</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-purple);">L5</span>
+                        <a href="ladder_l5.html">連続潮流とPV曲線 — 解が消える点を追跡する</a>
+                        <span class="path-desc">— 実PV曲線トレース(上枝・下枝・ノーズ=det J=0の実測)。補償の逆説と安定余裕。昇級課題3問</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-purple);">L6</span>
+                        <a href="ladder_l6.html">研究の入口 — 収束の地図と、開いている問い</a>
+                        <span class="path-desc">— NR収束領域(basin)の実測地図・σ_min(J)崩落の実験＋研究5軸の文献地図。昇級課題3問でラダー踏破</span>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- ③講義 -->
+            <div class="group-head">
+                <h2>&#127908; 講義 — スライドで1本の物語を通して聴く</h2>
+                <p>章立てスライドの講演スタイル教材（ブループリント形式）。数式は全て実数値つき・計算は全てその場の本物です。</p>
+            </div>
+
+            <section class="learning-path" aria-label="講演スタイル教材" style="border-left: 3px solid var(--accent-purple);">
+                <ol class="path-steps" style="margin-top: 4px;">
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-purple);">講演1</span>
+                        <a href="learn_newton.html">Newton-Raphson潮流計算 — 解けない方程式を、傾きで解く</a>
+                        <span class="path-desc">— 全16枚。ミスマッチの地図 → ヤコビアン導出 → 2次収束の実証 → 検算まで（🎲負荷可変）</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-purple);">講演2</span>
+                        <a href="learn_gs.html">Gauss-Seidel潮流計算 — 連立を解かずに、1母線ずつ</a>
+                        <span class="path-desc">— 全14枚。不動点・線形収束・共役の罠。加速係数ωが逆効果になる実測と、崩壊接近で失速する収束比率ρの実験</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-purple);">講演3</span>
+                        <a href="learn_dc.html">DC潮流 — 割り切りの技術</a>
+                        <span class="path-desc">— 全13枚。3つの割り切りで一次方程式へ。AC/DC誤差の負荷スイープ実測と「DCに見えないもの」</span>
+                    </li>
+                    <li>
+                        <span class="path-badge" style="color: var(--accent-purple);">講演4</span>
+                        <a href="learn_collapse.html">電圧崩壊 — 解が消える瞬間</a>
+                        <span class="path-desc">— 全13枚。2解の接近・合体・消滅をPV曲線の実トレースで。初期値依存のNR実走と補償の逆説</span>
+                    </li>
+                </ol>
+            </section>
+
+            <!-- ④演習 -->
+            <div class="group-head">
+                <h2>&#9999;&#65039; 演習 — 腕試し</h2>
+                <p>学んだことを手と数値で確かめる場所。演習への入口はここに集約しています。</p>
+            </div>
+
+            <section class="learning-path" aria-label="演習問題" style="border-left: 3px solid var(--accent-orange); padding: 20px 30px;">
+                <p style="margin: 0; font-size: 1.02rem;">
+                    <a href="exercises.html" style="color: var(--accent-blue); font-weight: 700;">✏️ 演習問題 — 全18問</a>
+                    <span style="color: var(--text-secondary); font-size: 0.92rem;">
+                    — 手計算チャレンジ・ツール操作・考察の3タイプ、難易度バッジつき。数値入力は自動判定（22入力欄）、
+                    達成状況はブラウザに保存され、学習アトラスにも反映されます。学習パスの各段階・ラダーの昇級課題と対応。</span>
+                </p>
+            </section>
+
+            <!-- ⑤資料 -->
+            <div class="group-head">
+                <h2>&#128196; 資料 — 技術文書・ファイル構成</h2>
+                <p>各ツールの数理・実装・検証の詳細はこちら。</p>
+            </div>
+
             <section class="documentation" aria-label="技術文書">
-                <h2 class="doc-title">&#128218; 技術文書</h2>
                 <div class="doc-links">
                     <a href="README.md" class="doc-link">
                         <span aria-hidden="true">&#128203;</span>
                         <div>
                             <strong>README</strong>
                             <br><small>プロジェクト概要</small>
-                        </div>
-                    </a>
-                    <a href="getting_started.html" class="doc-link">
-                        <span aria-hidden="true">&#128682;</span>
-                        <div>
-                            <strong>はじめに</strong>
-                            <br><small>前提知識・用語・最初の5分</small>
-                        </div>
-                    </a>
-                    <a href="exercises.html" class="doc-link">
-                        <span aria-hidden="true">&#9999;&#65039;</span>
-                        <div>
-                            <strong>演習問題</strong>
-                            <br><small>手計算・操作・考察 全18問</small>
                         </div>
                     </a>
                     <a href="docs/power_flow_methods.md" class="doc-link">

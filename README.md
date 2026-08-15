@@ -9,9 +9,24 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 
 すべてのツールがブラウザだけで動作します（インストール不要・外部ライブラリ非依存）。
 
-サイトは「📚 学習（地図・パス・ラダー・講演・演習）」と「🔬 ツール（シミュレータ8種）」の2部構成です。
+サイトは「🔬 ツール（シミュレータ8種）」と「📚 学習（道すじ・講義・演習）」の2部構成です。
 
-## 📚 学習コンテンツ
+## 🔬 ツール（シミュレータ8種）
+
+学習パスの各段階から呼ばれる本体。すべてブラウザ内の実計算で、外部基準（MATPOWER公式解）と照合済み。
+
+| ツール | 一言でいうと |
+|---|---|
+| [収束過程直感的理解](https://lutelute.github.io/pf-vis/power_flow_intuitive_v6_fixed.html) | 複素電圧平面の軌跡と誤差曲面で「反復解法」を体感（2〜500ノード） |
+| [アルゴリズム・シミュレータ](https://lutelute.github.io/pf-vis/power_flow_simulator.html) | 計算トレース（`solveWithTrace`）の再生機。GSは1母線ずつ・FDは半反復ずつコマ送り、4手法レース、全手法×全5系統の網羅実測表 |
+| [計算過程ステップ表示](https://lutelute.github.io/pf-vis/power_flow_process_visualizer_v2.html) | NR1反復の解剖。実数値ヤコビアン＋クリックで物理的意味 |
+| [アルゴリズム同時比較](https://lutelute.github.io/pf-vis/power_flow_compare.html) | 8手法を同一系統で同時実行。実測収束次数p・真の解への距離 |
+| [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) | 各手法を個別にじっくり実行・観察＋手法カタログ |
+| [MATPOWER準拠実装](https://lutelute.github.io/pf-vis/power_flow_matpower_v2.html) | 実務標準データ形式で解く。電力収支検算・実数値ヤコビアン |
+| [統合分析スイート](https://lutelute.github.io/pf-vis/power_flow_v5.html) | LM・緩和NR等を含む8手法の横断分析 |
+| [DC潮流精度検証](https://lutelute.github.io/pf-vis/dc_accuracy_analysis.html) | 線形近似の誤差をAC解との比較で定量化 |
+
+## 📚 学習（道すじ・講義・演習）
 
 ### 🎓 推奨学習パス
 
@@ -24,9 +39,6 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 | 4 | 実践 | [MATPOWER準拠実装](https://lutelute.github.io/pf-vis/power_flow_matpower_v2.html) | 実務標準のMATPOWERデータ形式（bus/gen/branch）でIEEE標準系統を解く |
 | 5 | 発展 | [統合分析スイート](https://lutelute.github.io/pf-vis/power_flow_v5.html) | 発展的手法（Levenberg-Marquardt・連続潮流・HELM等）を含む8手法の横断分析 |
 | 6 | 応用 | [DC潮流精度検証](https://lutelute.github.io/pf-vis/dc_accuracy_analysis.html) | 線形近似（DC潮流）の精度と適用限界をAC解との比較で定量化 |
-
-**✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、難易度表示つき）。
-数値入力の自動判定（22入力欄・達成状況はブラウザに保存）と考察問題の自己評価チェックリスト付き。
 
 **🗺 [学習アトラス](https://lutelute.github.io/pf-vis/map.html)** — 全16教材をミニ可視化カードで2軸
 （物理の直感⇔数式・実装 × 入口⇔研究）に配置した俯瞰マップ。推奨順路の重ね表示と、
@@ -43,20 +55,8 @@ Newton-Raphson法・Gauss-Seidel法・高速分離法（Fast Decoupled）・DC�
 [電圧崩壊](https://lutelute.github.io/pf-vis/learn_collapse.html)（13枚: 解の消滅をPV曲線実トレースで）。
 数式は全て実数値つき・計算は全てその場の本物。
 
-## 🔬 ツール（シミュレータ8種）
-
-学習パスの各段階から呼ばれる本体。すべてブラウザ内の実計算で、外部基準（MATPOWER公式解）と照合済み。
-
-| ツール | 一言でいうと |
-|---|---|
-| [収束過程直感的理解](https://lutelute.github.io/pf-vis/power_flow_intuitive_v6_fixed.html) | 複素電圧平面の軌跡と誤差曲面で「反復解法」を体感（2〜500ノード） |
-| [アルゴリズム・シミュレータ](https://lutelute.github.io/pf-vis/power_flow_simulator.html) | 計算トレース（`solveWithTrace`）の再生機。GSは1母線ずつ・FDは半反復ずつコマ送り、4手法レース、全手法×全5系統の網羅実測表 |
-| [計算過程ステップ表示](https://lutelute.github.io/pf-vis/power_flow_process_visualizer_v2.html) | NR1反復の解剖。実数値ヤコビアン＋クリックで物理的意味 |
-| [アルゴリズム同時比較](https://lutelute.github.io/pf-vis/power_flow_compare.html) | 8手法を同一系統で同時実行。実測収束次数p・真の解への距離 |
-| [多手法可視化](https://lutelute.github.io/pf-vis/power_flow_visualizer.html) | 各手法を個別にじっくり実行・観察＋手法カタログ |
-| [MATPOWER準拠実装](https://lutelute.github.io/pf-vis/power_flow_matpower_v2.html) | 実務標準データ形式で解く。電力収支検算・実数値ヤコビアン |
-| [統合分析スイート](https://lutelute.github.io/pf-vis/power_flow_v5.html) | LM・緩和NR等を含む8手法の横断分析 |
-| [DC潮流精度検証](https://lutelute.github.io/pf-vis/dc_accuracy_analysis.html) | 線形近似の誤差をAC解との比較で定量化 |
+**✏️ [演習問題](https://lutelute.github.io/pf-vis/exercises.html)** — 各段階に対応した全18問（手計算チャレンジ・ツール操作・考察、難易度表示つき）。
+数値入力の自動判定（22入力欄・達成状況はブラウザに保存）と考察問題の自己評価チェックリスト付き。
 
 ### 教材としての仕掛け
 
