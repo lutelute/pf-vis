@@ -40,6 +40,21 @@
     .verify-band .lbl { font-weight: 700; color: var(--text-primary); }
     .verify-band a { color: var(--accent-blue); }
 
+    /* ライブデモ・ストリップ */
+    .demo-strip { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 16px 8px; margin-bottom: 14px; }
+    .demo-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; font-size: 0.82rem; color: var(--text-secondary); }
+    .demo-head b { color: var(--text-primary); font-size: 0.92rem; }
+    .demo-stat { font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent-blue); }
+    .demo-ctl { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+    .demo-ctl button { font-size: 0.78rem; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary); border-radius: 6px; padding: 5px 10px; min-height: 28px; cursor: pointer; }
+    .demo-ctl button:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .demo-ctl a { font-size: 0.78rem; color: var(--accent-blue); }
+    .demo-body { display: flex; gap: 12px; align-items: stretch; margin-top: 6px; flex-wrap: wrap; }
+    .demo-body canvas { border-radius: 6px; background: var(--bg-surface); max-width: 100%; height: auto; }
+    #demoNet { flex: 2 1 320px; }
+    #demoConv { flex: 1 1 200px; }
+    .demo-foot { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+
     .sec-h { display: flex; align-items: baseline; gap: 10px; margin: 20px 0 8px; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
     .sec-h h2 { font-size: 1.02rem; margin: 0; color: var(--text-primary); }
     .sec-h .d { font-size: 0.78rem; color: var(--text-muted); }
@@ -140,6 +155,25 @@
             <span><a href="README.md">検証の詳細 →</a></span>
         </div>
 
+        <!-- ②b ライブデモ — ハブ自体が動く（process_nn ブループリント準拠） -->
+        <div class="demo-strip" id="demoStrip">
+            <div class="demo-head">
+                <b>&#9889; いま解いてみる</b>
+                <span class="demo-sub">WSCC 9母線を Newton-Raphson で — この場の実計算（共有エンジン）</span>
+                <span class="demo-stat" id="demoStat">準備中…</span>
+                <span class="demo-ctl">
+                    <button id="demoPlay" aria-label="再生">▶ 再生</button>
+                    <button id="demoStep" aria-label="1反復">⏭ 1反復</button>
+                    <a href="power_flow_simulator.html">シミュレータで詳しく →</a>
+                </span>
+            </div>
+            <div class="demo-body">
+                <canvas id="demoNet" width="480" height="240" aria-label="系統図ライブ表示"></canvas>
+                <canvas id="demoConv" width="260" height="240" aria-label="収束曲線"></canvas>
+            </div>
+            <div class="demo-foot" id="demoFoot">橙のにじみ＝各母線に残る帳尻の狂い（ミスマッチ）。反復のたびに消えていきます。</div>
+        </div>
+
         <!-- ③ ツール機能地図 -->
         <div class="sec-h" id="tools">
             <h2>&#128300; ツール機能地図</h2>
@@ -197,6 +231,8 @@
 
     <script src="scripts/catalog.js"></script>
     <script src="scripts/progress.js"></script>
+    <script src="scripts/ieee_cases.js"></script>
+    <script src="scripts/power_flow_engine.js"></script>
     <script>
     (function () {
         'use strict';
@@ -283,6 +319,167 @@
         refresh();
         window.addEventListener('pageshow', refresh);   // bfcache 復帰でも最新化
         window.addEventListener('storage', refresh);    // 別タブでの進捗更新を反映
+    })();
+    </script>
+    <script>
+    /* ライブデモ「いま解いてみる」— 共有エンジンのトレースをその場で再生する。
+       process_nn のハブ（トップ自体が動く）に倣った作り。計算の再実装はない。 */
+    (function () {
+        'use strict';
+        var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        // シミュレータと同じ手置き座標（w640×h430 基準）
+        var POS = { 1: [320, 405], 2: [50, 95], 3: [590, 95], 4: [320, 340], 5: [485, 275],
+                    6: [485, 145], 7: [320, 80], 8: [155, 145], 9: [155, 275] };
+        var TYPE_COLOR = { 3: '#8f6625', 2: '#197b6c', 1: '#52504a' };
+
+        var eng = new window.PowerFlowEngine(window.IEEE_9_BUS);
+        var res = eng.solveWithTrace({ algorithm: 'nr', tolerance: 1e-8, maxIterations: 30 });
+        // 各コマの母線別ミスマッチ・枝潮流を表示用エンジンで前計算
+        var flowEng = new window.PowerFlowEngine(window.IEEE_9_BUS);
+        var frames = res.trace.map(function (f) {
+            flowEng.V = f.V.slice(); flowEng.delta = f.delta.slice();
+            return { V: f.V, delta: f.delta, maxError: f.maxError,
+                     mis: flowEng.getMismatchSnapshot().perBus,
+                     flows: flowEng.getBranchFlows() };
+        });
+        var last = res.trace[res.trace.length - 1];
+        flowEng.V = last.V.slice(); flowEng.delta = last.delta.slice();
+        var bal = flowEng.getPowerBalance();
+        window.demoState = { converged: res.converged, iterations: res.iterations, lossMW: bal.lossMW, frame: 0 };
+
+        var netCv = document.getElementById('demoNet');
+        var convCv = document.getElementById('demoConv');
+        var dpr = window.devicePixelRatio || 1;
+        // 実表示幅でキャンバスを確保（縮小表示で文字が潰れないように）
+        function prep(cv, aspect, maxW) {
+            cv.style.width = '100%'; cv.style.maxWidth = maxW + 'px'; cv.style.height = 'auto';
+            var w = Math.max(220, Math.min(maxW, cv.clientWidth || maxW));
+            var h = Math.round(w * aspect);
+            cv.width = w * dpr; cv.height = h * dpr;
+            cv.style.height = h + 'px';
+            var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+            return { ctx: c, w: w, h: h };
+        }
+        var N, Cv;
+        function sizeAll() { N = prep(netCv, 0.5, 480); Cv = prep(convCv, 240 / 260, 260); }
+        sizeAll();
+        var rsT = null;
+        window.addEventListener('resize', function () {
+            clearTimeout(rsT); rsT = setTimeout(sizeAll, 200);
+        });
+        var busTypes = window.IEEE_9_BUS.bus.map(function (b) { return b[1]; });
+        var m0 = 22;
+        function P(id) {
+            var sc = Math.min((N.w - 2 * m0) / 640, (N.h - 2 * m0) / 430);
+            var ox = m0 + (N.w - 2 * m0 - 640 * sc) / 2, oy = m0 + (N.h - 2 * m0 - 430 * sc) / 2;
+            return [ox + POS[id][0] * sc, oy + POS[id][1] * sc];
+        }
+
+        function drawNet(k, tSec) {
+            var f = frames[k], ctx = N.ctx;
+            ctx.clearRect(0, 0, N.w, N.h);
+            f.flows.forEach(function (fl) {
+                var p1 = P(fl.from), p2 = P(fl.to);
+                var dir = fl.Pij >= 0 ? 1 : -1;
+                ctx.strokeStyle = 'rgba(82,80,74,0.75)';
+                ctx.lineWidth = Math.min(3, 1 + Math.abs(fl.Pij) / 80);
+                ctx.setLineDash([5, 5]);
+                ctx.lineDashOffset = -tSec * 20 * dir;
+                ctx.beginPath(); ctx.moveTo(p1[0], p1[1]); ctx.lineTo(p2[0], p2[1]); ctx.stroke();
+                ctx.setLineDash([]);
+            });
+            for (var i = 0; i < 9; i++) {
+                var id = i + 1, xy = P(id), x = xy[0], y = xy[1], R = 8;
+                var misMag = Math.abs(f.mis[i].dP_pu) + Math.abs(f.mis[i].dQ_pu);
+                if (misMag > 1e-6) {
+                    ctx.fillStyle = 'rgba(191,115,20,' + Math.min(0.5, 0.12 + misMag * 1.2).toFixed(3) + ')';
+                    ctx.beginPath(); ctx.arc(x, y, R + 3 + Math.min(8, misMag * 14), 0, 7); ctx.fill();
+                }
+                var dev = f.V[i] - 1.0;
+                ctx.beginPath(); ctx.arc(x, y, R, 0, 7);
+                ctx.fillStyle = '#fff'; ctx.fill();
+                ctx.beginPath(); ctx.arc(x, y, R, 0, 7);
+                ctx.fillStyle = dev < 0 ? 'rgba(202,60,78,' + Math.min(0.4, -dev * 5).toFixed(3) + ')'
+                                        : 'rgba(25,123,108,' + Math.min(0.4, dev * 5).toFixed(3) + ')';
+                ctx.fill();
+                ctx.strokeStyle = TYPE_COLOR[busTypes[i]];
+                ctx.lineWidth = busTypes[i] === 1 ? 1.5 : 2.2;
+                ctx.stroke();
+                ctx.strokeStyle = '#1a1a17'; ctx.lineWidth = 1.2;
+                ctx.beginPath(); ctx.moveTo(x, y);
+                ctx.lineTo(x + Math.cos(f.delta[i]) * (R - 2), y - Math.sin(f.delta[i]) * (R - 2));
+                ctx.stroke();
+                ctx.fillStyle = '#52504a'; ctx.font = '8.5px "JetBrains Mono", monospace';
+                ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                ctx.fillText(String(id), x, y - R - 6);
+            }
+        }
+
+        function drawConv(k) {
+            var ctx = Cv.ctx, w = Cv.w, h = Cv.h;
+            ctx.clearRect(0, 0, w, h);
+            var padL = 30, padB = 22, padT = 12, padR = 8;
+            var X = function (it) { return padL + it / Math.max(1, res.iterations) * (w - padL - padR); };
+            var Y = function (e) { var v = Math.max(-15, Math.log10(Math.max(e, 1e-15))); return padT + (1 - (v + 15) / 16) * (h - padT - padB); };
+            ctx.strokeStyle = 'rgba(150,145,125,0.35)'; ctx.lineWidth = 1;
+            [1e0, 1e-4, 1e-8, 1e-12].forEach(function (lv) {
+                ctx.beginPath(); ctx.moveTo(padL, Y(lv)); ctx.lineTo(w - padR, Y(lv)); ctx.stroke();
+                ctx.fillStyle = '#9a978d'; ctx.font = '8px "JetBrains Mono", monospace';
+                ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+                ctx.fillText('1e' + Math.round(Math.log10(lv)), padL - 3, Y(lv));
+            });
+            ctx.strokeStyle = '#197b6c'; ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            for (var i = 0; i <= Math.min(k, frames.length - 1); i++) {
+                var pt = [X(i), Y(frames[i].maxError)];
+                if (i) ctx.lineTo(pt[0], pt[1]); else ctx.moveTo(pt[0], pt[1]);
+            }
+            ctx.stroke();
+            ctx.fillStyle = '#197b6c';
+            for (var j = 0; j <= Math.min(k, frames.length - 1); j++) {
+                ctx.beginPath(); ctx.arc(X(j), Y(frames[j].maxError), 2.5, 0, 7); ctx.fill();
+            }
+            ctx.fillStyle = '#52504a'; ctx.font = '9px -apple-system, sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText('反復 →（縦軸: 最大ミスマッチ・対数）', padL + (w - padL - padR) / 2, h - padB + 6);
+        }
+
+        var stat = document.getElementById('demoStat');
+        var foot = document.getElementById('demoFoot');
+        var fi = REDUCED ? frames.length - 1 : 0;
+        var playing = !REDUCED;
+        var lastAdv = 0;
+        function show(k, tSec) {
+            drawNet(k, tSec || 0);
+            drawConv(k);
+            var f = frames[k];
+            if (k >= frames.length - 1) {
+                stat.textContent = '✓ ' + res.iterations + '回で収束（ミスマッチ ' + f.maxError.toExponential(1) + ' p.u.）';
+                foot.innerHTML = '収支の検算: 発電 <b>' + bal.genMW.toFixed(2) + '</b> = 負荷 ' + bal.loadMW.toFixed(2) +
+                    ' + 損失 ' + bal.lossMW.toFixed(3) + ' MW（残差 ' + bal.residualMW.toExponential(1) + '）✓ — 数値はすべてこの場の実計算です。';
+            } else {
+                stat.textContent = '反復 ' + k + ' / ' + res.iterations + ' · 最大ミスマッチ ' + f.maxError.toExponential(1) + ' p.u.';
+            }
+            window.demoState.frame = k;
+        }
+        function loop(ts) {
+            var tSec = ts / 1000;
+            if (playing && ts - lastAdv > 900) {
+                lastAdv = ts;
+                if (fi < frames.length - 1) fi++;
+                else playing = false;
+            }
+            show(fi, tSec);
+            requestAnimationFrame(loop);
+        }
+        document.getElementById('demoPlay').addEventListener('click', function () {
+            fi = 0; playing = true; lastAdv = 0;
+        });
+        document.getElementById('demoStep').addEventListener('click', function () {
+            playing = false;
+            fi = Math.min(fi + 1, frames.length - 1);
+        });
+        requestAnimationFrame(loop);
     })();
     </script>
 </body>

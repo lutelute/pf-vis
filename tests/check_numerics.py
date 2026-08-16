@@ -296,6 +296,19 @@ def main():
               f"ladder={r['ladder']}, ex={r['ex']}")
         check("ラダーチップに✓が付く", r["doneChip"] == 1)
         check("再訪者向けCTAに切替（次の未修了）", "未修了" in r["ctaTxt"] or "続き" in r["ctaTxt"], r["ctaTxt"][:60])
+        # ライブデモ「いま解いてみる」: 実計算のNRトレース再生（自動再生で収束まで）
+        page.wait_for_function(
+            "() => window.demoState && window.demoState.frame >= window.demoState.iterations",
+            timeout=20000)
+        r = page.evaluate("""() => ({
+            conv: window.demoState.converged, it: window.demoState.iterations,
+            loss: window.demoState.lossMW,
+            stat: document.getElementById('demoStat').innerText,
+            foot: document.getElementById('demoFoot').innerText
+        })""")
+        check("ライブデモ: NR収束（3〜8回）", r["conv"] and 3 <= r["it"] <= 8, f"iter={r['it']}")
+        check("ライブデモ: 損失 4.641 MW (WSCC9)", abs(r["loss"] - 4.641) < 0.01, f"loss={r['loss']:.3f}")
+        check("ライブデモ: 収束表示と収支検算", "収束" in r["stat"] and "4.641" in r["foot"], r["stat"])
         page.evaluate("""() => {
             localStorage.removeItem('pfvis_ladder_l0');
             localStorage.removeItem('pfvis-exercises');
