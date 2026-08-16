@@ -10,365 +10,279 @@
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles/main.css?v=2">
     <style>
-    /* トップページの大分類見出し（種類ごとに1グループ: ツール/道すじ/講義/演習/資料） */
-    .group-head { margin: 44px 0 10px; border-bottom: 3px double var(--border); padding-bottom: 8px; }
-    .group-head h2 { font-family: var(--mincho); font-size: 1.45rem; margin: 0; color: var(--text-primary); }
-    .group-head p { margin: 4px 0 0; color: var(--text-secondary); font-size: 0.92rem; }
+    /* ===== ダッシュボード（管制卓）固有スタイル — main.css は変更しない ===== */
+    body.dashboard { font-size: 15px; }
+    .dash-wrap { max-width: 1160px; margin: 0 auto; padding: 14px 18px 60px; }
+
+    .dash-header { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 8px 0 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .dash-header .t { display: flex; align-items: center; gap: 10px; }
+    .dash-header .logo-sq { width: 34px; height: 34px; border-radius: 8px; background: var(--accent-blue); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .dash-header h1 { font-size: 1.12rem; margin: 0; color: var(--text-primary); }
+    .dash-header .sub { font-size: 0.78rem; color: var(--text-muted); }
+    .dash-header nav { display: flex; gap: 6px; flex-wrap: wrap; }
+    .dash-header nav a { font-size: 0.82rem; color: var(--text-secondary); text-decoration: none; border: 1px solid var(--border); border-radius: 16px; padding: 6px 12px; min-height: 28px; display: inline-flex; align-items: center; }
+    .dash-header nav a:hover { color: var(--accent-blue); border-color: var(--accent-blue); }
+
+    .dash-grid { display: grid; grid-template-columns: 1.35fr 1fr 1fr; gap: 10px; margin: 12px 0; }
+    .dash-tile { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; }
+    .dash-tile .k { font-size: 0.72rem; letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 4px; }
+    .dash-tile .v { font-family: 'JetBrains Mono', monospace; font-size: 1.25rem; color: var(--text-primary); }
+    .dash-tile .v small { font-size: 0.8rem; color: var(--text-secondary); font-family: inherit; }
+    .dash-tile .note { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+    .cta-tile { display: flex; flex-direction: column; justify-content: center; gap: 8px; border-left: 3px solid var(--accent-blue); }
+    .cta-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .cta-main { background: var(--accent-blue); color: #fff !important; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 0.92rem; text-decoration: none; display: inline-flex; align-items: center; min-height: 34px; }
+    .cta-sub { color: var(--accent-blue) !important; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; min-height: 32px; background: var(--bg-card); }
+    .cta-hint { font-size: 0.78rem; color: var(--text-secondary); }
+
+    .verify-band { display: flex; gap: 14px; flex-wrap: wrap; align-items: baseline; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px; padding: 9px 16px; font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 14px; }
+    .verify-band b { color: var(--accent-blue); font-family: 'JetBrains Mono', monospace; }
+    .verify-band .lbl { font-weight: 700; color: var(--text-primary); }
+    .verify-band a { color: var(--accent-blue); }
+
+    .sec-h { display: flex; align-items: baseline; gap: 10px; margin: 20px 0 8px; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
+    .sec-h h2 { font-size: 1.02rem; margin: 0; color: var(--text-primary); }
+    .sec-h .d { font-size: 0.78rem; color: var(--text-muted); }
+
+    /* ツール機能地図 */
+    .hub-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; background: var(--bg-card); border: 2px solid var(--accent-blue); border-radius: 12px; padding: 12px 18px; margin-bottom: 10px; }
+    .hub-card .hl { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .hub-card .hname { font-weight: 700; font-size: 1.0rem; color: var(--text-primary); }
+    .hub-card .hdesc { font-size: 0.8rem; color: var(--text-secondary); }
+    .tool-map { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .stage-col { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+    .stage-col .sh { font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.04em; padding: 2px 6px 6px; }
+    .tool-card { display: block; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; margin-bottom: 8px; text-decoration: none; }
+    .tool-card:last-child { margin-bottom: 0; }
+    .tool-card:hover { border-color: var(--accent-blue); }
+    .tool-card .tn { font-weight: 700; font-size: 0.87rem; color: var(--text-primary); display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+    .tool-card .tb { font-size: 0.75rem; color: var(--text-secondary); margin-top: 3px; line-height: 1.5; }
+    .badge { font-size: 0.66rem; color: var(--accent-blue); border: 1px solid var(--accent-blue); border-radius: 10px; padding: 1px 7px; white-space: nowrap; font-weight: 600; }
+
+    /* 学習の道すじ（帯） */
+    .band { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
+    .band .bh { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+    .band .bh b { font-size: 0.86rem; color: var(--text-primary); }
+    .band .bh span { font-size: 0.74rem; color: var(--text-muted); }
+    .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+    .chip { font-size: 0.79rem; color: var(--text-primary); text-decoration: none; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; min-height: 30px; display: inline-flex; align-items: center; gap: 5px; background: var(--bg-surface); }
+    .chip:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
+    .chip .st { font-size: 0.68rem; color: var(--text-muted); }
+    .chip.done { border-color: var(--accent-green); }
+    .chip .ok { color: var(--accent-green); font-weight: 700; }
+    .chips .arrow { color: var(--text-muted); align-self: center; font-size: 0.8rem; }
+
+    /* 検証と資料 */
+    .docs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+    .doc-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 0.8rem; color: var(--text-secondary); }
+    .doc-card b { display: block; color: var(--text-primary); font-size: 0.86rem; margin-bottom: 3px; }
+    .doc-card a { color: var(--accent-blue); }
+
+    .dash-footer { margin-top: 26px; border-top: 1px solid var(--border); padding-top: 12px; font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .dash-footer a { color: var(--accent-blue); }
+
+    @media (max-width: 1000px) { .tool-map { grid-template-columns: repeat(2, 1fr); } .dash-grid { grid-template-columns: 1fr 1fr; } .cta-tile { grid-column: 1 / -1; } }
+    @media (max-width: 620px) {
+        .tool-map { grid-template-columns: 1fr; }
+        .dash-grid { grid-template-columns: 1fr; }
+        .sec-h { flex-direction: column; align-items: flex-start; gap: 2px; }
+        .sec-h h2 { white-space: nowrap; }
+    }
     </style>
 </head>
-<body>
-    <div class="container">
-        <header class="header">
-            <div class="logo">
-                <div class="logo-icon" aria-hidden="true">&#9889;</div>
+<body class="dashboard">
+    <div class="dash-wrap">
+
+        <header class="dash-header">
+            <div class="t">
+                <div class="logo-sq" aria-hidden="true">&#9889;</div>
                 <div>
-                    <h1 class="title">Power Flow Visualization</h1>
-                    <p class="subtitle">電力潮流計算アルゴリズムの可視化・教育プラットフォーム</p>
+                    <h1>Power Flow Visualization</h1>
+                    <div class="sub">潮流計算の可視化・教育プラットフォーム — 全20教材</div>
                 </div>
             </div>
+            <nav aria-label="サイト内リンク">
+                <a href="map.html">&#128506; 学習アトラス</a>
+                <a href="#path">道すじ</a>
+                <a href="#docs">検証と資料</a>
+                <a href="https://github.com/lutelute/pf-vis">GitHub</a>
+            </nav>
         </header>
 
-        <main>
-            <!-- 入口: はじめて → 地図 + ページ内ナビ -->
-            <section class="learning-path" aria-label="入口" style="border-left: 3px solid var(--accent-blue); padding: 18px 30px; margin-top: 8px;">
-                <p style="margin: 0; font-size: 1.02rem;">
-                    はじめての方へ:
-                    <a href="getting_started.html" style="color: var(--accent-blue); font-weight: 700;">&#128682; はじめに</a>
-                    <span style="color: var(--text-secondary); font-size: 0.92rem;">（前提知識・用語・最初の5分）</span>
-                    →
-                    <a href="map.html" style="color: var(--accent-blue); font-weight: 700;">&#128506; 学習アトラス</a>
-                    <span style="color: var(--text-secondary); font-size: 0.92rem;">（全16教材の俯瞰マップ。迷ったらこの地図から）</span>
-                </p>
-                <p style="margin: 10px 0 0; font-size: 0.92rem; color: var(--text-secondary);">
-                    このページ:
-                    <a href="#tools" style="color: var(--accent-blue);">&#128300; ツール</a> ·
-                    <a href="#path" style="color: var(--accent-blue);">&#129517; 道すじ</a> ·
-                    <a href="#lectures" style="color: var(--accent-blue);">&#127908; 講義</a> ·
-                    <a href="#exercises" style="color: var(--accent-blue);">&#9999;&#65039; 演習</a> ·
-                    <a href="#docs" style="color: var(--accent-blue);">&#128196; 資料</a>
-                </p>
-            </section>
-
-            <!-- ①ツール -->
-            <div class="group-head" id="tools">
-                <h2>&#128300; ツール — 8つのシミュレータで動かして確かめる</h2>
-                <p>すべてブラウザ内の実計算（MATPOWER公式解と照合済み）。バッジは下の「道すじ」の段階に対応します。</p>
-            </div>
-
-            <section class="visualizers" aria-label="可視化ツール一覧">
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--cyan" aria-hidden="true">&#9199;</div>
-                        <h2 class="card-title">アルゴリズム・シミュレータ <span class="path-badge">横断</span></h2>
-                    </div>
-                    <p class="card-description">計算トレースの再生機。GSは1母線ずつ・高速分離法は半反復ずつコマ送りし、系統図・複素電圧平面・収束曲線が同期して動く。4手法同時レースと全手法×全5系統の網羅実測表つき。</p>
-                    <div class="card-footer">
-                        <a href="power_flow_simulator.html" class="btn btn-primary">起動 &rarr;</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--red" aria-hidden="true">&#129504;</div>
-                        <h2 class="card-title">収束過程直感的理解 <span class="path-badge">入門</span></h2>
-                    </div>
-                    <p class="card-description">複素電圧平面の軌跡と誤差曲面で「非線形方程式の反復解法」を体感する入門ツール。2〜500ノード・NR/GS/勾配降下/DC。</p>
-                    <div class="card-footer">
-                        <a href="power_flow_intuitive_v6_fixed.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/power_flow_intuitive.md" class="btn btn-secondary">&#128196; 技術詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--purple" aria-hidden="true">&#128269;</div>
-                        <h2 class="card-title">計算過程ステップ表示 <span class="path-badge">基礎</span></h2>
-                    </div>
-                    <p class="card-description">Newton-Raphson法の1反復（ミスマッチ→ヤコビアン→修正量）を6段階で解剖。実数値ヤコビアンはクリックで物理的意味まで降りられる。</p>
-                    <div class="card-footer">
-                        <a href="power_flow_process_visualizer_v2.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/power_flow_process_visualizer.md" class="btn btn-secondary">&#128196; 技術詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--orange" aria-hidden="true">&#9878;</div>
-                        <h2 class="card-title">アルゴリズム同時比較 <span class="path-badge">比較</span></h2>
-                    </div>
-                    <p class="card-description">8手法を同一系統・同一条件で同時実行し、収束次数の違い（2次 vs 線形）を実測で見る。真の解への距離・実測次数pつき。</p>
-                    <div class="card-footer">
-                        <a href="power_flow_compare.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/power_flow_compare.md" class="btn btn-secondary">&#128196; 技術詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--cyan" aria-hidden="true">&#9881;</div>
-                        <h2 class="card-title">MATPOWER準拠実装 <span class="path-badge">実践</span></h2>
-                    </div>
-                    <p class="card-description">実務標準のMATPOWERデータ形式（bus/gen/branch）でIEEE標準系統（2/5/9/14/30母線）を解く。電力収支検算・実数値ヤコビアンつき。</p>
-                    <div class="card-footer">
-                        <a href="power_flow_matpower_v2.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/power_flow_matpower_v2.md" class="btn btn-secondary">&#128196; 技術詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--blue" aria-hidden="true">&#128202;</div>
-                        <h2 class="card-title">統合分析スイート <span class="path-badge">発展</span></h2>
-                    </div>
-                    <p class="card-description">LM法・連続潮流・HELM等の発展手法を含む8アルゴリズムの横断分析プラットフォーム。比較表・ランキング・詳細メトリクス。</p>
-                    <div class="card-footer">
-                        <a href="power_flow_v5.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/power_flow_v5.md" class="btn btn-secondary">&#128214; 詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--green" aria-hidden="true">&#128207;</div>
-                        <h2 class="card-title">DC潮流精度検証 <span class="path-badge">応用</span></h2>
-                    </div>
-                    <p class="card-description">線形近似（DC潮流）の誤差をAC解と比較して定量化し、適用限界を見極める分析ツール。</p>
-                    <div class="card-footer">
-                        <a href="dc_accuracy_analysis.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/dc_accuracy_analysis.md" class="btn btn-secondary">&#128196; 技術詳細</a>
-                    </div>
-                </article>
-
-                <article class="card" data-animate>
-                    <div class="card-header">
-                        <div class="card-icon card-icon--green" aria-hidden="true">&#127919;</div>
-                        <h2 class="card-title">多手法可視化 <span class="path-badge">補助</span></h2>
-                    </div>
-                    <p class="card-description">各手法を個別にじっくり実行・観察できる補助ツール。パラメータ調整と手法カタログつき。</p>
-                    <div class="card-footer">
-                        <a href="power_flow_visualizer.html" class="btn btn-primary">起動 &rarr;</a>
-                        <a href="docs/power_flow_visualizer.md" class="btn btn-secondary">&#128196; 技術詳細</a>
-                    </div>
-                </article>
-            </section>
-
-            <!-- ②道すじ -->
-            <div class="group-head" id="path">
-                <h2>&#129517; 道すじ — どの順で進むか</h2>
-                <p>上のツール群を巡る2本の道。標準は「推奨学習パス」、前提知識ゼロから登るなら「学習ラダー」。</p>
-            </div>
-
-            <section class="learning-path" id="learning-path" aria-label="推奨学習パス">
-                <h2 class="doc-title">&#127891; 推奨学習パス（標準の道）</h2>
-                <p class="path-intro"><a href="getting_started.html" style="color: var(--accent-cyan); font-weight: 600;">&#128682; はじめに</a> のあと、上から順に進むと、潮流計算の直感 → アルゴリズムの中身 → 手法比較 → 実務水準の解析、と段階的に理解できます。</p>
-                <ol class="path-steps">
-                    <li>
-                        <span class="path-badge">入門</span>
-                        <a href="power_flow_intuitive_v6_fixed.html">収束過程の直感的理解</a>
-                        <span class="path-desc">— 潮流計算は「非線形方程式の反復解法」。解に近づく様子を複素電圧平面で体感する</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">基礎</span>
-                        <a href="power_flow_process_visualizer_v2.html">計算過程ステップ表示</a>
-                        <span class="path-desc">— Newton-Raphson法の1反復（ミスマッチ計算 → ヤコビアン → 修正量）を式と数値で追う</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">比較</span>
-                        <a href="power_flow_compare.html">アルゴリズム同時比較</a>
-                        <span class="path-desc">— NR・Gauss-Seidel・高速分離・DCを同一系統で同時実行し、収束次数の違いを見る</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">実践</span>
-                        <a href="power_flow_matpower_v2.html">MATPOWER準拠実装</a>
-                        <span class="path-desc">— 実務標準のMATPOWERデータ形式（bus/gen/branch）で IEEE標準系統を解く</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">発展</span>
-                        <a href="power_flow_v5.html">統合分析スイート</a>
-                        <span class="path-desc">— 8手法（LM法・連続潮流・HELM等の発展手法を含む）の性能を横断分析する</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">応用</span>
-                        <a href="dc_accuracy_analysis.html">DC潮流の精度検証</a>
-                        <span class="path-desc">— 線形近似（DC潮流）はどこまで正確か。AC解と比較して適用限界を定量化する</span>
-                    </li>
-                </ol>
-            </section>
-
-            <section class="learning-path" id="ladder" aria-label="学習ラダー" style="border-left: 3px solid var(--accent-green);">
-                <h2 class="doc-title">&#129698; 学習ラダー（前提知識ゼロから登る道）</h2>
-                <p class="path-intro">たし算だけの入口（L0）から研究の入口（L6）まで、同じ物理を言葉を変えながら登ります。上の学習パスはL3〜L4に対応します（設計: <a href="docs/LADDER.md" style="color: var(--accent-cyan);">LADDER.md</a>）。</p>
-                <ol class="path-steps">
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-green);">L0</span>
-                        <a href="ladder_l0.html">電気はためられない — つくる・つかう・うしなうの釣り合い</a>
-                        <span class="path-desc">— 前提はたし算とかけ算だけ。裏の計算は本物（損失の厳密解・送電限界つき）。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-green);">L1</span>
-                        <a href="ladder_l1.html">電圧×電流 — 送電線が50万ボルトを使う理由</a>
-                        <span class="path-desc">— 前提は中学理科のV=IRとP=VI。損失I²Rの実計算で「電圧10倍→損失1/100」を突き止める。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-green);">L2</span>
-                        <a href="ladder_l2.html">回る矢印と2つの電力 — 交流の言葉</a>
-                        <span class="path-desc">— 前提は高校の三角関数。フェーザ実アニメと瞬時電力p(t)の実計算でP/Qの正体を掴み、P∝sinδでL3へ橋を架ける。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-orange);">橋</span>
-                        <a href="ladder_bridge.html">複素数という記法 — 回る矢印を代数にする</a>
-                        <span class="path-desc">— L2⇔L3の橋渡し: 矢印⇔複素数の往復・S=V·I*（p(t)平均との検算つき）・p.u.法・Ybusの入口。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge">L3〜L4</span>
-                        <a href="getting_started.html">はじめに → 学習パス1〜6</a>
-                        <span class="path-desc">— 学部基礎〜修士: 潮流計算の本体（上の推奨学習パスがこの段）</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">L5</span>
-                        <a href="ladder_l5.html">連続潮流とPV曲線 — 解が消える点を追跡する</a>
-                        <span class="path-desc">— 実PV曲線トレース(上枝・下枝・ノーズ=det J=0の実測)。補償の逆説と安定余裕。昇級課題3問</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">L6</span>
-                        <a href="ladder_l6.html">研究の入口 — 収束の地図と、開いている問い</a>
-                        <span class="path-desc">— NR収束領域(basin)の実測地図・σ_min(J)崩落の実験＋研究5軸の文献地図。昇級課題3問でラダー踏破</span>
-                    </li>
-                </ol>
-            </section>
-
-            <!-- ③講義 -->
-            <div class="group-head" id="lectures">
-                <h2>&#127908; 講義 — スライドで1本の物語を通して聴く</h2>
-                <p>章立てスライドの講演スタイル教材（ブループリント形式）。数式は全て実数値つき・計算は全てその場の本物です。</p>
-            </div>
-
-            <section class="learning-path" aria-label="講演スタイル教材" style="border-left: 3px solid var(--accent-purple);">
-                <ol class="path-steps" style="margin-top: 4px;">
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演1</span>
-                        <a href="learn_newton.html">Newton-Raphson潮流計算 — 解けない方程式を、傾きで解く</a>
-                        <span class="path-desc">— 全16枚。ミスマッチの地図 → ヤコビアン導出 → 2次収束の実証 → 検算まで（🎲負荷可変）</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演2</span>
-                        <a href="learn_gs.html">Gauss-Seidel潮流計算 — 連立を解かずに、1母線ずつ</a>
-                        <span class="path-desc">— 全14枚。不動点・線形収束・共役の罠。加速係数ωが逆効果になる実測と、崩壊接近で失速する収束比率ρの実験</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演3</span>
-                        <a href="learn_dc.html">DC潮流 — 割り切りの技術</a>
-                        <span class="path-desc">— 全13枚。3つの割り切りで一次方程式へ。AC/DC誤差の負荷スイープ実測と「DCに見えないもの」</span>
-                    </li>
-                    <li>
-                        <span class="path-badge" style="color: var(--accent-purple);">講演4</span>
-                        <a href="learn_collapse.html">電圧崩壊 — 解が消える瞬間</a>
-                        <span class="path-desc">— 全13枚。2解の接近・合体・消滅をPV曲線の実トレースで。初期値依存のNR実走と補償の逆説</span>
-                    </li>
-                </ol>
-            </section>
-
-            <!-- ④演習 -->
-            <div class="group-head" id="exercises">
-                <h2>&#9999;&#65039; 演習 — 腕試し</h2>
-                <p>学んだことを手と数値で確かめる場所。演習への入口はここに集約しています。</p>
-            </div>
-
-            <section class="learning-path" aria-label="演習問題" style="border-left: 3px solid var(--accent-orange); padding: 20px 30px;">
-                <p style="margin: 0; font-size: 1.02rem;">
-                    <a href="exercises.html" style="color: var(--accent-blue); font-weight: 700;">✏️ 演習問題 — 全18問</a>
-                    <span style="color: var(--text-secondary); font-size: 0.92rem;">
-                    — 手計算チャレンジ・ツール操作・考察の3タイプ、難易度バッジつき。数値入力は自動判定（22入力欄）、
-                    達成状況はブラウザに保存され、学習アトラスにも反映されます。学習パスの各段階・ラダーの昇級課題と対応。</span>
-                </p>
-            </section>
-
-            <!-- ⑤資料 -->
-            <div class="group-head" id="docs">
-                <h2>&#128196; 資料 — 技術文書・ファイル構成</h2>
-                <p>各ツールの数理・実装・検証の詳細はこちら。</p>
-            </div>
-
-            <section class="documentation" aria-label="技術文書">
-                <div class="doc-links">
-                    <a href="README.md" class="doc-link">
-                        <span aria-hidden="true">&#128203;</span>
-                        <div>
-                            <strong>README</strong>
-                            <br><small>プロジェクト概要</small>
-                        </div>
-                    </a>
-                    <a href="docs/power_flow_methods.md" class="doc-link">
-                        <span aria-hidden="true">&#128300;</span>
-                        <div>
-                            <strong>技術ノート</strong>
-                            <br><small>潮流計算手法詳解</small>
-                        </div>
-                    </a>
-                    <a href="docs/" class="doc-link">
-                        <span aria-hidden="true">&#128214;</span>
-                        <div>
-                            <strong>全文書一覧</strong>
-                            <br><small>各ツールの詳細文書</small>
-                        </div>
-                    </a>
+        <!-- ① 次の一手 + 進捗 -->
+        <div class="dash-grid">
+            <div class="dash-tile cta-tile" id="ctaTile">
+                <div class="k">次の一手</div>
+                <div class="cta-row" id="ctaRow">
+                    <a class="cta-main" href="getting_started.html">&#128682; 5分ではじめる</a>
+                    <a class="cta-sub" href="map.html">全体を地図で見る</a>
                 </div>
-            </section>
+                <div class="cta-hint" id="ctaHint">最初は「収束体感」→「計算過程」の順がおすすめです。</div>
+            </div>
+            <div class="dash-tile">
+                <div class="k">昇級課題（ラダー）</div>
+                <div class="v"><span id="ladderDone">0</span><small> / 6 段</small></div>
+                <div class="note" id="ladderNote">この端末のブラウザに保存</div>
+            </div>
+            <div class="dash-tile">
+                <div class="k">演習の自動判定</div>
+                <div class="v"><span id="exDone">0</span><small> / 22 入力欄</small></div>
+                <div class="note"><a href="exercises.html" style="color:var(--accent-blue)">演習を開く</a>（全18問）</div>
+            </div>
+        </div>
 
-            <section class="file-organization" aria-label="ファイル構成">
-                <details>
-                <summary style="cursor: pointer; font-weight: 600; color: var(--text-secondary); padding: 4px 0;">&#128193; ファイル構成（開発者向け・クリックで展開）</summary>
-                <div class="file-info" style="margin-top: 12px;">
-                    <div class="file-category">
-                        <h3>共有モジュール</h3>
-                        <ul>
-                            <li><code>scripts/ieee_cases.js</code> - IEEE標準系統データ (2/5/9/14/30母線・MATPOWER準拠)</li>
-                            <li><code>scripts/power_flow_engine.js</code> - 潮流計算エンジン (NR, GS, FDLF, DC)</li>
-                            <li><code>scripts/power_flow_utils.js</code> - 行列演算・複素数演算ユーティリティ</li>
-                        </ul>
-                    </div>
-                    <div class="file-category">
-                        <h3>検証</h3>
-                        <ul>
-                            <li><code>tests/verify_algorithms.mjs</code> - MATPOWER基準解との照合テスト (<code>node tests/verify_algorithms.mjs</code>)</li>
-                            <li><code>tests/check_pages.py</code> - 全ページのブラウザ動作確認</li>
-                        </ul>
-                    </div>
-                    <div class="file-category">
-                        <h3>アーカイブ</h3>
-                        <p><small>旧バージョンは <a href="archive/">archive/</a> ディレクトリにあります。<br>詳細は <a href="archive/README.md">archive/README.md</a> をご覧ください。</small></p>
-                    </div>
-                </div>
-                </details>
-            </section>
-        </main>
+        <!-- ② 検証帯（このサイトの検証基盤 — 範囲を明示する） -->
+        <div class="verify-band">
+            <span class="lbl">&#9989; 検証基盤:</span>
+            <span>共有エンジン <b>59</b>テスト（MATPOWER公式解照合・モデル性質・有限差分ヤコビアン）</span>
+            <span>E2E数値回帰 <b>85</b>項目（各ページの画面上の数値を検証）</span>
+            <span>ページ動作 <b>22</b>ページ / レイアウト <b>5</b>画面幅</span>
+            <span><a href="README.md">検証の詳細 →</a></span>
+        </div>
 
-        <footer class="footer">
-            <p>電力潮流計算アルゴリズムの可視化・教育プラットフォーム</p>
-            <p><small>教育目的で開発されました。MATPOWERプロジェクト、IEEE標準系統データに深く感謝いたします。</small></p>
-            <a href="https://github.com/lutelute/pf-vis" class="github-link">
-                <span aria-hidden="true">&#11088;</span>
-                GitHub で見る
-            </a>
+        <!-- ③ ツール機能地図 -->
+        <div class="sec-h" id="tools">
+            <h2>&#128300; ツール機能地図</h2>
+            <div class="d">すべてブラウザ内の実計算。横断ハブから入るか、段階1→4へ</div>
+        </div>
+        <div id="hubHost"></div>
+        <div class="tool-map" id="toolMap"></div>
+
+        <!-- ④ 学習の道すじ（圧縮帯） -->
+        <div class="sec-h" id="path">
+            <h2>&#129517; 学習の道すじ</h2>
+            <div class="d">標準の道（学習パス）と、前提知識ゼロから登る道（ラダー）</div>
+        </div>
+
+        <div class="band" id="learning-path">
+            <div class="bh"><b>&#127891; 推奨学習パス</b><span><a href="getting_started.html" style="color:var(--accent-blue)">はじめに</a> のあと左から順に</span></div>
+            <div class="chips" id="pathChips"></div>
+        </div>
+
+        <div class="band" id="ladder">
+            <div class="bh"><b>&#129698; 学習ラダー</b><span>たし算だけのL0から研究入口L6まで。L3〜L4は上の学習パスが本体（✓=昇級課題3問クリア）</span></div>
+            <div class="chips" id="ladderChips"></div>
+        </div>
+
+        <div class="band" id="lectures">
+            <div class="bh"><b>&#127908; 講義（スライド4本）</b><span>1本の物語を通して聴く。計算は全てその場の本物</span></div>
+            <div class="chips" id="lectureChips"></div>
+        </div>
+
+        <div class="band" id="exercises">
+            <div class="bh"><b>&#9999;&#65039; 演習</b><span>手計算・ツール操作・考察の全18問。数値入力は自動判定</span></div>
+            <div class="chips">
+                <a class="chip" href="exercises.html">演習問題を開く <span class="st" id="exChipNote"></span></a>
+                <a class="chip" href="getting_started.html#glossary">用語集</a>
+            </div>
+        </div>
+
+        <!-- ⑤ 検証と資料 -->
+        <div class="sec-h" id="docs">
+            <h2>&#128196; 検証と資料</h2>
+            <div class="d">数理・実装・検証の詳細</div>
+        </div>
+        <div class="docs-grid">
+            <div class="doc-card"><b>&#128203; README</b>プロジェクト概要・検証4層の実行方法<br><a href="README.md">開く →</a></div>
+            <div class="doc-card"><b>&#128300; 技術ノート</b>潮流計算手法の詳解<br><a href="docs/power_flow_methods.md">開く →</a></div>
+            <div class="doc-card"><b>&#128214; 全文書一覧</b>各ツールの技術文書・保守メモ<br><a href="docs/">開く →</a></div>
+            <div class="doc-card"><b>&#128193; 実装の構成</b>共有エンジン scripts/power_flow_engine.js ほか<br><a href="README.md">README の構成図へ →</a>・<a href="archive/README.md">旧版アーカイブ</a></div>
+        </div>
+
+        <footer class="dash-footer">
+            <span>教育目的で開発。MATPOWERプロジェクト・IEEE標準系統データに深く感謝します。</span>
+            <span><a href="https://github.com/lutelute/pf-vis">&#11088; GitHub で見る</a></span>
         </footer>
     </div>
 
-    <script src="scripts/main.js"></script>
+    <script src="scripts/catalog.js"></script>
+    <script src="scripts/progress.js"></script>
     <script>
-    // 学習ラダー: 昇級課題の合格状況（各ページがlocalStorageに保存）を修了バッジで表示
-    (function(){
-        ['l0','l1','l2','bridge','l5','l6'].forEach(function(k){
-            try {
-                var s = JSON.parse(localStorage.getItem('pfvis_ladder_' + k) || '{}');
-                if (!(s.q1 && s.q2 && s.q3)) return;
-                var a = document.querySelector('#ladder a[href="ladder_' + k + '.html"]');
-                if (!a) return;
-                var b = document.createElement('span');
-                b.textContent = '✓修了';
-                b.style.cssText = 'color:var(--accent-green);font-weight:700;font-size:0.85em;margin-left:6px;';
-                a.after(b);
-            } catch (e) {}
-        });
+    (function () {
+        'use strict';
+        var C = window.PFVIS_CATALOG;
+        var byId = function (id) { return document.getElementById(id); };
+
+        /* ---- ツール機能地図（カタログが単一の情報源） ---- */
+        var STAGES = { 1: '1 感覚をつかむ', 2: '2 内部を読む', 3: '3 違いを比べる', 4: '4 実務と限界' };
+        function renderTools() {
+            var hub = C.filter(function (m) { return m.kind === 'tool' && m.stage === 0; })[0];
+            byId('hubHost').innerHTML =
+                '<a class="hub-card" href="' + hub.href + '">' +
+                '<span class="hl"><span class="badge">横断ハブ · ' + hub.type + '</span>' +
+                '<span class="hname">&#9199; ' + hub.title + '</span>' +
+                '<span class="hdesc">' + hub.blurb + '</span></span>' +
+                '<span class="cta-main" style="pointer-events:none">起動 &rarr;</span></a>';
+            var host = byId('toolMap');
+            host.innerHTML = Object.keys(STAGES).map(function (st) {
+                var cards = C.filter(function (m) { return m.kind === 'tool' && m.stage === Number(st); })
+                    .map(function (m) {
+                        return '<a class="tool-card" href="' + m.href + '">' +
+                            '<span class="tn">' + m.title + ' <span class="badge">' + m.type + '</span></span>' +
+                            '<span class="tb">' + m.blurb + '</span></a>';
+                    }).join('');
+                return '<div class="stage-col"><div class="sh">' + STAGES[st] + '</div>' + cards + '</div>';
+            }).join('');
+        }
+
+        /* ---- 道すじ帯 ---- */
+        var PATH_ORDER = ['intuitive', 'process', 'compare', 'matpower', 'v5', 'dcacc'];
+        var PATH_LABEL = { intuitive: '入門', process: '基礎', compare: '比較', matpower: '実践', v5: '発展', dcacc: '応用' };
+        function renderBands(prog) {
+            byId('pathChips').innerHTML = PATH_ORDER.map(function (id, k) {
+                var m = C.filter(function (x) { return x.id === id; })[0];
+                var chip = '<a class="chip" href="' + m.href + '"><span class="st">' + PATH_LABEL[id] + '</span>' + m.title + '</a>';
+                return (k ? '<span class="arrow">→</span>' : '') + chip;
+            }).join('');
+            byId('ladderChips').innerHTML = C.filter(function (m) { return m.kind === 'ladder'; })
+                .map(function (m, k) {
+                    var done = prog.ladderFlags[m.prog];
+                    var chip = '<a class="chip' + (done ? ' done' : '') + '" href="' + m.href + '">' +
+                        m.title + (done ? ' <span class="ok">✓</span>' : '') + '</a>';
+                    return (k ? '<span class="arrow">→</span>' : '') + chip;
+                }).join('');
+            byId('lectureChips').innerHTML = C.filter(function (m) { return m.kind === 'lecture'; })
+                .map(function (m) {
+                    return '<a class="chip" href="' + m.href + '">' + m.title + '<span class="st">' + m.blurb + '</span></a>';
+                }).join('');
+        }
+
+        /* ---- 次の一手・進捗（pageshow/storage でも再集計） ---- */
+        function nextUndone(prog) {
+            var ladder = C.filter(function (m) { return m.kind === 'ladder'; });
+            for (var i = 0; i < ladder.length; i++) {
+                if (!prog.ladderFlags[ladder[i].prog]) return ladder[i];
+            }
+            return null;
+        }
+        function refresh() {
+            var prog = window.PFVisProgress.summary();
+            byId('ladderDone').textContent = prog.ladderDone;
+            byId('exDone').textContent = prog.exDone;
+            byId('exChipNote').textContent = prog.exDone > 0 ? '自動判定 ' + prog.exDone + '/22' : '';
+            renderBands(prog);
+
+            if (!prog.isNew) {
+                var row = byId('ctaRow'), hint = byId('ctaHint');
+                var parts = [];
+                if (prog.lastVisited && prog.lastVisited.href !== 'index.html') {
+                    parts.push('<a class="cta-main" href="' + prog.lastVisited.href + '">&#9654; 続き: ' +
+                        prog.lastVisited.title + '</a>');
+                }
+                var nu = nextUndone(prog);
+                if (nu) {
+                    parts.push('<a class="cta-sub" href="' + nu.href + '">次の未修了: ' + nu.title + '</a>');
+                }
+                parts.push('<a class="cta-sub" href="map.html">地図で見る</a>');
+                if (parts.length) row.innerHTML = parts.join('');
+                hint.textContent = '昇級 ' + prog.ladderDone + '/6 ・ 自動判定 ' + prog.exDone + '/22（この端末に保存）';
+            }
+        }
+
+        renderTools();
+        refresh();
+        window.addEventListener('pageshow', refresh);   // bfcache 復帰でも最新化
+        window.addEventListener('storage', refresh);    // 別タブでの進捗更新を反映
     })();
     </script>
 </body>

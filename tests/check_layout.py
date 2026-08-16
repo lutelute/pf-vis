@@ -22,6 +22,7 @@ PAGES = [
     ("MATPOWER", "power_flow_matpower_v2.html"),
     ("v5", "power_flow_v5.html"),
     ("可視化", "power_flow_visualizer.html"),
+    ("シミュレータ", "power_flow_simulator.html"),
     ("DC精度", "dc_accuracy_analysis.html"),
     ("演習", "exercises.html"),
     ("NR講演", "learn_newton.html"),
@@ -32,6 +33,7 @@ PAGES = [
     ("ラダーL0", "ladder_l0.html"),
     ("ラダーL1", "ladder_l1.html"),
     ("ラダーL2", "ladder_l2.html"),
+    ("ラダー橋", "ladder_bridge.html"),
     ("ラダーL5", "ladder_l5.html"),
     ("ラダーL6", "ladder_l6.html"),
 ]

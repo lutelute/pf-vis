@@ -68,6 +68,11 @@ table.sim-data td.num, table.sim-data th.num { text-align: right; font-family: u
 .backlink { font-size: 13px; margin-top: 26px; }
 .backlink a { color: var(--accent-blue); }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (max-width: 640px) {
+    /* モバイルのタップ領域確保（レイアウト検証④の指摘対応） */
+    .controls input[type=range], .transport input[type=range] { height: 30px; }
+    .controls select, .controls label { min-height: 30px; }
+}
 </style>
 </head>
 <body>

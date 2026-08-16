@@ -99,6 +99,14 @@
     };
 
     var file = (location.pathname.split('/').pop() || 'index.html');
+
+    // 「続きから」用の来訪記録（progress.js と同じ契約: pfvis.progress.v1.lastVisited）
+    try {
+        var v1 = JSON.parse(localStorage.getItem('pfvis.progress.v1') || '{}') || {};
+        v1.lastVisited = { href: file, title: document.title.replace(/\s*[|｜].*$/, ''), ts: Date.now() };
+        localStorage.setItem('pfvis.progress.v1', JSON.stringify(v1));
+    } catch (e) { /* 保存不可環境では何もしない */ }
+
     var cfg = PATH[file];
     if (!cfg) return;
 

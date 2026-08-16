@@ -260,6 +260,47 @@ def main():
               and r["loV"] is not None and abs(r["loV"] - 0.455) < 0.01,
               f"up={r['upV']}, lo={r['loV']}")
 
+        # ---------- index (ダッシュボード) ----------
+        print("\n■ ダッシュボード (index)")
+        page.goto(f"{BASE}/index.html")
+        page.wait_for_function("() => document.querySelectorAll('#toolMap .tool-card').length > 0")
+        r = page.evaluate("""() => ({
+            catalog: window.PFVIS_CATALOG.length,
+            hub: document.querySelectorAll('.hub-card').length,
+            toolCards: document.querySelectorAll('#toolMap .tool-card').length,
+            pathChips: document.querySelectorAll('#pathChips a').length,
+            ladderChips: document.querySelectorAll('#ladderChips a').length,
+            lectureChips: document.querySelectorAll('#lectureChips a').length,
+            hrefs: window.PFVIS_CATALOG.map(m => m.href)
+        })""")
+        check("カタログ20項目", r["catalog"] == 20, f"catalog={r['catalog']}")
+        check("ツール地図: 横断ハブ1 + 段階カード7", r["hub"] == 1 and r["toolCards"] == 7,
+              f"hub={r['hub']}, cards={r['toolCards']}")
+        check("道すじ帯: パス6・ラダー6・講義4", r["pathChips"] == 6 and r["ladderChips"] == 6 and r["lectureChips"] == 4,
+              f"path={r['pathChips']}, ladder={r['ladderChips']}, lec={r['lectureChips']}")
+        catalog_hrefs = set(r["hrefs"])
+        # 進捗が次の一手・タイル・チップに反映される（この端末に保存の契約）
+        page.evaluate("""() => {
+            localStorage.setItem('pfvis_ladder_l0', JSON.stringify({q1:true,q2:true,q3:true}));
+            localStorage.setItem('pfvis-exercises', JSON.stringify({q0:{ok:true}, q1:{ok:true}}));
+        }""")
+        page.reload()
+        page.wait_for_function("() => document.getElementById('ladderDone').textContent === '1'")
+        r = page.evaluate("""() => ({
+            ladder: document.getElementById('ladderDone').textContent,
+            ex: document.getElementById('exDone').textContent,
+            doneChip: document.querySelectorAll('#ladderChips a.done').length,
+            ctaTxt: document.getElementById('ctaRow').innerText
+        })""")
+        check("進捗タイル: 昇級1/6・自動判定2/22", r["ladder"] == "1" and r["ex"] == "2",
+              f"ladder={r['ladder']}, ex={r['ex']}")
+        check("ラダーチップに✓が付く", r["doneChip"] == 1)
+        check("再訪者向けCTAに切替（次の未修了）", "未修了" in r["ctaTxt"] or "続き" in r["ctaTxt"], r["ctaTxt"][:60])
+        page.evaluate("""() => {
+            localStorage.removeItem('pfvis_ladder_l0');
+            localStorage.removeItem('pfvis-exercises');
+        }""")
+
         # ---------- map (学習アトラス) ----------
         print("\n■ 学習アトラス (map)")
         page.goto(f"{BASE}/map.html")
@@ -270,12 +311,14 @@ def main():
             spineOk: SPINE.every(n => M.some(m => m.n === n)),
             motOk: M.every(m => typeof MOT[m.mo] === 'function')
         })""")
-        check("カード19枚 (16教材+講演3)", r["cards"] == 19, f"cards={r['cards']}")
+        check("カード20枚 (案内1+ツール8+講義4+ラダー6+演習1)", r["cards"] == 20, f"cards={r['cards']}")
         check("推奨順路の全項目がカードに存在", r["spineOk"])
         check("全カードにミニ可視化が定義", r["motOk"])
         import os as _os
         missing = [h for h in r["hrefs"] if not _os.path.exists(_os.path.join(_os.path.dirname(__file__), "..", h))]
         check("全リンク先ページが実在", not missing, f"missing={missing}")
+        check("map ⇔ カタログの項目が一致（単一の情報源）", set(r["hrefs"]) == catalog_hrefs,
+              f"diff={set(r['hrefs']) ^ catalog_hrefs}")
         # 進捗連携: 昇級記録がカードバッジに反映される
         page.evaluate("() => localStorage.setItem('pfvis_ladder_l1', JSON.stringify({q1:true,q2:true,q3:true}))")
         page.reload()

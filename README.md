@@ -129,7 +129,7 @@ python3 tests/check_layout.py      # ④ レイアウト検証: 3画面幅×全�
 
 ```
 pf-vis/
-├── index.html                            # メインページ（学習パス・ツール一覧）
+├── index.html                            # ダッシュボード（次の一手・進捗・ツール機能地図）
 ├── power_flow_intuitive_v6_fixed.html    # 1. 収束過程直感的理解（入門）
 ├── power_flow_process_visualizer_v2.html # 2. 計算過程ステップ表示（基礎）
 ├── power_flow_compare.html               # 3. アルゴリズム同時比較（比較）
@@ -144,8 +144,9 @@ pf-vis/
 │   ├── ieee_cases.js                     # IEEE標準系統データ（MATPOWER準拠・検証済み）
 │   ├── power_flow_engine.js              # 潮流計算エンジン（NR/GS/FDXB/DC）
 │   ├── power_flow_utils.js               # 複素数・行列演算ユーティリティ
-│   ├── learning_nav.js                   # 全ページ共通の学習ガイドバー
-│   └── main.js                           # メインページ用スクリプト
+│   ├── learning_nav.js                   # 全ページ共通の学習ガイドバー（来訪記録つき）
+│   ├── catalog.js                        # 全20教材の共通カタログ（トップとテストの単一情報源）
+│   └── progress.js                       # 学習進捗アダプター（昇級/自動判定/続きから）
 ├── styles/main.css                       # 共通スタイル
 ├── tests/
 │   ├── verify_algorithms.mjs             # ① エンジン照合テスト (22)
