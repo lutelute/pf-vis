@@ -15,7 +15,51 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # デプロイ前に検証4層を必須実行する（1つでも落ちたら公開されない）
+  # ① エンジン単体（MATPOWER照合・モデル性質・解析API）
+  # ② 全ページのJSエラー検出 ③ E2E数値回帰 ④ レイアウト検証
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: ① エンジン検証 (verify_algorithms)
+        run: node tests/verify_algorithms.mjs
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Playwright 準備
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq fonts-noto-cjk
+          pip install playwright
+          playwright install chromium --with-deps
+
+      - name: ローカルサーバ起動
+        run: |
+          python3 -m http.server 8093 &
+          sleep 1
+
+      - name: ② 全ページ動作確認 (check_pages)
+        # 最重量ページの読み込みタイムアウトが稀に出るため1回だけ再試行
+        run: python3 tests/check_pages.py 8093 || python3 tests/check_pages.py 8093
+
+      - name: ③ E2E数値回帰 (check_numerics)
+        run: python3 tests/check_numerics.py 8093 || python3 tests/check_numerics.py 8093
+
+      - name: ④ レイアウト検証 (check_layout)
+        run: python3 tests/check_layout.py 8093
+
   deploy:
+    needs: test
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

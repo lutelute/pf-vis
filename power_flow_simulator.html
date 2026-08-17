@@ -779,15 +779,41 @@ function rebuild() {
     els.scrub.value = Math.floor(fi);
     lastConvIter = -1; lastRaceTick = -1;
     els.methodWrap.style.display = mode === 'single' ? '' : 'none';
-    // PV曲線は系統ごとの結果なので、系統・手法を変えたらリセット
+    // PV曲線は系統ごとの結果（λ非依存・基準λ=1で計算）。
+    // 系統が変わったらリセット、同じ系統ならλマーカーだけ追従させる
     if (mode === 'single') {
-        els.pvChart.innerHTML = '';
-        els.pvStatus.textContent = '';
+        var ck = els.caseSel.value;
+        if (!pvCache || pvCache.caseKey !== ck) {
+            pvCache = null;
+            els.pvChart.innerHTML = '';
+            els.pvStatus.textContent = '';
+        } else {
+            renderPVChart();
+        }
         els.pvBtn.disabled = false;
     }
 }
 
 /* ---------- PV曲線（エンジンの tracePVCurve をそのまま描く） ---------- */
+var pvCache = null; // {curve, caseKey} — λスライダーと連動して現在点を描き直す
+
+function renderPVChart() {
+    if (!pvCache) return;
+    var curve = pvCache.curve;
+    var lam = Number(els.lamSlider.value);
+    var ann = [{ x: curve.noseLambda, label: 'ノーズ λ≈' + curve.noseLambda.toFixed(2), color: '#ca3c4e' }];
+    if (lam <= curve.noseLambda) {
+        ann.push({ x: lam, label: '今の λ=' + lam.toFixed(2), color: '#197b6c' });
+    }
+    linePlot(els.pvChart, {
+        series: [{ label: '|V|min', color: '#197b6c', noLabel: true, marker: false,
+            points: curve.points.map(function (p) { return { x: p.lambda, y: p.Vmin }; }) }],
+        xLabel: '負荷倍率 λ', yLabel: '最低電圧 [p.u.]', height: 200,
+        xTickFmt: function (v) { return String(Math.round(v * 100) / 100); },
+        annotations: ann
+    });
+}
+
 function runPVCurve() {
     els.pvStatus.textContent = '実測中…（λを上げながら連続求解）';
     els.pvBtn.disabled = true;
@@ -805,16 +831,12 @@ function runPVCurve() {
         }
         var nose = curve.points[curve.points.length - 1];
         var totalLoad = cd.bus.reduce(function (s, b) { return s + b[2]; }, 0);
-        linePlot(els.pvChart, {
-            series: [{ label: '|V|min', color: '#197b6c', noLabel: true, marker: false,
-                points: curve.points.map(function (p) { return { x: p.lambda, y: p.Vmin }; }) }],
-            xLabel: '負荷倍率 λ', yLabel: '最低電圧 [p.u.]', height: 200,
-            xTickFmt: function (v) { return String(Math.round(v * 100) / 100); },
-            annotations: [{ x: curve.noseLambda, label: 'ノーズ λ≈' + curve.noseLambda.toFixed(2), color: '#ca3c4e' }]
-        });
+        pvCache = { curve: curve, caseKey: caseKey };
+        renderPVChart();
         els.pvStatus.textContent = 'ノーズ点 λ≈' + curve.noseLambda.toFixed(3) +
             '（総負荷 ' + (totalLoad * curve.noseLambda).toFixed(0) + ' MW 相当）・最低電圧は母線' + nose.VminBus +
-            '（' + nose.Vmin.toFixed(3) + ' p.u.）・' + curve.points.length + '点を ' + ms.toFixed(0) + 'ms で実測';
+            '（' + nose.Vmin.toFixed(3) + ' p.u.）・' + curve.points.length + '点を ' + ms.toFixed(0) + 'ms で実測。' +
+            'λスライダーを動かすと曲線上の現在点が追従します';
         window.simState.noseLambda = curve.noseLambda;
         els.pvBtn.disabled = false;
     }); });
