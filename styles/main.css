@@ -184,6 +184,7 @@ body {
     align-items: center;
     gap: 6px;
     cursor: pointer;
+    min-height: 30px; /* タップ領域28px以上をフォント差に依らず保証 */
 }
 
 .btn:hover {

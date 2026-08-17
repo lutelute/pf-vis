@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>アルゴリズム・シミュレータ — 潮流計算の「歩き方」を再生する</title>
-<link rel="stylesheet" href="styles/main.css">
+<link rel="stylesheet" href="styles/main.css?v=3">
 <style>
 /* ===== シミュレータ固有スタイル（和紙・墨・青緑1本の流儀に従う） ===== */
 .sim-wrap { max-width: 1100px; margin: 0 auto; padding: 18px 20px 80px; }
@@ -789,6 +789,7 @@ function rebuild() {
             els.pvStatus.textContent = '';
         } else {
             renderPVChart();
+            window.simState.noseLambda = pvCache.curve.noseLambda; // rebuildでsimStateが作り直されるため復元
         }
         els.pvBtn.disabled = false;
     }
