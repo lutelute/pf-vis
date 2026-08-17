@@ -113,6 +113,9 @@ python3 tests/check_layout.py      # ④ レイアウト検証: 3画面幅×全�
 四層の検証体制: エンジンの数学 → ページの動作 → 画面に出る数値 → 画面の見え方、を
 それぞれ別のテストが守ります（改善の経緯は [docs/layout_improvement_log.md](./docs/layout_improvement_log.md)）。
 
+**この4層はデプロイ前にCIで必須実行されます**（`.github/workflows/deploy.yml` の test ジョブ。
+1つでも落ちると GitHub Pages には公開されません）。つまり公開中のサイトは常に全テスト通過済みです。
+
 ## 📈 収録系統データ（MATPOWER v2形式）
 
 | 系統 | 母線数 | 枝数 | 発電機数 | 特徴 |
