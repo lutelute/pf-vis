@@ -30,6 +30,11 @@
     .dash-tile .v small { font-size: 0.8rem; color: var(--text-secondary); font-family: inherit; }
     .dash-tile .note { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
     .cta-tile { display: flex; flex-direction: column; justify-content: center; gap: 8px; border-left: 3px solid var(--accent-blue); }
+    /* 初見はゼロの進捗を見せず「できること」を出す（JSが状態で切り替える） */
+    .intro-tile { display: none; }
+    .dash-grid.is-new { grid-template-columns: 1.35fr 1fr; }
+    .dash-grid.is-new .intro-tile { display: flex; flex-direction: column; justify-content: center; }
+    .dash-grid.is-new .prog-tile { display: none; }
     .cta-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
     .cta-main { background: var(--accent-blue); color: #fff !important; border: none; border-radius: 8px; padding: 9px 16px; font-weight: 700; font-size: 0.92rem; text-decoration: none; display: inline-flex; align-items: center; min-height: 34px; }
     .cta-sub { color: var(--accent-blue) !important; border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; text-decoration: none; display: inline-flex; align-items: center; min-height: 32px; background: var(--bg-card); }
@@ -49,10 +54,10 @@
     .demo-ctl button { font-size: 0.78rem; border: 1px solid var(--border); background: var(--bg-surface); color: var(--text-primary); border-radius: 6px; padding: 5px 10px; min-height: 28px; cursor: pointer; }
     .demo-ctl button:hover { border-color: var(--accent-blue); color: var(--accent-blue); }
     .demo-ctl a { font-size: 0.78rem; color: var(--accent-blue); }
-    .demo-body { display: flex; gap: 12px; align-items: stretch; margin-top: 6px; flex-wrap: wrap; }
-    .demo-body canvas { border-radius: 6px; background: var(--bg-surface); max-width: 100%; height: auto; }
-    #demoNet { flex: 2 1 320px; }
-    #demoConv { flex: 1 1 200px; }
+    /* 2カラム固定のグリッド。折り返し時に片方だけ細く残る崩れを防ぐ */
+    .demo-body { display: grid; grid-template-columns: 1.6fr 1fr; gap: 12px; margin-top: 6px; }
+    .demo-body canvas { border-radius: 6px; background: var(--bg-surface); width: 100%; display: block; }
+    @media (max-width: 760px) { .demo-body { grid-template-columns: 1fr; } }
     .demo-foot { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
 
     .sec-h { display: flex; align-items: baseline; gap: 10px; margin: 20px 0 8px; border-bottom: 2px solid var(--border); padding-bottom: 5px; }
@@ -65,7 +70,13 @@
     .hub-card .hname { font-weight: 700; font-size: 1.0rem; color: var(--text-primary); }
     .hub-card .hdesc { font-size: 0.8rem; color: var(--text-secondary); }
     .tool-map { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-    .stage-col { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+    /* 内容の高さに合わせる（均等ストレッチだと1〜2列目が半分空く） */
+    .stage-col { background: var(--bg-surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px; align-self: start; }
+    /* 段階が進むほど濃い墨 — 色を増やさずに順序を示す（和紙・墨の流儀） */
+    .tool-map .stage-col:nth-child(1) { border-top: 3px solid rgba(82,80,74,0.25); }
+    .tool-map .stage-col:nth-child(2) { border-top: 3px solid rgba(82,80,74,0.45); }
+    .tool-map .stage-col:nth-child(3) { border-top: 3px solid rgba(82,80,74,0.65); }
+    .tool-map .stage-col:nth-child(4) { border-top: 3px solid rgba(82,80,74,0.85); }
     .stage-col .sh { font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.04em; padding: 2px 6px 6px; }
     .tool-card { display: block; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; padding: 9px 11px; margin-bottom: 8px; text-decoration: none; }
     .tool-card:last-child { margin-bottom: 0; }
@@ -75,7 +86,8 @@
     .badge { font-size: 0.66rem; color: var(--accent-blue); border: 1px solid var(--accent-blue); border-radius: 10px; padding: 1px 7px; white-space: nowrap; font-weight: 600; }
 
     /* 学習の道すじ（帯） */
-    .band { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
+    /* 帯は外枠を持たず左罫線だけにする（角丸ボックスの入れ子で線が増えるのを避ける） */
+    .band { background: transparent; border: none; border-left: 3px solid var(--border); border-radius: 0; padding: 6px 0 10px 14px; margin-bottom: 10px; }
     .band .bh { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
     .band .bh b { font-size: 0.86rem; color: var(--text-primary); }
     .band .bh span { font-size: 0.74rem; color: var(--text-muted); }
@@ -99,9 +111,13 @@
     @media (max-width: 1000px) { .tool-map { grid-template-columns: repeat(2, 1fr); } .dash-grid { grid-template-columns: 1fr 1fr; } .cta-tile { grid-column: 1 / -1; } }
     @media (max-width: 620px) {
         .tool-map { grid-template-columns: 1fr; }
-        .dash-grid { grid-template-columns: 1fr; }
+        .dash-grid, .dash-grid.is-new { grid-template-columns: 1fr; }
         .sec-h { flex-direction: column; align-items: flex-start; gap: 2px; }
         .sec-h h2 { white-space: nowrap; }
+        /* ファーストビューをライブデモまで届かせる: フッターにもある導線は省く */
+        .dash-header nav a.opt { display: none; }
+        .dash-header { padding-bottom: 6px; }
+        .dash-tile { padding: 10px 14px; }
     }
     </style>
 </head>
@@ -120,12 +136,12 @@
                 <a href="map.html">&#128506; 学習アトラス</a>
                 <a href="#path">道すじ</a>
                 <a href="#docs">検証と資料</a>
-                <a href="https://github.com/lutelute/pf-vis">GitHub</a>
+                <a class="opt" href="https://github.com/lutelute/pf-vis">GitHub</a>
             </nav>
         </header>
 
-        <!-- ① 次の一手 + 進捗 -->
-        <div class="dash-grid">
+        <!-- ① 次の一手 + 進捗（初見は進捗ゼロを見せず「できること」を出す） -->
+        <div class="dash-grid is-new" id="dashGrid">
             <div class="dash-tile cta-tile" id="ctaTile">
                 <div class="k">次の一手</div>
                 <div class="cta-row" id="ctaRow">
@@ -134,29 +150,26 @@
                 </div>
                 <div class="cta-hint" id="ctaHint">最初は「収束体感」→「計算過程」の順がおすすめです。</div>
             </div>
-            <div class="dash-tile">
+            <div class="dash-tile intro-tile">
+                <div class="k">このサイトでできること</div>
+                <div class="v" style="font-size:0.95rem;line-height:1.6;font-family:inherit">
+                    潮流計算を<b>動かして確かめる</b> — 全20教材
+                </div>
+                <div class="note">シミュレータ8 ・ 講義4本 ・ ラダー6段 ・ 演習18問／最初の1本は5分</div>
+            </div>
+            <div class="dash-tile prog-tile">
                 <div class="k">昇級課題（ラダー）</div>
                 <div class="v"><span id="ladderDone">0</span><small> / 6 段</small></div>
                 <div class="note" id="ladderNote">この端末のブラウザに保存</div>
             </div>
-            <div class="dash-tile">
+            <div class="dash-tile prog-tile">
                 <div class="k">演習の自動判定</div>
                 <div class="v"><span id="exDone">0</span><small> / 22 入力欄</small></div>
                 <div class="note"><a href="exercises.html" style="color:var(--accent-blue)">演習を開く</a>（全18問）</div>
             </div>
         </div>
 
-        <!-- ② 検証帯（このサイトの検証基盤 — 範囲を明示する） -->
-        <div class="verify-band">
-            <span class="lbl">&#9989; 検証基盤:</span>
-            <span>共有エンジン <b>59</b>テスト（MATPOWER公式解照合・モデル性質・有限差分ヤコビアン）</span>
-            <span>E2E数値回帰 <b>85</b>項目（各ページの画面上の数値を検証）</span>
-            <span>ページ動作 <b>22</b>ページ / レイアウト <b>5</b>画面幅</span>
-            <span>全テストは<b>デプロイ前にCIで必須実行</b>（落ちると公開されない）</span>
-            <span><a href="README.md">検証の詳細 →</a></span>
-        </div>
-
-        <!-- ②b ライブデモ — ハブ自体が動く（process_nn ブループリント準拠） -->
+        <!-- ② ライブデモ — ハブ自体が動く（process_nn ブループリント準拠） -->
         <div class="demo-strip" id="demoStrip">
             <div class="demo-head">
                 <b>&#9889; いま解いてみる</b>
@@ -173,6 +186,16 @@
                 <canvas id="demoConv" width="260" height="240" aria-label="収束曲線"></canvas>
             </div>
             <div class="demo-foot" id="demoFoot">橙のにじみ＝各母線に残る帳尻の狂い（ミスマッチ）。反復のたびに消えていきます。</div>
+        </div>
+
+        <!-- ③ 検証帯（このサイトの検証基盤 — 範囲を明示する） -->
+        <div class="verify-band">
+            <span class="lbl">&#9989; 検証基盤:</span>
+            <span>共有エンジン <b>59</b>テスト（MATPOWER公式解照合・モデル性質・有限差分ヤコビアン）</span>
+            <span>E2E数値回帰 <b>95</b>項目（各ページの画面上の数値を検証）</span>
+            <span>ページ動作 <b>22</b>ページ / レイアウト <b>5</b>画面幅</span>
+            <span>全テストは<b>デプロイ前にCIで必須実行</b>（落ちると公開されない）</span>
+            <span><a href="README.md">検証の詳細 →</a></span>
         </div>
 
         <!-- ③ ツール機能地図 -->
@@ -221,7 +244,7 @@
             <div class="doc-card"><b>&#128203; README</b>プロジェクト概要・検証4層の実行方法<br><a href="README.md">開く →</a></div>
             <div class="doc-card"><b>&#128300; 技術ノート</b>潮流計算手法の詳解<br><a href="docs/power_flow_methods.md">開く →</a></div>
             <div class="doc-card"><b>&#128214; 全文書一覧</b>各ツールの技術文書・保守メモ<br><a href="docs/">開く →</a></div>
-            <div class="doc-card"><b>&#128193; 実装の構成</b>共有エンジン scripts/power_flow_engine.js ほか<br><a href="README.md">README の構成図へ →</a>・<a href="archive/README.md">旧版アーカイブ</a></div>
+            <div class="doc-card"><b>&#128736; 実装と保守</b>共有エンジンの実装一覧・再発防止メモ<br><a href="docs/algorithm_inventory.md">開く →</a>・<a href="archive/README.md">旧版アーカイブ</a></div>
         </div>
 
         <footer class="dash-footer">
@@ -294,6 +317,8 @@
         }
         function refresh() {
             var prog = window.PFVisProgress.summary();
+            // 初見はゼロ進捗を出さず「できること」を、再訪は進捗2枚を出す
+            byId('dashGrid').classList.toggle('is-new', prog.isNew);
             byId('ladderDone').textContent = prog.ladderDone;
             byId('exDone').textContent = prog.exDone;
             byId('exChipNote').textContent = prog.exDone > 0 ? '自動判定 ' + prog.exDone + '/22' : '';
@@ -328,9 +353,11 @@
     (function () {
         'use strict';
         var REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        // シミュレータと同じ手置き座標（w640×h430 基準）
-        var POS = { 1: [320, 405], 2: [50, 95], 3: [590, 95], 4: [320, 340], 5: [485, 275],
-                    6: [485, 145], 7: [320, 80], 8: [155, 145], 9: [155, 275] };
+        // ダッシュボード用の横長レイアウト（w640×h320 基準 = 帯の2:1に一致させ余白を作らない）。
+        // トポロジは WSCC 9母線そのまま: 環 4-5-6-7-8-9-4 に発電機 1(→4)・3(→6)・2(→8) が外側から刺さる
+        var LAY_W = 640, LAY_H = 320;
+        var POS = { 1: [30, 160], 4: [120, 160], 5: [240, 70], 6: [400, 70], 7: [530, 160],
+                    8: [400, 250], 9: [240, 250], 3: [470, 25], 2: [470, 295] };
         var TYPE_COLOR = { 3: '#8f6625', 2: '#197b6c', 1: '#52504a' };
 
         var eng = new window.PowerFlowEngine(window.IEEE_9_BUS);
@@ -351,28 +378,35 @@
         var netCv = document.getElementById('demoNet');
         var convCv = document.getElementById('demoConv');
         var dpr = window.devicePixelRatio || 1;
-        // 実表示幅でキャンバスを確保（縮小表示で文字が潰れないように）
-        function prep(cv, aspect, maxW) {
-            cv.style.width = '100%'; cv.style.maxWidth = maxW + 'px'; cv.style.height = 'auto';
-            var w = Math.max(220, Math.min(maxW, cv.clientWidth || maxW));
-            var h = Math.round(w * aspect);
+        // 親グリッドの実表示幅でキャンバスを確保する（固定 max-width だと
+        // 折り返し時に片方だけ細く残って右に大きな空白ができる）
+        function prep(cv, h) {
+            cv.style.width = '100%';
+            var w = Math.max(220, Math.round(cv.getBoundingClientRect().width || 400));
             cv.width = w * dpr; cv.height = h * dpr;
             cv.style.height = h + 'px';
             var c = cv.getContext('2d'); c.setTransform(dpr, 0, 0, dpr, 0, 0);
             return { ctx: c, w: w, h: h };
         }
         var N, Cv;
-        function sizeAll() { N = prep(netCv, 0.5, 480); Cv = prep(convCv, 240 / 260, 260); }
+        function sizeAll() {
+            // 系統図はレイアウト比(640:320)を保ち、収束曲線は同じ高さに揃える
+            netCv.style.width = '100%';
+            var nw = Math.max(220, Math.round(netCv.getBoundingClientRect().width || 400));
+            var nh = Math.max(150, Math.min(320, Math.round(nw * LAY_H / LAY_W)));
+            N = prep(netCv, nh);
+            Cv = prep(convCv, nh);
+        }
         sizeAll();
         var rsT = null;
         window.addEventListener('resize', function () {
             clearTimeout(rsT); rsT = setTimeout(sizeAll, 200);
         });
         var busTypes = window.IEEE_9_BUS.bus.map(function (b) { return b[1]; });
-        var m0 = 22;
+        var m0 = 16;
         function P(id) {
-            var sc = Math.min((N.w - 2 * m0) / 640, (N.h - 2 * m0) / 430);
-            var ox = m0 + (N.w - 2 * m0 - 640 * sc) / 2, oy = m0 + (N.h - 2 * m0 - 430 * sc) / 2;
+            var sc = Math.min((N.w - 2 * m0) / LAY_W, (N.h - 2 * m0) / LAY_H);
+            var ox = m0 + (N.w - 2 * m0 - LAY_W * sc) / 2, oy = m0 + (N.h - 2 * m0 - LAY_H * sc) / 2;
             return [ox + POS[id][0] * sc, oy + POS[id][1] * sc];
         }
 
